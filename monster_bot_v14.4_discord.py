@@ -1,7 +1,7 @@
 """
 ╔══════════════════════════════════════════════════════════════════════════╗
-║  MONSTER BOT v14.4 - TITAN INTERACTIVE (PAPER TRADING)                   ║
-║  Enhanced Execution + Risk Management + Smart Exit                       ║
+║  MONSTER BOT v14.4 - BTC GOLDEN RATIO (27% BACKTEST WIN)                 ║
+║  FULL UI + TradingView + Background Execution                            ║
 ╚══════════════════════════════════════════════════════════════════════════╝
 """
 
@@ -13,357 +13,75 @@ import torch.nn as nn
 import streamlit as st
 import streamlit.components.v1 as components
 import time
-from datetime import datetime, timedelta
-from scipy import signal as scipy_signal
-import warnings
-import logging
-import requests
+import threading
+import json
 import os
+import gc
+import requests
+from datetime import datetime, timedelta
+from pathlib import Path
+import logging
 
 # ════════════════════════════════════════════════════════════════════════════
-# CONFIGURATION & CONSTANTS
+# CONFIGURATION - BTC GOLDEN RATIO FROM 27% WIN BACKTEST
 # ════════════════════════════════════════════════════════════════════════════
 
-warnings.filterwarnings('ignore')
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Thực thi lệnh thực tế
-SLIPPAGE = 0.0005  # 0.05% slippage
-COMMISSION = 0.00075  # 0.075% commission per trade
+# Trading constants
+SLIPPAGE = 0.0005
+COMMISSION = 0.00075
 
-# Live Config
-LIVE_CONFIG = {
-    'exchange': 'kraken', 
-    'symbol': 'BTC/USDT', 
+# BTC GOLDEN RATIO - Optimized Parameters
+BTC_GOLDEN_CONFIG = {
+    # Exchange & Symbol
+    'exchange': 'kraken',
+    'symbol': 'BTC/USDT',
     'timeframe': '15m',
     'sequence_length': 30,
-    'atr_multiplier_sl': 4.0,
-    'atr_multiplier_tp': 20.0,
+    
+    # AI Model Settings - Dual Threshold System
+    'temperature': 0.42,
+    'buy_threshold_trending': 0.36,
+    'sell_threshold_trending': 0.36,
+    'buy_threshold_sideway': 0.22,
+    'sell_threshold_sideway': 0.22,
+    
+    # Risk Management - BTC Optimized
+    'atr_multiplier_sl': 3.2,
+    'atr_multiplier_tp': 18.5,
+    
+    # Regime Detection
     'adx_threshold_trending': 25,
-    'temperature': 0.7,
-    'refresh_interval': 60,
-    'config': {
-        'input_dim': 29, 
-        'hidden_dim': 256, 
-        'num_lstm_layers': 2, 
-        'num_transformer_layers': 2, 
-        'num_heads': 4, 
-        'num_classes': 3
-    }
+    'adx_min': 15,
+    'adx_max': 100,
+    'use_sma_filter': True,
+    
+    # Smart Exit - BTC Tier (from backtest)
+    'enable_profit_lock': True,
+    'enable_trailing': True,
+    'profit_lock_levels': [
+        {'trigger': 1.8, 'lock': 1.2},
+        {'trigger': 3.5, 'lock': 2.8},
+        {'trigger': 5.5, 'lock': 4.5}
+    ],
+    'trailing_activation': 1.5,
+    'trailing_distance': 0.6,
+    
+    # System
+    'discord_webhook': '',
+    'heartbeat_interval': 21600,
+    'refresh_interval': 60
 }
 
-# ════════════════════════════════════════════════════════════════════════════
-# UTILITY FUNCTIONS
-# ════════════════════════════════════════════════════════════════════════════
+# File paths
+TRADE_DATA_FILE = Path("trade_data.json")
+BOT_CONFIG_FILE = Path("bot_config.json")
 
-def backup_trade_log(new_entry):
-    """Backup trade log to CSV file"""
-    file_name = "titan_audit_trail.csv"
-    df_new = pd.DataFrame([new_entry])
-    if not os.path.isfile(file_name):
-        df_new.to_csv(file_name, index=False)
-    else:
-        df_new.to_csv(file_name, mode='a', header=False, index=False)
-
-def send_discord_alert(webhook_url, msg_type, data):
-    """
-    Professional Discord Webhook alerts with Embed format
-    
-    Args:
-        webhook_url: Discord webhook URL
-        msg_type: 'entry', 'exit', 'profit_lock', 'trailing_update'
-        data: dict with relevant trade information
-    
-    Color codes:
-        - Green (BUY/Win): 0x00FF41
-        - Red (SELL/Loss): 0xFF0000
-        - Yellow (Profit Lock): 0xFFFF00
-        - Blue (Info): 0x3498DB
-    """
-    if not webhook_url:
-        return
-    
-    try:
-        embed = {}
-        timestamp = datetime.utcnow().isoformat()
-        
-        if msg_type == 'entry':
-            # Calculate R:R Ratio
-            if data['action'] == 'BUY':
-                rr_ratio = (data['tp'] - data['entry']) / (data['entry'] - data['sl'])
-            else:
-                rr_ratio = (data['entry'] - data['tp']) / (data['sl'] - data['entry'])
-            
-            # Color based on action
-            color = 0x00FF41 if data['action'] == 'BUY' else 0xFF0000
-            
-            embed = {
-                "title": f"🚀 NEW SIGNAL: {data['symbol']} {data['action']}",
-                "description": f"**Market Regime:** {data['regime']}\n**Confidence Level:** {data['confidence']:.1%}",
-                "color": color,
-                "fields": [
-                    {
-                        "name": "💰 Entry Price",
-                        "value": f"${data['entry']:,.2f}",
-                        "inline": True
-                    },
-                    {
-                        "name": "🎯 Target TP",
-                        "value": f"${data['tp']:,.2f}",
-                        "inline": True
-                    },
-                    {
-                        "name": "🛡️ Stop Loss",
-                        "value": f"${data['sl']:,.2f}",
-                        "inline": True
-                    },
-                    {
-                        "name": "📈 Risk/Reward",
-                        "value": f"{rr_ratio:.2f}:1",
-                        "inline": True
-                    },
-                    {
-                        "name": "🌊 Market State",
-                        "value": data['regime'],
-                        "inline": True
-                    },
-                    {
-                        "name": "⏰ Execution Time",
-                        "value": data['time'],
-                        "inline": True
-                    }
-                ],
-                "footer": {
-                    "text": f"Monster Bot v14.4 | Paper Trading"
-                },
-                "timestamp": timestamp
-            }
-        
-        elif msg_type == 'exit':
-            # Determine color based on PnL
-            if data['pnl'] > 0:
-                color = 0x00FF41  # Green for profit
-                pnl_emoji = "💰"
-            else:
-                color = 0xFF0000  # Red for loss
-                pnl_emoji = "💀"
-            
-            # Reason emoji mapping
-            reason_emoji = {
-                'TAKE_PROFIT': '🎯',
-                'STOP_LOSS': '🛑',
-                'TRAILING_STOP': '🔄',
-                'PROFIT_LOCK': '🔒',
-                'PROFIT_LOCK_1.5%': '🔒',
-                'PROFIT_LOCK_3%': '🔒',
-                'PROFIT_LOCK_5%': '🔒',
-                'TIMEOUT': '⏱️'
-            }.get(data['reason'], '🏁')
-            
-            embed = {
-                "title": f"{pnl_emoji} POSITION CLOSED: {data['symbol']} {data['action']}",
-                "description": f"{reason_emoji} **Exit Reason:** {data['reason']}",
-                "color": color,
-                "fields": [
-                    {
-                        "name": "💵 Entry Price",
-                        "value": f"${data['entry']:,.2f}",
-                        "inline": True
-                    },
-                    {
-                        "name": "💵 Exit Price",
-                        "value": f"${data['exit']:,.2f}",
-                        "inline": True
-                    },
-                    {
-                        "name": "⏱️ Duration",
-                        "value": data['duration'],
-                        "inline": True
-                    },
-                    {
-                        "name": "📊 Net PnL",
-                        "value": f"**{data['pnl']:+.2%}**",
-                        "inline": True
-                    },
-                    {
-                        "name": "🔄 Gross PnL",
-                        "value": f"{data['gross_pnl']:+.2%}",
-                        "inline": True
-                    },
-                    {
-                        "name": "💸 Trading Fees",
-                        "value": f"{data['fees']:.3%}",
-                        "inline": True
-                    }
-                ],
-                "footer": {
-                    "text": f"Monster Bot v14.4 | Closed at {data['time']}"
-                },
-                "timestamp": timestamp
-            }
-        
-        elif msg_type == 'profit_lock':
-            # Yellow color for profit lock updates
-            embed = {
-                "title": f"🔒 PROFIT LOCK ACTIVATED: {data['symbol']}",
-                "description": f"**Stop Loss Updated to Secure Profits**",
-                "color": 0xFFFF00,  # Yellow
-                "fields": [
-                    {
-                        "name": "📈 Current Profit",
-                        "value": f"{data['current_pnl']:+.2%}",
-                        "inline": True
-                    },
-                    {
-                        "name": "🛡️ Old Stop Loss",
-                        "value": f"${data['old_sl']:,.2f}",
-                        "inline": True
-                    },
-                    {
-                        "name": "🛡️ New Stop Loss",
-                        "value": f"${data['new_sl']:,.2f}",
-                        "inline": True
-                    },
-                    {
-                        "name": "💰 Current Price",
-                        "value": f"${data['current_price']:,.2f}",
-                        "inline": True
-                    },
-                    {
-                        "name": "🔒 Lock Level",
-                        "value": data['lock_level'],
-                        "inline": True
-                    },
-                    {
-                        "name": "⏰ Update Time",
-                        "value": data['time'],
-                        "inline": True
-                    }
-                ],
-                "footer": {
-                    "text": "Monster Bot v14.4 | Dynamic Risk Management"
-                },
-                "timestamp": timestamp
-            }
-        
-        elif msg_type == 'trailing_update':
-            # Blue color for trailing stop updates
-            embed = {
-                "title": f"🔄 TRAILING STOP UPDATED: {data['symbol']}",
-                "description": f"**Stop Loss Following Price Movement**",
-                "color": 0x3498DB,  # Blue
-                "fields": [
-                    {
-                        "name": "📈 Highest Price",
-                        "value": f"${data['highest_price']:,.2f}",
-                        "inline": True
-                    },
-                    {
-                        "name": "🛡️ New Stop Loss",
-                        "value": f"${data['new_sl']:,.2f}",
-                        "inline": True
-                    },
-                    {
-                        "name": "💰 Current Price",
-                        "value": f"${data['current_price']:,.2f}",
-                        "inline": True
-                    }
-                ],
-                "footer": {
-                    "text": "Monster Bot v14.4 | Trailing Stop Active"
-                },
-                "timestamp": timestamp
-            }
-        
-        else:
-            return
-        
-        # Send webhook
-        payload = {"embeds": [embed]}
-        response = requests.post(webhook_url, json=payload, timeout=5)
-        
-        if response.status_code == 204:
-            logger.info(f"Discord alert sent successfully: {msg_type}")
-        else:
-            logger.warning(f"Discord alert failed: {response.status_code} - {response.text}")
-    
-    except Exception as e:
-        logger.error(f"Discord Webhook Error: {e}")
-
-def display_logic_gate(check_results, metrics):
-    """Hiển thị thông số với viền phát sáng (Glow) chuẩn style Titan"""
-    cols = st.columns(len(check_results))
-    for i, (label, passed) in enumerate(check_results.items()):
-        color = "#00FF41" if passed else "#FF0000"
-        with cols[i]:
-            st.markdown(f"""
-            <div style="padding: 15px; border: 2px solid {color}; background: rgba(0, 30, 0, 0.4);
-                box-shadow: 0 0 15px {color}44;text-align: center;border-radius: 8px;
-                margin-bottom: 10px;font-family: 'Fira Code', monospace;">
-                <div style="color: {color}; font-size: 11px; text-shadow: 0 0 5px {color}; opacity: 0.8;">{label}</div>
-                <div style="color: white; font-size: 18px; font-weight: bold; margin: 8px 0;">{metrics.get(label, 'N/A')}</div>
-                <div style="color: {color}; font-size: 9px; letter-spacing: 1px;">{">> PASS" if passed else ">> FAIL"}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-def display_position_progress(position, current_price):
-    """Display visual progress bar showing distance to TP/SL"""
-    if position is None:
-        return
-    
-    entry = position['Entry']
-    sl = position['SL']
-    tp = position['TP']
-    
-    # Calculate position in range
-    if position['Action'] == 'BUY':
-        total_range = tp - sl
-        price_from_sl = current_price - sl
-        progress = (price_from_sl / total_range) * 100 if total_range > 0 else 50
-    else:  # SELL
-        total_range = sl - tp
-        price_from_tp = current_price - tp
-        progress = (price_from_tp / total_range) * 100 if total_range > 0 else 50
-    
-    progress = max(0, min(100, progress))
-    
-    # Calculate current PnL
-    if position['Action'] == 'BUY':
-        gross_pnl = ((current_price - entry) / entry) * 100
-    else:
-        gross_pnl = ((entry - current_price) / entry) * 100
-    
-    net_pnl = gross_pnl - (2 * COMMISSION * 100)
-    
-    # Color coding
-    if net_pnl > 0:
-        pnl_color = "#00FF41"
-    elif net_pnl < -1:
-        pnl_color = "#FF0000"
-    else:
-        pnl_color = "#FFFF00"
-    
-    st.markdown(f"""
-    <div style="background: rgba(0, 20, 0, 0.6); padding: 15px; border: 1px solid #004400; border-radius: 8px; margin: 10px 0;">
-        <div style="color: #00FF41; font-size: 14px; font-family: 'Fira Code', monospace; margin-bottom: 10px;">
-            ACTIVE POSITION: {position['Action']} @ ${entry:,.2f}
-        </div>
-        <div style="background: #001100; height: 30px; border-radius: 5px; position: relative; overflow: hidden;">
-            <div style="position: absolute; left: 0; top: 0; height: 100%; width: {progress}%; 
-                background: linear-gradient(90deg, #FF0000 0%, #FFFF00 50%, #00FF41 100%); 
-                transition: width 0.3s;"></div>
-            <div style="position: absolute; width: 100%; height: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 10px; font-size: 11px; color: white; font-family: 'Fira Code', monospace;">
-                <span>SL: ${sl:,.1f}</span>
-                <span style="color: {pnl_color}; font-weight: bold; font-size: 14px;">{net_pnl:+.2f}%</span>
-                <span>TP: ${tp:,.1f}</span>
-            </div>
-        </div>
-        <div style="color: #888; font-size: 10px; margin-top: 5px; text-align: right; font-family: 'Fira Code', monospace;">
-            Current: ${current_price:,.2f} | Gross: {gross_pnl:+.2f}% | Fees: {(2*COMMISSION*100):.2f}%
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+# Global state
+BOT_RUNNING = False
+STATE_LOCK = threading.Lock()
 
 # ════════════════════════════════════════════════════════════════════════════
 # MODEL ARCHITECTURE
@@ -378,7 +96,8 @@ class PositionalEncoding(nn.Module):
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         self.register_buffer('pe', pe.unsqueeze(0))
-    def forward(self, x): 
+    
+    def forward(self, x):
         return x + self.pe[:, :x.size(1), :]
 
 class SEBlock(nn.Module):
@@ -386,34 +105,31 @@ class SEBlock(nn.Module):
         super().__init__()
         self.fc1 = nn.Linear(channels, channels // reduction)
         self.fc2 = nn.Linear(channels // reduction, channels)
+    
     def forward(self, x):
         s = x.mean(dim=1)
         e = torch.sigmoid(self.fc2(torch.relu(self.fc1(s))))
         return x * e.unsqueeze(1)
 
 class HybridTransformerLSTM(nn.Module):
-    def __init__(self, config):
+    def __init__(self, input_dim=29, hidden_dim=256):
         super().__init__()
-        self.hidden_dim = config['hidden_dim']
-        self.input_proj = nn.Linear(config['input_dim'], self.hidden_dim)
-        self.pos_encoding = PositionalEncoding(self.hidden_dim)
+        self.hidden_dim = hidden_dim
+        self.input_proj = nn.Linear(input_dim, hidden_dim)
+        self.pos_encoding = PositionalEncoding(hidden_dim)
+        
         encoder_layer = nn.TransformerEncoderLayer(
-            d_model=self.hidden_dim, nhead=config['num_heads'], 
-            dim_feedforward=self.hidden_dim * 4, 
-            dropout=config.get('dropout', 0.3), 
-            batch_first=True
+            d_model=hidden_dim, nhead=4,
+            dim_feedforward=hidden_dim * 4,
+            dropout=0.3, batch_first=True
         )
-        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=config['num_transformer_layers'])
-        self.lstm = nn.LSTM(
-            self.hidden_dim, self.hidden_dim, 
-            num_layers=config['num_lstm_layers'], 
-            batch_first=True, bidirectional=True
-        )
-        self.se_block = SEBlock(self.hidden_dim * 2, config.get('se_reduction_ratio', 16))
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=2)
+        self.lstm = nn.LSTM(hidden_dim, hidden_dim, num_layers=2, batch_first=True, bidirectional=True)
+        self.se_block = SEBlock(hidden_dim * 2, 16)
         self.classifier = nn.Sequential(
-            nn.Linear(self.hidden_dim * 2, self.hidden_dim), 
-            nn.ReLU(), 
-            nn.Linear(self.hidden_dim, config['num_classes'])
+            nn.Linear(hidden_dim * 2, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, 3)
         )
     
     def forward(self, x):
@@ -422,30 +138,229 @@ class HybridTransformerLSTM(nn.Module):
         x, _ = self.lstm(x)
         return self.classifier(self.se_block(x)[:, -1, :])
 
+@st.cache_resource
+def load_model():
+    """Load model once and cache"""
+    logger.info("Loading AI model...")
+    model = HybridTransformerLSTM(input_dim=29, hidden_dim=256)
+    model.eval()
+    logger.info("Model loaded successfully")
+    return model
+
+# ════════════════════════════════════════════════════════════════════════════
+# PERSISTENT STORAGE
+# ════════════════════════════════════════════════════════════════════════════
+
+def load_trade_data():
+    """Load all trade data from JSON"""
+    if TRADE_DATA_FILE.exists():
+        try:
+            with open(TRADE_DATA_FILE, 'r') as f:
+                data = json.load(f)
+                logger.info(f"Loaded {len(data.get('trades', []))} trades")
+                return data
+        except Exception as e:
+            logger.error(f"Error loading trade data: {e}")
+    
+    return {
+        'active_position': None,
+        'pending_order': None,
+        'trades': [],
+        'bot_start_time': datetime.now().isoformat(),
+        'last_heartbeat': None
+    }
+
+def save_trade_data(data):
+    """Save trade data immediately"""
+    try:
+        with STATE_LOCK:
+            with open(TRADE_DATA_FILE, 'w') as f:
+                json.dump(data, f, indent=2)
+    except Exception as e:
+        logger.error(f"Error saving trade data: {e}")
+
+def load_bot_config():
+    """Load configuration"""
+    if BOT_CONFIG_FILE.exists():
+        try:
+            with open(BOT_CONFIG_FILE, 'r') as f:
+                saved = json.load(f)
+                config = BTC_GOLDEN_CONFIG.copy()
+                config.update(saved)
+                return config
+        except Exception as e:
+            logger.error(f"Error loading config: {e}")
+    return BTC_GOLDEN_CONFIG.copy()
+
+def save_bot_config(config):
+    """Save configuration"""
+    try:
+        with open(BOT_CONFIG_FILE, 'w') as f:
+            json.dump(config, f, indent=2)
+    except Exception as e:
+        logger.error(f"Error saving config: {e}")
+
+# ════════════════════════════════════════════════════════════════════════════
+# DISCORD EMBEDS V2
+# ════════════════════════════════════════════════════════════════════════════
+
+def send_discord_alert(webhook_url, msg_type, data):
+    """Professional Discord alerts with full details"""
+    if not webhook_url:
+        return
+    
+    try:
+        timestamp = datetime.utcnow().isoformat()
+        
+        if msg_type == 'heartbeat':
+            embed = {
+                "embeds": [{
+                    "title": "💚 BOT HEARTBEAT - BTC GOLDEN RATIO",
+                    "description": f"**Uptime:** {data.get('uptime', 'N/A')}\n**Mode:** 24/7 Background",
+                    "color": 0x00FF41,
+                    "fields": [
+                        {"name": "📊 Status", "value": "Active & Monitoring", "inline": True},
+                        {"name": "🔄 Last Check", "value": datetime.now().strftime("%H:%M:%S"), "inline": True}
+                    ],
+                    "footer": {"text": "Monster Bot v14.4 BTC | Golden Ratio"},
+                    "timestamp": timestamp
+                }]
+            }
+        
+        elif msg_type == 'entry':
+            # Calculate R:R with fees included
+            entry_with_slippage = data['entry']
+            if data['action'] == 'BUY':
+                rr_ratio = (data['tp'] - entry_with_slippage) / (entry_with_slippage - data['sl'])
+            else:
+                rr_ratio = (entry_with_slippage - data['tp']) / (data['sl'] - entry_with_slippage)
+            
+            color = 0x00FF41 if data['action'] == 'BUY' else 0xFF0000
+            
+            embed = {
+                "embeds": [{
+                    "title": f"🚀 NEW SIGNAL: {data['symbol']} {data['action']}",
+                    "description": f"**Regime:** {data['regime']} | **AI Confidence:** {data['confidence']:.1%}",
+                    "color": color,
+                    "fields": [
+                        {"name": "💰 Entry (w/ fees)", "value": f"${entry_with_slippage:,.2f}", "inline": True},
+                        {"name": "🎯 Take Profit", "value": f"${data['tp']:,.2f}", "inline": True},
+                        {"name": "🛡️ Stop Loss", "value": f"${data['sl']:,.2f}", "inline": True},
+                        {"name": "📈 R:R Ratio", "value": f"{rr_ratio:.2f}:1", "inline": True},
+                        {"name": "🌊 Market Type", "value": data['regime'], "inline": True},
+                        {"name": "⏰ Entry Time", "value": datetime.now().strftime("%H:%M:%S"), "inline": True}
+                    ],
+                    "footer": {"text": "BTC Golden Ratio | 27% Backtest Win"},
+                    "timestamp": timestamp
+                }]
+            }
+        
+        elif msg_type == 'exit':
+            color = 0x00FF41 if data['pnl'] > 0 else 0xFF0000
+            pnl_emoji = "💰" if data['pnl'] > 0 else "💀"
+            
+            # Reason with emoji
+            reason_map = {
+                'TAKE_PROFIT': '🎯 Take Profit',
+                'STOP_LOSS': '🛑 Stop Loss',
+                'PROFIT_LOCK_1.2%': '🔒 Profit Lock 1.2%',
+                'PROFIT_LOCK_2.8%': '🔒 Profit Lock 2.8%',
+                'PROFIT_LOCK_4.5%': '🔒 Profit Lock 4.5%',
+                'TRAILING_STOP': '🔄 Trailing Stop'
+            }
+            reason_text = reason_map.get(data['reason'], data['reason'])
+            
+            embed = {
+                "embeds": [{
+                    "title": f"{pnl_emoji} POSITION CLOSED: {data['symbol']} {data['action']}",
+                    "description": f"**Exit Reason:** {reason_text}",
+                    "color": color,
+                    "fields": [
+                        {"name": "💵 Entry Price", "value": f"${data['entry']:,.2f}", "inline": True},
+                        {"name": "💵 Exit Price", "value": f"${data['exit']:,.2f}", "inline": True},
+                        {"name": "⏱️ Duration", "value": data['duration'], "inline": True},
+                        {"name": "📊 Net PnL (after fees)", "value": f"**{data['pnl']:+.2%}**", "inline": True},
+                        {"name": "🔄 Gross PnL", "value": f"{data['gross_pnl']:+.2%}", "inline": True},
+                        {"name": "💸 Total Fees", "value": f"{data['fees']:.3%}", "inline": True}
+                    ],
+                    "footer": {"text": f"BTC Golden Ratio | Closed at {datetime.now().strftime('%H:%M:%S')}"},
+                    "timestamp": timestamp
+                }]
+            }
+        
+        elif msg_type == 'profit_lock':
+            embed = {
+                "embeds": [{
+                    "title": f"🔒 PROFIT LOCK ACTIVATED: {data['symbol']}",
+                    "description": "**Stop Loss Moved to Secure Profits**",
+                    "color": 0xFFFF00,
+                    "fields": [
+                        {"name": "📈 Current Profit", "value": f"+{data['current_pnl']:.2%}", "inline": True},
+                        {"name": "🛡️ Old SL", "value": f"${data['old_sl']:,.2f}", "inline": True},
+                        {"name": "🛡️ New SL", "value": f"${data['new_sl']:,.2f}", "inline": True},
+                        {"name": "💰 Current Price", "value": f"${data['current_price']:,.2f}", "inline": True},
+                        {"name": "🔒 Lock Level", "value": data['lock_level'], "inline": True},
+                        {"name": "⏰ Update Time", "value": datetime.now().strftime("%H:%M:%S"), "inline": True}
+                    ],
+                    "footer": {"text": "BTC Golden Ratio | Dynamic Risk Management"},
+                    "timestamp": timestamp
+                }]
+            }
+        
+        elif msg_type == 'trailing_update':
+            embed = {
+                "embeds": [{
+                    "title": f"🔄 TRAILING STOP UPDATED: {data['symbol']}",
+                    "description": "**Stop Loss Following Price Movement**",
+                    "color": 0x3498DB,
+                    "fields": [
+                        {"name": "📈 Highest Price", "value": f"${data['highest_price']:,.2f}", "inline": True},
+                        {"name": "🛡️ New Stop Loss", "value": f"${data['new_sl']:,.2f}", "inline": True},
+                        {"name": "💰 Current Price", "value": f"${data['current_price']:,.2f}", "inline": True}
+                    ],
+                    "footer": {"text": "BTC Golden Ratio | Trailing Active"},
+                    "timestamp": timestamp
+                }]
+            }
+        
+        else:
+            return
+        
+        response = requests.post(webhook_url, json=embed, timeout=5)
+        if response.status_code == 204:
+            logger.info(f"Discord alert sent: {msg_type}")
+    
+    except Exception as e:
+        logger.error(f"Discord error: {e}")
+
 # ════════════════════════════════════════════════════════════════════════════
 # FEATURE ENGINEERING
 # ════════════════════════════════════════════════════════════════════════════
 
-def enrich_features_v13(df):
-    """Feature engineering với các chỉ báo kỹ thuật"""
+def enrich_features(df):
+    """Feature engineering"""
     df = df.copy()
+    
     df['log_return'] = np.log(df['Close'] / df['Close'].shift(1))
+    
+    # ATR
     tr = pd.concat([
-        df['High']-df['Low'], 
-        abs(df['High']-df['Close'].shift(1)), 
+        df['High']-df['Low'],
+        abs(df['High']-df['Close'].shift(1)),
         abs(df['Low']-df['Close'].shift(1))
     ], axis=1).max(axis=1)
     df['ATR'] = tr.rolling(14).mean()
+    
     df['SMA200'] = df['Close'].rolling(200).mean()
     
     # ADX
     p = 14
     plus_dm = np.where(
-        (df['High'].diff() > df['Low'].shift(1)-df['Low']), 
+        (df['High'].diff() > df['Low'].shift(1)-df['Low']),
         np.maximum(df['High'].diff(), 0), 0
     )
     minus_dm = np.where(
-        (df['Low'].shift(1)-df['Low'] > df['High'].diff()), 
+        (df['Low'].shift(1)-df['Low'] > df['High'].diff()),
         np.maximum(df['Low'].shift(1)-df['Low'], 0), 0
     )
     pdi = 100 * (pd.Series(plus_dm).rolling(p).mean() / df['ATR'])
@@ -454,28 +369,22 @@ def enrich_features_v13(df):
     
     df['SMA_distance'] = (df['Close'].rolling(20).mean() - df['Close'].rolling(50).mean()) / df['Close'].rolling(50).mean()
     
-    # Fourier features
+    # Fourier
     for i in range(1, 6):
         df[f'fourier_sin_{i}'] = np.sin(2 * np.pi * i * df.index / 100)
         df[f'fourier_cos_{i}'] = np.cos(2 * np.pi * i * df.index / 100)
     
-    # Bollinger Bands
-    df['BB_width'] = (
-        (df['Close'].rolling(20).mean() + 2*df['Close'].rolling(20).std()) - 
-        (df['Close'].rolling(20).mean() - 2*df['Close'].rolling(20).std())
-    )
-    df['BB_position'] = (
-        (df['Close'] - (df['Close'].rolling(20).mean() - 2*df['Close'].rolling(20).std())) / 
-        df['BB_width']
-    )
+    # Bollinger
+    df['BB_width'] = (df['Close'].rolling(20).mean() + 2*df['Close'].rolling(20).std()) - \
+                     (df['Close'].rolling(20).mean() - 2*df['Close'].rolling(20).std())
+    df['BB_position'] = (df['Close'] - (df['Close'].rolling(20).mean() - 2*df['Close'].rolling(20).std())) / df['BB_width']
     
-    # Additional features
     df['frac_diff_close'] = df['Close'].diff()
     df['volume_imbalance'] = df['Volume'].diff()
     df['entropy'] = df['Close'].rolling(10).std()
     df['volume_ratio'] = df['Volume'] / df['Volume'].rolling(20).mean()
-
-    # Regime indicators
+    
+    # Regime
     df['regime_trending'] = (df['ADX'] > 25).astype(int)
     df['regime_uptrend'] = ((df['SMA_distance'] > 0) & (df['regime_trending'] == 1)).astype(int)
     df['regime_downtrend'] = ((df['SMA_distance'] < 0) & (df['regime_trending'] == 1)).astype(int)
@@ -488,16 +397,16 @@ def enrich_features_v13(df):
     df['MACD'] = df['Close'].ewm(span=12).mean() - df['Close'].ewm(span=26).mean()
     df['MACD_signal'] = df['MACD'].ewm(span=9).mean()
     
-    # Volatility adjusted
+    # Volatility
     vol = df['Close'].pct_change().rolling(20).std()
     df['volatility_zscore'] = (vol - vol.rolling(100).mean()) / vol.rolling(100).std()
     df['RSI_vol_adj'] = df['RSI'] / (vol * 100)
     df['ROC_vol_adj'] = (df['Close'].pct_change(10) * 100) / (vol * 100)
-
+    
     return df.ffill().fillna(0)
 
 def apply_rolling_normalization(df, cols):
-    """Apply rolling normalization to features"""
+    """Normalize features"""
     df_norm = df.copy()
     for col in cols:
         if col in df_norm.columns:
@@ -507,26 +416,26 @@ def apply_rolling_normalization(df, cols):
     return df_norm.fillna(0)
 
 # ════════════════════════════════════════════════════════════════════════════
-# RISK MANAGEMENT & SMART EXIT
+# TRADING LOGIC
 # ════════════════════════════════════════════════════════════════════════════
 
-def update_dynamic_exit(position, current_price, enable_profit_lock, enable_trailing):
-    """
-    Cập nhật SL động dựa trên Profit Lock và Trailing Stop
+def calculate_net_pnl(entry_price, exit_price, action):
+    """Calculate PnL with fees"""
+    if action == 'BUY':
+        gross_pnl = (exit_price - entry_price) / entry_price
+    else:
+        gross_pnl = (entry_price - exit_price) / entry_price
     
-    Returns:
-        tuple: (updated_position, update_info)
-        update_info: dict with update details for alerts, or None if no update
+    net_pnl = gross_pnl - (2 * COMMISSION)
     
-    Profit Lock Levels:
-    - >= 1.5%: Move SL to Entry + 0.3%
-    - >= 3.0%: Move SL to Entry + 1.2%
-    - >= 5.0%: Move SL to Entry + 2.5%
-    
-    Trailing Stop:
-    - Activation: 1.0% profit
-    - Distance: 0.4% from highest price
-    """
+    return {
+        'gross_pnl': gross_pnl,
+        'net_pnl': net_pnl,
+        'fees': 2 * COMMISSION
+    }
+
+def update_dynamic_exit_btc(position, current_price, config):
+    """BTC Golden Ratio Smart Exit"""
     if position is None:
         return position, None
     
@@ -534,183 +443,376 @@ def update_dynamic_exit(position, current_price, enable_profit_lock, enable_trai
     action = position['Action']
     current_sl = position['SL']
     
-    # Calculate current PnL
+    # Calculate PnL
     if action == 'BUY':
         pnl_pct = ((current_price - entry) / entry) * 100
-    else:  # SELL
+    else:
         pnl_pct = ((entry - current_price) / entry) * 100
     
     new_sl = current_sl
     update_reason = None
     update_info = None
     
-    # ─── PROFIT LOCK LOGIC ───
-    if enable_profit_lock and pnl_pct > 0:
-        if pnl_pct >= 5.0:
-            target_sl = entry * (1.025 if action == 'BUY' else 0.975)
-            if (action == 'BUY' and target_sl > current_sl) or (action == 'SELL' and target_sl < current_sl):
-                new_sl = target_sl
-                update_reason = "PROFIT_LOCK_5%"
-        elif pnl_pct >= 3.0:
-            target_sl = entry * (1.012 if action == 'BUY' else 0.988)
-            if (action == 'BUY' and target_sl > current_sl) or (action == 'SELL' and target_sl < current_sl):
-                new_sl = target_sl
-                update_reason = "PROFIT_LOCK_3%"
-        elif pnl_pct >= 1.5:
-            target_sl = entry * (1.003 if action == 'BUY' else 0.997)
-            if (action == 'BUY' and target_sl > current_sl) or (action == 'SELL' and target_sl < current_sl):
-                new_sl = target_sl
-                update_reason = "PROFIT_LOCK_1.5%"
+    # Profit Lock - BTC Tier
+    if config['enable_profit_lock'] and pnl_pct > 0:
+        for level in reversed(config['profit_lock_levels']):
+            if pnl_pct >= level['trigger']:
+                lock_pct = level['lock'] / 100
+                target_sl = entry * (1 + lock_pct if action == 'BUY' else 1 - lock_pct)
+                
+                if (action == 'BUY' and target_sl > current_sl) or \
+                   (action == 'SELL' and target_sl < current_sl):
+                    new_sl = target_sl
+                    update_reason = f"PROFIT_LOCK_{level['lock']}%"
+                    break
     
-    # ─── TRAILING STOP LOGIC ───
-    if enable_trailing and pnl_pct >= 1.0:
+    # Trailing Stop
+    if config['enable_trailing'] and pnl_pct >= config['trailing_activation']:
         if 'highest_price' not in position:
-            position['highest_price'] = current_price if action == 'BUY' else current_price
+            position['highest_price'] = current_price
         
         if action == 'BUY':
             if current_price > position['highest_price']:
                 position['highest_price'] = current_price
-            trailing_sl = position['highest_price'] * 0.996  # 0.4% below highest
+            trailing_sl = position['highest_price'] * (1 - config['trailing_distance']/100)
             if trailing_sl > new_sl:
                 new_sl = trailing_sl
                 update_reason = "TRAILING_STOP"
-        else:  # SELL
+        else:
             if current_price < position['highest_price']:
                 position['highest_price'] = current_price
-            trailing_sl = position['highest_price'] * 1.004  # 0.4% above lowest
+            trailing_sl = position['highest_price'] * (1 + config['trailing_distance']/100)
             if trailing_sl < new_sl:
                 new_sl = trailing_sl
                 update_reason = "TRAILING_STOP"
     
-    # Update position if SL changed
+    # Update if changed
     if new_sl != current_sl:
         position['SL'] = new_sl
-        position['last_sl_update'] = datetime.now()
+        position['last_sl_update'] = datetime.now().isoformat()
         position['sl_update_reason'] = update_reason
         logger.info(f"SL Updated: {current_sl:.2f} → {new_sl:.2f} ({update_reason})")
         
-        # Prepare update info for alert
         update_info = {
             'old_sl': current_sl,
             'new_sl': new_sl,
             'current_price': current_price,
-            'current_pnl': pnl_pct / 100,  # Convert to decimal
-            'update_type': update_reason,
-            'highest_price': position.get('highest_price', current_price)
+            'current_pnl': pnl_pct / 100,
+            'update_type': update_reason
         }
     
     return position, update_info
 
-def calculate_actual_entry_price(market_price, action):
-    """
-    Calculate actual entry price with slippage
-    Long: market_price * (1 + SLIPPAGE)
-    Short: market_price * (1 - SLIPPAGE)
-    """
-    if action == 'BUY':
-        return market_price * (1 + SLIPPAGE)
-    else:  # SELL
-        return market_price * (1 - SLIPPAGE)
-
-def calculate_net_pnl(entry_price, exit_price, action):
-    """
-    Calculate net PnL with commission
-    Net PnL = Gross PnL - (2 * COMMISSION)
-    """
-    if action == 'BUY':
-        gross_pnl_pct = ((exit_price - entry_price) / entry_price)
-    else:  # SELL
-        gross_pnl_pct = ((entry_price - exit_price) / entry_price)
-    
-    net_pnl_pct = gross_pnl_pct - (2 * COMMISSION)
-    
-    return {
-        'gross_pnl': gross_pnl_pct,
-        'net_pnl': net_pnl_pct,
-        'fees': 2 * COMMISSION
-    }
-
 # ════════════════════════════════════════════════════════════════════════════
-# ORDER EXECUTION LOGIC
+# BOT WORKER THREAD
 # ════════════════════════════════════════════════════════════════════════════
 
-def check_limit_order_fill(pending_order, current_candle):
-    """
-    Check if limit order should be filled
-    Returns: (filled: bool, fill_price: float or None)
-    """
-    if pending_order is None:
-        return False, None
+def bot_worker():
+    """Main trading bot running in background"""
+    global BOT_RUNNING
     
-    action = pending_order['Action']
-    limit_price = pending_order['LimitPrice']
-    high = current_candle['High']
-    low = current_candle['Low']
+    logger.info("🚀 Bot worker started - BTC Golden Ratio")
+    BOT_RUNNING = True
     
-    if action == 'BUY':
-        # For BUY limit, need price to dip to or below limit
-        if low <= limit_price:
-            return True, limit_price
-    else:  # SELL
-        # For SELL limit, need price to rise to or above limit
-        if high >= limit_price:
-            return True, limit_price
+    # Load state
+    config = load_bot_config()
+    trade_data = load_trade_data()
     
-    return False, None
-
-@st.cache_resource
-def load_monster_model():
-    """Load the AI model"""
-    model = HybridTransformerLSTM(LIVE_CONFIG['config'])
-    # In production: model.load_state_dict(torch.load('model_weights.pt'))
-    model.eval()
-    return model
+    # Load model
+    model = load_model()
+    
+    # Feature columns
+    feature_cols = [
+        'log_return', 'ATR', 'BB_width', 'BB_position', 'frac_diff_close',
+        'fourier_sin_1', 'fourier_sin_2', 'fourier_sin_3', 'fourier_sin_4', 'fourier_sin_5',
+        'fourier_cos_1', 'fourier_cos_2', 'fourier_cos_3', 'fourier_cos_4', 'fourier_cos_5',
+        'volume_imbalance', 'entropy', 'volume_ratio', 'ADX', 'SMA_distance',
+        'regime_trending', 'regime_uptrend', 'regime_downtrend', 'RSI', 'MACD',
+        'MACD_signal', 'volatility_zscore', 'RSI_vol_adj', 'ROC_vol_adj'
+    ]
+    
+    # Initialize exchange
+    try:
+        exchange = ccxt.kraken({'enableRateLimit': True})
+        logger.info("Exchange connected")
+    except Exception as e:
+        logger.error(f"Exchange init error: {e}")
+        BOT_RUNNING = False
+        return
+    
+    last_heartbeat = datetime.now()
+    
+    # Main loop
+    while BOT_RUNNING:
+        try:
+            # Reload config
+            config = load_bot_config()
+            
+            # Fetch data
+            ohlcv = exchange.fetch_ohlcv(config['symbol'], config['timeframe'], limit=400)
+            df = pd.DataFrame(ohlcv, columns=['ts','Open','High','Low','Close','Volume'])
+            
+            # Features
+            df_enriched = enrich_features(df)
+            df_norm = apply_rolling_normalization(df_enriched, feature_cols)
+            
+            # Current state
+            price = df['Close'].iloc[-1]
+            atr = df_enriched['ATR'].iloc[-1]
+            adx = df_enriched['ADX'].iloc[-1]
+            sma200 = df_enriched['SMA200'].iloc[-1]
+            
+            # Heartbeat
+            if (datetime.now() - last_heartbeat).total_seconds() >= config['heartbeat_interval']:
+                uptime = datetime.now() - datetime.fromisoformat(trade_data['bot_start_time'])
+                send_discord_alert(
+                    config['discord_webhook'],
+                    'heartbeat',
+                    {'uptime': str(uptime).split('.')[0]}
+                )
+                last_heartbeat = datetime.now()
+            
+            # Manage active position
+            if trade_data['active_position'] is not None:
+                pos = trade_data['active_position']
+                
+                # Update smart exit
+                if config['enable_profit_lock'] or config['enable_trailing']:
+                    pos, update_info = update_dynamic_exit_btc(pos, price, config)
+                    trade_data['active_position'] = pos
+                    save_trade_data(trade_data)
+                    
+                    # Alert
+                    if update_info and config['discord_webhook']:
+                        if 'PROFIT_LOCK' in update_info['update_type']:
+                            send_discord_alert(
+                                config['discord_webhook'],
+                                'profit_lock',
+                                {
+                                    'symbol': config['symbol'],
+                                    'old_sl': update_info['old_sl'],
+                                    'new_sl': update_info['new_sl'],
+                                    'current_price': update_info['current_price'],
+                                    'current_pnl': update_info['current_pnl'],
+                                    'lock_level': update_info['update_type']
+                                }
+                            )
+                        elif update_info['update_type'] == 'TRAILING_STOP':
+                            send_discord_alert(
+                                config['discord_webhook'],
+                                'trailing_update',
+                                {
+                                    'symbol': config['symbol'],
+                                    'highest_price': pos.get('highest_price', price),
+                                    'new_sl': update_info['new_sl'],
+                                    'current_price': update_info['current_price']
+                                }
+                            )
+                
+                # Check exit
+                is_closed = False
+                exit_reason = ""
+                
+                if pos['Action'] == 'BUY':
+                    if price >= pos['TP']:
+                        is_closed, exit_reason = True, "TAKE_PROFIT"
+                    elif price <= pos['SL']:
+                        is_closed, exit_reason = True, pos.get('sl_update_reason', 'STOP_LOSS')
+                else:
+                    if price <= pos['TP']:
+                        is_closed, exit_reason = True, "TAKE_PROFIT"
+                    elif price >= pos['SL']:
+                        is_closed, exit_reason = True, pos.get('sl_update_reason', 'STOP_LOSS')
+                
+                if is_closed:
+                    # Calculate PnL
+                    pnl_data = calculate_net_pnl(pos['Entry'], price, pos['Action'])
+                    entry_time = datetime.fromisoformat(pos['EntryTime'])
+                    duration = datetime.now() - entry_time
+                    duration_str = f"{int(duration.total_seconds()//60)}m"
+                    
+                    # Log trade
+                    trade_entry = {
+                        'Time': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        'Action': f"CLOSE_{pos['Action']}",
+                        'Entry': pos['Entry'],
+                        'Exit': price,
+                        'Type': exit_reason,
+                        'Net_PnL': pnl_data['net_pnl'],
+                        'Gross_PnL': pnl_data['gross_pnl'],
+                        'Duration': duration_str,
+                        'Regime': pos.get('Regime', 'N/A')
+                    }
+                    trade_data['trades'].insert(0, trade_entry)
+                    
+                    # Discord
+                    if config['discord_webhook']:
+                        send_discord_alert(
+                            config['discord_webhook'],
+                            'exit',
+                            {
+                                'action': pos['Action'],
+                                'symbol': config['symbol'],
+                                'entry': pos['Entry'],
+                                'exit': price,
+                                'pnl': pnl_data['net_pnl'],
+                                'gross_pnl': pnl_data['gross_pnl'],
+                                'fees': pnl_data['fees'],
+                                'reason': exit_reason,
+                                'duration': duration_str
+                            }
+                        )
+                    
+                    # Clear position
+                    trade_data['active_position'] = None
+                    save_trade_data(trade_data)
+            
+            # Generate new signal
+            elif trade_data['active_position'] is None:
+                # Prepare features
+                X_last = df_norm[feature_cols].tail(30).values
+                X_tensor = torch.FloatTensor(X_last).unsqueeze(0)
+                
+                # AI prediction
+                with torch.no_grad():
+                    logits = model(X_tensor)
+                    probs = torch.softmax(logits / config['temperature'], dim=-1).numpy()[0]
+                
+                p_neutral, p_buy, p_sell = probs[0], probs[1], probs[2]
+                
+                # Determine regime
+                is_trending = adx > config['adx_threshold_trending']
+                regime_name = "TRENDING" if is_trending else "SIDEWAY"
+                
+                # Select threshold based on regime
+                if is_trending:
+                    buy_thresh = config['buy_threshold_trending']
+                    sell_thresh = config['sell_threshold_trending']
+                else:
+                    buy_thresh = config['buy_threshold_sideway']
+                    sell_thresh = config['sell_threshold_sideway']
+                
+                # Determine signal
+                raw_sig = "NEUTRAL"
+                confidence = 0
+                if p_buy > buy_thresh:
+                    raw_sig = "BUY"
+                    confidence = p_buy
+                elif p_sell > sell_thresh:
+                    raw_sig = "SELL"
+                    confidence = p_sell
+                
+                # Gate checks
+                ai_pass = (raw_sig == "BUY" and p_buy > buy_thresh) or \
+                          (raw_sig == "SELL" and p_sell > sell_thresh)
+                adx_pass = config['adx_min'] <= adx <= config['adx_max']
+                sma_pass = True
+                
+                if config['use_sma_filter']:
+                    if raw_sig == "BUY":
+                        sma_pass = price > sma200
+                    elif raw_sig == "SELL":
+                        sma_pass = price < sma200
+                
+                # Execute if all gates pass
+                if ai_pass and adx_pass and sma_pass and raw_sig != "NEUTRAL":
+                    # Calculate entry with slippage
+                    entry_actual = price * (1 + SLIPPAGE) if raw_sig == "BUY" else price * (1 - SLIPPAGE)
+                    
+                    sl_val = entry_actual - (atr * config['atr_multiplier_sl']) if raw_sig == "BUY" else \
+                             entry_actual + (atr * config['atr_multiplier_sl'])
+                    tp_val = entry_actual + (atr * config['atr_multiplier_tp']) if raw_sig == "BUY" else \
+                             entry_actual - (atr * config['atr_multiplier_tp'])
+                    
+                    # Create position
+                    trade_data['active_position'] = {
+                        'Action': raw_sig,
+                        'Entry': entry_actual,
+                        'TP': tp_val,
+                        'SL': sl_val,
+                        'EntryTime': datetime.now().isoformat(),
+                        'Regime': regime_name
+                    }
+                    
+                    # Log
+                    trade_entry = {
+                        'Time': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        'Action': raw_sig,
+                        'Entry': entry_actual,
+                        'Exit': None,
+                        'Type': 'MARKET' if is_trending else 'LIMIT',
+                        'Net_PnL': None,
+                        'Gross_PnL': None,
+                        'Duration': None,
+                        'Regime': regime_name
+                    }
+                    trade_data['trades'].insert(0, trade_entry)
+                    save_trade_data(trade_data)
+                    
+                    # Discord
+                    if config['discord_webhook']:
+                        send_discord_alert(
+                            config['discord_webhook'],
+                            'entry',
+                            {
+                                'action': raw_sig,
+                                'symbol': config['symbol'],
+                                'entry': entry_actual,
+                                'tp': tp_val,
+                                'sl': sl_val,
+                                'confidence': confidence,
+                                'regime': regime_name
+                            }
+                        )
+            
+            # Cleanup
+            del df, df_enriched, df_norm, ohlcv
+            gc.collect()
+            
+            # Sleep
+            time.sleep(config['refresh_interval'])
+        
+        except Exception as e:
+            logger.error(f"Bot worker error: {e}")
+            time.sleep(10)
+    
+    logger.info("🛑 Bot worker stopped")
 
 # ════════════════════════════════════════════════════════════════════════════
-# MAIN APPLICATION
+# STREAMLIT UI - FULL VERSION
 # ════════════════════════════════════════════════════════════════════════════
 
 def main():
-    st.set_page_config(page_title="TITAN INTEL TERMINAL v14.4", layout="wide")
-
-    # ─── CSS STYLING ───
+    st.set_page_config(
+        page_title="Monster Bot v14.4 BTC Golden Ratio",
+        page_icon="🤖",
+        layout="wide"
+    )
+    
+    # Full UI CSS
     st.markdown("""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&display=swap');
         
-        .stApp { 
-            background-color: #030a03; 
-        }
-
+        .stApp { background-color: #030a03; }
+        
         .crt-glow {
             color: #00FF41 !important;
             font-family: 'Fira Code', monospace !important;
-            text-shadow: 
-                0 0 5px rgba(0, 255, 65, 1),
-                0 0 10px rgba(0, 255, 65, 0.6);
+            text-shadow: 0 0 5px rgba(0, 255, 65, 1), 0 0 10px rgba(0, 255, 65, 0.6);
             letter-spacing: 1px;
         }
-
-        .signal-card { 
-            padding: 25px; 
-            border: 2px solid #00FF41; 
+        
+        .signal-card {
+            padding: 25px;
+            border: 2px solid #00FF41;
             background: rgba(0, 30, 0, 0.4);
             box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
             text-align: center;
             border-radius: 8px;
             margin-bottom: 15px;
         }
-
-        .trade-setup { 
-            background: #000; 
-            border-left: 4px solid #00FF41; 
-            padding: 12px; 
-            margin-top: 10px;
-            font-family: 'Fira Code', monospace;
-            color: #00FF41;
-        }
-
-        /* Sidebar Fix - Prevent Label Overlap */
+        
         [data-testid="stSidebar"] {
             background-color: #010801 !important;
             border-right: 1px solid #004400;
@@ -720,110 +822,165 @@ def main():
             padding: 0.5rem 0;
         }
         
-        .stSlider label, .stToggle label, .stSelectbox label, 
+        .stSlider label, .stToggle label, .stSelectbox label, .stTextInput label,
         [data-testid="stWidgetLabel"] p {
-            color: #00AA00 !important; 
+            color: #00AA00 !important;
             font-family: 'Fira Code', monospace !important;
             font-size: 12px !important;
-            text-shadow: none !important;
             margin-bottom: 0.3rem !important;
-            padding-bottom: 0 !important;
         }
-
-        /* Improved spacing for sidebar widgets */
+        
         [data-testid="stSidebar"] .stSlider,
         [data-testid="stSidebar"] .stToggle,
         [data-testid="stSidebar"] .stTextInput {
             margin-bottom: 1rem !important;
         }
-
+        
         [data-testid="stDataFrame"] {
             border: 1px solid #003300;
             filter: sepia(80%) hue-rotate(80deg) brightness(90%);
         }
         
-        hr { 
-            border: 0.5px solid #002200; 
-            margin: 1.5rem 0;
-        }
-
-        /* Enhanced styling for expanders */
+        hr { border: 0.5px solid #002200; margin: 1.5rem 0; }
+        
         [data-testid="stExpander"] {
             background-color: rgba(0, 20, 0, 0.3) !important;
             border: 1px solid #003300 !important;
             border-radius: 5px;
             margin-bottom: 0.5rem !important;
         }
-
-        [data-testid="stExpander"] summary {
-            color: #00FF41 !important;
-            font-family: 'Fira Code', monospace !important;
-        }
+        
+        .status-active { color: #00FF41; font-weight: bold; }
+        .status-inactive { color: #FF0000; font-weight: bold; }
         </style>
     """, unsafe_allow_html=True)
-
-    # ─── SIDEBAR CONFIGURATION ───
-    st.sidebar.markdown("<h2 class='crt-glow' style='font-size:20px; margin-bottom: 1rem;'>⚙️ TERMINAL_CONFIG</h2>", unsafe_allow_html=True)
     
-    # AI Core Settings
-    with st.sidebar.expander("🤖 OPERATIONAL_PARAMS", expanded=True):
-        ui_temp = st.slider("Signal_Temperature", 0.1, 1.5, 0.5, step=0.01, 
-                           help="Lower = more conservative, Higher = more aggressive")
-        ui_buy_threshold = st.slider("Buy_Threshold", 0.3, 0.8, 0.40, step=0.01)
-        ui_sell_threshold = st.slider("Sell_Threshold", 0.3, 0.8, 0.40, step=0.01)
-
-    # Market Filters
-    with st.sidebar.expander("📡 RADAR_FILTERS", expanded=True):
-        ui_adx_min = st.slider("Min_ADX_Level", 10, 50, 20, step=1)
-        ui_adx_max = st.slider("Max_ADX_Level", 50, 100, 100, step=1)
-        ui_use_dynamic = st.toggle("Activate_SMA_Filter", value=True)
-
+    # Start bot thread (only once)
+    if 'bot_thread_started' not in st.session_state:
+        thread = threading.Thread(target=bot_worker, daemon=True)
+        thread.start()
+        st.session_state.bot_thread_started = True
+        logger.info("Bot thread initialized")
+    
+    # Load data
+    config = load_bot_config()
+    trade_data = load_trade_data()
+    
+    # Header
+    st.markdown("<h1 class='crt-glow'>🤖 MONSTER BOT v14.4 - BTC GOLDEN RATIO</h1>", unsafe_allow_html=True)
+    
+    # Status
+    status_text = "🟢 ACTIVE" if BOT_RUNNING else "🔴 STOPPED"
+    status_class = "status-active" if BOT_RUNNING else "status-inactive"
+    st.markdown(f"<h3 class='{status_class}'>Status: {status_text} | 27% Backtest Win</h3>", unsafe_allow_html=True)
+    
+    # ─── SIDEBAR ───
+    st.sidebar.markdown("<h2 class='crt-glow' style='font-size:20px; margin-bottom: 1rem;'>⚙️ CONFIGURATION</h2>", unsafe_allow_html=True)
+    
+    # AI Settings
+    with st.sidebar.expander("🤖 AI MODEL", expanded=False):
+        config['temperature'] = st.slider("Temperature", 0.1, 1.5, config['temperature'], 0.01)
+        st.caption("BTC Optimized: 0.42")
+    
+    # Dual Threshold
+    with st.sidebar.expander("🎯 DUAL THRESHOLD (BTC)", expanded=True):
+        st.markdown("**Trending Market:**")
+        config['buy_threshold_trending'] = st.slider("Buy (Trending)", 0.1, 0.8, config['buy_threshold_trending'], 0.01)
+        config['sell_threshold_trending'] = st.slider("Sell (Trending)", 0.1, 0.8, config['sell_threshold_trending'], 0.01)
+        
+        st.markdown("**Sideway Market:**")
+        config['buy_threshold_sideway'] = st.slider("Buy (Sideway)", 0.1, 0.8, config['buy_threshold_sideway'], 0.01)
+        config['sell_threshold_sideway'] = st.slider("Sell (Sideway)", 0.1, 0.8, config['sell_threshold_sideway'], 0.01)
+        
+        st.caption("Golden: Trending 0.36 | Sideway 0.22")
+    
     # Risk Management
-    with st.sidebar.expander("⚖️ RISK_MANAGEMENT", expanded=True):
-        ui_atr_sl = st.slider("Stop_Loss (ATR)", 1.0, 10.0, 3.5, step=0.1)
-        ui_atr_tp = st.slider("Take_Profit (ATR)", 5.0, 50.0, 20.0, step=0.1)
-
-    # Advanced Exit
-    with st.sidebar.expander("🛡️ ADVANCED_EXIT", expanded=True):
-        ui_use_profit_lock = st.toggle("Enable_Profit_Lock", value=True,
-                                       help="Auto-adjust SL at 1.5%, 3%, 5% profit")
-        ui_use_trailing = st.toggle("Enable_Trailing_Stop", value=True,
-                                    help="Activate at 1% profit, 0.4% distance")
-        st.caption("📊 Profit Lock: 1.5%→0.3% | 3%→1.2% | 5%→2.5%")
-        st.caption("🔄 Trailing: Activate@1% | Distance: 0.4%")
+    with st.sidebar.expander("⚖️ RISK MANAGEMENT", expanded=False):
+        config['atr_multiplier_sl'] = st.slider("Stop Loss (ATR)", 1.0, 10.0, config['atr_multiplier_sl'], 0.1)
+        config['atr_multiplier_tp'] = st.slider("Take Profit (ATR)", 5.0, 50.0, config['atr_multiplier_tp'], 0.5)
+        st.caption("Golden: SL 3.2 | TP 18.5")
     
-    # Discord Integration
-    with st.sidebar.expander("📡 DISCORD_WEBHOOK", expanded=False):
-        discord_webhook = st.text_input("Webhook_URL", type="password", 
-                                       placeholder="https://discord.com/api/webhooks/...")
-        st.caption("🔔 Professional alerts with Embed format")
-        st.caption("📘 [Get Webhook URL](https://support.discord.com/hc/en-us/articles/228383668)")
-
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("<div class='crt-glow' style='font-size:10px; text-align:center;'>v14.4 | PAPER TRADING MODE</div>", 
-                       unsafe_allow_html=True)
-
+    # Smart Exit
+    with st.sidebar.expander("🛡️ SMART EXIT (BTC TIER)", expanded=False):
+        config['enable_profit_lock'] = st.checkbox("Enable Profit Lock", config['enable_profit_lock'])
+        if config['enable_profit_lock']:
+            st.caption("📊 Lock Levels:")
+            st.caption("• 1.8% → 1.2%")
+            st.caption("• 3.5% → 2.8%")
+            st.caption("• 5.5% → 4.5%")
+        
+        config['enable_trailing'] = st.checkbox("Enable Trailing Stop", config['enable_trailing'])
+        if config['enable_trailing']:
+            st.caption(f"🔄 Activate: {config['trailing_activation']}% | Distance: {config['trailing_distance']}%")
+    
+    # Filters
+    with st.sidebar.expander("📡 MARKET FILTERS", expanded=False):
+        config['adx_min'] = st.slider("Min ADX", 10, 50, config['adx_min'], 1)
+        config['adx_max'] = st.slider("Max ADX", 50, 100, config['adx_max'], 1)
+        config['use_sma_filter'] = st.checkbox("Use SMA200 Filter", config['use_sma_filter'])
+    
+    # Discord
+    with st.sidebar.expander("📡 DISCORD WEBHOOK", expanded=False):
+        config['discord_webhook'] = st.text_input("Webhook URL", value=config['discord_webhook'], type="password")
+    
+    # Save button
+    if st.sidebar.button("💾 Save Configuration"):
+        save_bot_config(config)
+        st.sidebar.success("Configuration saved!")
+    
     # ─── MAIN LAYOUT ───
     col_left, col_right = st.columns([1.2, 1.8])
-
+    
     with col_left:
-        st.markdown("<div class='crt-glow' style='font-size:16px;'>[SYSTEM_STATUS: ACTIVE]</div>", 
-                   unsafe_allow_html=True)
-        signal_placeholder = st.empty()
-        progress_placeholder = st.empty()
-        setup_placeholder = st.empty()
+        st.markdown("<div class='crt-glow' style='font-size:16px;'>[LIVE STATUS]</div>", unsafe_allow_html=True)
         
-        st.markdown("<div class='crt-glow' style='font-size:16px; margin-top:20px;'>[EXECUTION_LOG]</div>", 
-                   unsafe_allow_html=True)
-        log_placeholder = st.empty()
-
+        # Current position
+        if trade_data['active_position']:
+            pos = trade_data['active_position']
+            st.markdown(f"""
+            <div class='signal-card' style='border-color: {"#00FF41" if pos["Action"] == "BUY" else "#FF0000"};'>
+                <div style='color: {"#00FF41" if pos["Action"] == "BUY" else "#FF0000"}; font-size:40px; font-weight:bold;'>{pos['Action']}</div>
+                <div class='crt-glow' style='font-size:18px; color:white !important;'>Entry: ${pos['Entry']:,.2f}</div>
+                <div class='crt-glow' style='font-size:14px;'>TP: ${pos['TP']:,.2f} | SL: ${pos['SL']:,.2f}</div>
+                <div class='crt-glow' style='font-size:12px; opacity:0.6;'>{pos.get('Regime', 'N/A')}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.info("No active position - Monitoring market...")
+        
+        # Trade log
+        st.markdown("<div class='crt-glow' style='font-size:16px; margin-top:20px;'>[TRADE LOG]</div>", unsafe_allow_html=True)
+        
+        if st.button("🔄 Sync Data"):
+            trade_data = load_trade_data()
+            st.success("Data synced from file!")
+        
+        if trade_data['trades']:
+            df_trades = pd.DataFrame(trade_data['trades'][:10])
+            
+            # Summary metrics
+            cols = st.columns(3)
+            cols[0].metric("Total Trades", len(trade_data['trades']))
+            
+            closed = [t for t in trade_data['trades'] if t['Net_PnL'] is not None]
+            if closed:
+                wins = len([t for t in closed if t['Net_PnL'] > 0])
+                win_rate = (wins / len(closed)) * 100
+                cols[1].metric("Win Rate", f"{win_rate:.1f}%")
+                cols[2].metric("W/L", f"{wins}/{len(closed)-wins}")
+            
+            st.dataframe(df_trades, use_container_width=True, hide_index=True)
+        else:
+            st.info("No trades yet")
+    
     with col_right:
-        st.markdown("<div class='crt-glow' style='font-size:16px;'>[LIVE_MARKET_FEED]</div>", 
-                   unsafe_allow_html=True)
+        st.markdown("<div class='crt-glow' style='font-size:16px;'>[LIVE MARKET FEED]</div>", unsafe_allow_html=True)
+        
+        # TradingView chart
         tv_html = f"""
         <div style="height:750px; border: 2px solid #004400; border-radius:5px; overflow:hidden; 
                     filter: brightness(0.7) contrast(1.2) sepia(100%) hue-rotate(70deg);">
-            <div id="tv_chart_v14" style="height:100%;"></div>
+            <div id="tv_chart_btc" style="height:100%;"></div>
             <script src="https://s3.tradingview.com/tv.js"></script>
             <script>
                 new TradingView.widget({{
@@ -831,7 +988,7 @@ def main():
                     "symbol": "KRAKEN:BTCUSDT",
                     "interval": "15",
                     "theme": "dark",
-                    "container_id": "tv_chart_v14",
+                    "container_id": "tv_chart_btc",
                     "style": "1",
                     "enable_publishing": false,
                     "hide_side_toolbar": false,
@@ -841,432 +998,30 @@ def main():
         </div>
         """
         components.html(tv_html, height=760)
-        
-    # ─── SESSION STATE INITIALIZATION ───
-    if 'trade_log' not in st.session_state:
-        st.session_state.trade_log = []
-    if 'active_position' not in st.session_state:
-        st.session_state.active_position = None
-    if 'pending_order' not in st.session_state:
-        st.session_state.pending_order = None
-    if 'pending_candle_count' not in st.session_state:
-        st.session_state.pending_candle_count = 0
-        
-    # ─── INITIALIZATION ───
-    try:
-        model = load_monster_model()
-        exchange = ccxt.kraken({'enableRateLimit': True})
-        
-        feature_cols = [
-            'log_return', 'ATR', 'BB_width', 'BB_position', 'frac_diff_close',
-            'fourier_sin_1', 'fourier_sin_2', 'fourier_sin_3', 'fourier_sin_4', 'fourier_sin_5',
-            'fourier_cos_1', 'fourier_cos_2', 'fourier_cos_3', 'fourier_cos_4', 'fourier_cos_5',
-            'volume_imbalance', 'entropy', 'volume_ratio', 'ADX', 'SMA_distance',
-            'regime_trending', 'regime_uptrend', 'regime_downtrend', 'RSI', 'MACD',
-            'MACD_signal', 'volatility_zscore', 'RSI_vol_adj', 'ROC_vol_adj'
-        ]
-    except Exception as e:
-        st.error(f"❌ Initialization Error: {e}")
-        return
-
-    # ─── MAIN TRADING LOOP ───
-    while True:
-        try:
-            # Fetch market data
-            ohlcv = exchange.fetch_ohlcv('BTC/USDT', timeframe='15m', limit=400)
-            df = pd.DataFrame(ohlcv, columns=['ts','Open','High','Low','Close','Volume'])
-            df_enriched = enrich_features_v13(df)
-            df_norm = apply_rolling_normalization(df_enriched, feature_cols)
-            
-            # Current market state
-            current_candle = df.iloc[-1]
-            price = current_candle['Close']
-            atr = df_enriched['ATR'].iloc[-1]
-            adx = df_enriched['ADX'].iloc[-1]
-            sma200 = df_enriched['SMA200'].iloc[-1]
-            
-            # ═══ CHECK PENDING LIMIT ORDER ═══
-            if st.session_state.pending_order is not None:
-                filled, fill_price = check_limit_order_fill(st.session_state.pending_order, current_candle)
-                
-                if filled:
-                    # Convert pending to active position
-                    pending = st.session_state.pending_order
-                    st.session_state.active_position = {
-                        'Action': pending['Action'],
-                        'Entry': fill_price,
-                        'TP': pending['TP'],
-                        'SL': pending['SL'],
-                        'EntryTime': datetime.now(),
-                        'Regime': pending['Regime']
-                    }
-                    
-                    # Log the fill
-                    new_entry = {
-                        "Time": datetime.now().strftime("%H:%M:%S"),
-                        "Action": f"✅ {pending['Action']}",
-                        "Price": f"${fill_price:,.2f}",
-                        "TP": f"${pending['TP']:,.2f}",
-                        "SL": f"${pending['SL']:,.2f}",
-                        "Type": "LIMIT_FILLED",
-                        "Net PnL %": "---",
-                        "Duration": "---"
-                    }
-                    st.session_state.trade_log.insert(0, new_entry)
-                    
-                    # Discord notification
-                    if discord_webhook:
-                        send_discord_alert(discord_webhook, 'entry', {
-                            'action': pending['Action'],
-                            'symbol': 'BTC/USDT',
-                            'entry': fill_price,
-                            'tp': pending['TP'],
-                            'sl': pending['SL'],
-                            'confidence': pending.get('Confidence', 0),
-                            'regime': pending['Regime'],
-                            'time': datetime.now().strftime("%H:%M:%S")
-                        })
-                    
-                    st.session_state.pending_order = None
-                    st.session_state.pending_candle_count = 0
-                else:
-                    # Check timeout (2 candles)
-                    st.session_state.pending_candle_count += 1
-                    if st.session_state.pending_candle_count >= 2:
-                        # Cancel pending order
-                        cancel_entry = {
-                            "Time": datetime.now().strftime("%H:%M:%S"),
-                            "Action": f"❌ CANCELLED",
-                            "Price": f"${price:,.2f}",
-                            "TP": "---",
-                            "SL": "---",
-                            "Type": "TIMEOUT",
-                            "Net PnL %": "---",
-                            "Duration": "---"
-                        }
-                        st.session_state.trade_log.insert(0, cancel_entry)
-                        st.session_state.pending_order = None
-                        st.session_state.pending_candle_count = 0
-
-            # ═══ MANAGE ACTIVE POSITION ═══
-            if st.session_state.active_position is not None:
-                pos = st.session_state.active_position
-                
-                # Update dynamic exit if enabled
-                if ui_use_profit_lock or ui_use_trailing:
-                    pos, update_info = update_dynamic_exit(pos, price, ui_use_profit_lock, ui_use_trailing)
-                    st.session_state.active_position = pos
-                    
-                    # Send Discord alert for SL updates
-                    if update_info and discord_webhook:
-                        if 'PROFIT_LOCK' in update_info['update_type']:
-                            send_discord_alert(discord_webhook, 'profit_lock', {
-                                'symbol': 'BTC/USDT',
-                                'old_sl': update_info['old_sl'],
-                                'new_sl': update_info['new_sl'],
-                                'current_price': update_info['current_price'],
-                                'current_pnl': update_info['current_pnl'],
-                                'lock_level': update_info['update_type'],
-                                'time': datetime.now().strftime("%H:%M:%S")
-                            })
-                        elif update_info['update_type'] == 'TRAILING_STOP':
-                            send_discord_alert(discord_webhook, 'trailing_update', {
-                                'symbol': 'BTC/USDT',
-                                'highest_price': update_info['highest_price'],
-                                'new_sl': update_info['new_sl'],
-                                'current_price': update_info['current_price'],
-                                'time': datetime.now().strftime("%H:%M:%S")
-                            })
-                
-                # Check exit conditions
-                is_closed = False
-                exit_reason = ""
-                exit_price = price
-                
-                if pos['Action'] == 'BUY':
-                    if price >= pos['TP']:
-                        is_closed, exit_reason = True, "TAKE_PROFIT"
-                    elif price <= pos['SL']:
-                        is_closed, exit_reason = True, "STOP_LOSS"
-                        if pos.get('sl_update_reason'):
-                            exit_reason = pos['sl_update_reason']
-                elif pos['Action'] == 'SELL':
-                    if price <= pos['TP']:
-                        is_closed, exit_reason = True, "TAKE_PROFIT"
-                    elif price >= pos['SL']:
-                        is_closed, exit_reason = True, "STOP_LOSS"
-                        if pos.get('sl_update_reason'):
-                            exit_reason = pos['sl_update_reason']
-                
-                if is_closed:
-                    # Calculate PnL
-                    pnl_data = calculate_net_pnl(pos['Entry'], exit_price, pos['Action'])
-                    duration = datetime.now() - pos['EntryTime']
-                    duration_str = f"{int(duration.total_seconds()//60)}m"
-                    
-                    # Log the exit
-                    close_entry = {
-                        "Time": datetime.now().strftime("%H:%M:%S"),
-                        "Action": f"🏁 CLOSE_{pos['Action']}",
-                        "Price": f"${exit_price:,.2f}",
-                        "TP": "---",
-                        "SL": "---",
-                        "Type": exit_reason,
-                        "Net PnL %": f"{pnl_data['net_pnl']*100:+.2f}%",
-                        "Duration": duration_str
-                    }
-                    st.session_state.trade_log.insert(0, close_entry)
-                    
-                    # Discord notification
-                    if discord_webhook:
-                        send_discord_alert(discord_webhook, 'exit', {
-                            'action': pos['Action'],
-                            'symbol': 'BTC/USDT',
-                            'entry': pos['Entry'],
-                            'exit': exit_price,
-                            'pnl': pnl_data['net_pnl'],
-                            'gross_pnl': pnl_data['gross_pnl'],
-                            'fees': pnl_data['fees'],
-                            'reason': exit_reason,
-                            'duration': duration_str,
-                            'time': datetime.now().strftime("%H:%M:%S")
-                        })
-                    
-                    # Backup to CSV
-                    try:
-                        backup_trade_log(close_entry)
-                    except:
-                        pass
-                    
-                    # Reset position
-                    st.session_state.active_position = None
-            
-            # ═══ AI PREDICTION (Only if no active position) ═══
-            if st.session_state.active_position is None and st.session_state.pending_order is None:
-                # Prepare features
-                X_last = df_norm[feature_cols].tail(30).values
-                X_tensor = torch.FloatTensor(X_last).unsqueeze(0)
-                
-                # Get AI prediction
-                with torch.no_grad():
-                    logits = model(X_tensor)
-                    probs = torch.softmax(logits / ui_temp, dim=-1).numpy()[0]
-                
-                p_neutral, p_buy, p_sell = probs[0], probs[1], probs[2]
-                
-                # Determine raw signal
-                raw_sig = "NEUTRAL"
-                if p_buy > ui_buy_threshold:
-                    raw_sig = "BUY"
-                elif p_sell > ui_sell_threshold:
-                    raw_sig = "SELL"
-                
-                # ═══ GATE CHECKS ═══
-                current_conf = max(p_buy, p_sell)
-                
-                # 1. AI Probability
-                ai_pass = False
-                if raw_sig == "BUY":
-                    ai_pass = p_buy > ui_buy_threshold
-                elif raw_sig == "SELL":
-                    ai_pass = p_sell > ui_sell_threshold
-                
-                # 2. ADX Range
-                adx_pass = ui_adx_min <= adx <= ui_adx_max
-                
-                # 3. SMA Filter
-                sma_pass = True
-                if ui_use_dynamic:
-                    if raw_sig == "BUY":
-                        sma_pass = price > sma200
-                    elif raw_sig == "SELL":
-                        sma_pass = price < sma200
-                
-                gate_status = {
-                    "AI_PROB": ai_pass,
-                    "ADX_LEVEL": adx_pass,
-                    "SMA_BIAS": sma_pass
-                }
-                
-                gate_metrics = {
-                    "AI_PROB": f"{max(p_buy, p_sell):.1%}",
-                    "ADX_LEVEL": f"{adx:.1f}",
-                    "SMA_BIAS": f"{(price - sma200):+.1f}"
-                }
-                
-                # Determine final signal
-                if all(gate_status.values()) and raw_sig != "NEUTRAL":
-                    final_sig = raw_sig
-                    reason = "READY"
-                else:
-                    final_sig = "NEUTRAL"
-                    if not ai_pass:
-                        reason = "Prob < Threshold"
-                    elif not adx_pass:
-                        reason = "ADX Out of Range"
-                    elif not sma_pass:
-                        reason = "Wrong Side of SMA"
-                    else:
-                        reason = "No Signal"
-                
-                # ═══ ORDER EXECUTION LOGIC ═══
-                if final_sig != "NEUTRAL":
-                    # Determine regime
-                    is_trending = adx > LIVE_CONFIG['adx_threshold_trending']
-                    regime_name = "TRENDING" if is_trending else "SIDEWAY"
-                    
-                    if is_trending:
-                        # Market Order - Instant execution with slippage
-                        entry_price_actual = calculate_actual_entry_price(price, final_sig)
-                        sl_val = entry_price_actual - (atr * ui_atr_sl) if final_sig == "BUY" else entry_price_actual + (atr * ui_atr_sl)
-                        tp_val = entry_price_actual + (atr * ui_atr_tp) if final_sig == "BUY" else entry_price_actual - (atr * ui_atr_tp)
-                        
-                        # Create active position immediately
-                        st.session_state.active_position = {
-                            'Action': final_sig,
-                            'Entry': entry_price_actual,
-                            'TP': tp_val,
-                            'SL': sl_val,
-                            'EntryTime': datetime.now(),
-                            'Regime': regime_name
-                        }
-                        
-                        # Log entry
-                        new_entry = {
-                            "Time": datetime.now().strftime("%H:%M:%S"),
-                            "Action": f"⚡ {final_sig}",
-                            "Price": f"${entry_price_actual:,.2f}",
-                            "TP": f"${tp_val:,.2f}",
-                            "SL": f"${sl_val:,.2f}",
-                            "Type": "MARKET",
-                            "Net PnL %": "---",
-                            "Duration": "---"
-                        }
-                        st.session_state.trade_log.insert(0, new_entry)
-                        
-                        # Discord alert
-                        if discord_webhook:
-                            send_discord_alert(discord_webhook, 'entry', {
-                                'action': final_sig,
-                                'symbol': 'BTC/USDT',
-                                'entry': entry_price_actual,
-                                'tp': tp_val,
-                                'sl': sl_val,
-                                'confidence': current_conf,
-                                'regime': regime_name,
-                                'time': datetime.now().strftime("%H:%M:%S")
-                            })
-                        
-                    else:
-                        # Limit Order - Wait for better price
-                        if final_sig == "BUY":
-                            limit_price = price * 0.999  # 0.1% below current
-                        else:
-                            limit_price = price * 1.001  # 0.1% above current
-                        
-                        sl_val = limit_price - (atr * ui_atr_sl) if final_sig == "BUY" else limit_price + (atr * ui_atr_sl)
-                        tp_val = limit_price + (atr * ui_atr_tp) if final_sig == "BUY" else limit_price - (atr * ui_atr_tp)
-                        
-                        # Create pending order
-                        st.session_state.pending_order = {
-                            'Action': final_sig,
-                            'LimitPrice': limit_price,
-                            'TP': tp_val,
-                            'SL': sl_val,
-                            'Regime': regime_name,
-                            'Confidence': current_conf
-                        }
-                        st.session_state.pending_candle_count = 0
-                        
-                        # Log pending
-                        pending_entry = {
-                            "Time": datetime.now().strftime("%H:%M:%S"),
-                            "Action": f"⏳ {final_sig}",
-                            "Price": f"${limit_price:,.2f}",
-                            "TP": f"${tp_val:,.2f}",
-                            "SL": f"${sl_val:,.2f}",
-                            "Type": "LIMIT_PENDING",
-                            "Net PnL %": "---",
-                            "Duration": "---"
-                        }
-                        st.session_state.trade_log.insert(0, pending_entry)
-            else:
-                # Use last known values for display
-                final_sig = "NEUTRAL"
-                reason = "Position Active"
-                gate_status = {"AI_PROB": False, "ADX_LEVEL": False, "SMA_BIAS": False}
-                gate_metrics = {"AI_PROB": "---", "ADX_LEVEL": "---", "SMA_BIAS": "---"}
-                current_conf = 0
-            
-            # ═══ UI UPDATE ═══
-            # Signal Card
-            sig_color = "#00FF41" if final_sig == "BUY" else "#FF0000" if final_sig == "SELL" else "#FFFF00"
-            glow_style = f"text-shadow: 0 0 20px {sig_color}, 0 0 30px {sig_color}; color: {sig_color} !important;"
-            conf = current_conf if final_sig != "NEUTRAL" else 0
-            bar_len = int(conf * 20)
-            signal_bar = "█" * bar_len + "░" * (20 - bar_len)
-
-            with signal_placeholder.container():
-                st.markdown(f"""
-                <div class='signal-card' style='border-color: {sig_color};'>
-                    <div style='{glow_style} font-size:60px; font-weight:bold; font-family:Fira Code;'>{final_sig}</div>
-                    <div class='crt-glow' style='font-size:20px; color:white !important;'>PRICE: ${price:,.1f}</div>
-                    <div class='crt-glow' style='font-size:12px; font-family: Courier New;'>
-                        STRENGTH: [{signal_bar}] {conf:.1%}
-                    </div>
-                    <div class='crt-glow' style='font-size:12px; opacity:0.6; margin-bottom:10px;'>STATUS: {reason}</div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                display_logic_gate(gate_status, gate_metrics)
-            
-            # Position Progress
-            if st.session_state.active_position is not None:
-                with progress_placeholder.container():
-                    display_position_progress(st.session_state.active_position, price)
-            else:
-                progress_placeholder.empty()
-            
-            # Trade Log
-            with log_placeholder.container():
-                if st.session_state.trade_log:
-                    df_log = pd.DataFrame(st.session_state.trade_log)
-                    
-                    # Summary metrics
-                    cols = st.columns(4)
-                    cols[0].metric("TOTAL_TRADES", len(df_log))
-                    
-                    # Count wins/losses
-                    closed_trades = df_log[df_log['Net PnL %'] != '---']
-                    if len(closed_trades) > 0:
-                        wins = len(closed_trades[closed_trades['Net PnL %'].str.contains(r'^\+', regex=True)])
-                        losses = len(closed_trades) - wins
-                        win_rate = (wins / len(closed_trades)) * 100 if len(closed_trades) > 0 else 0
-                        cols[1].metric("WIN_RATE", f"{win_rate:.1f}%")
-                        cols[2].metric("WINS/LOSSES", f"{wins}/{losses}")
-                    else:
-                        cols[1].metric("WIN_RATE", "N/A")
-                        cols[2].metric("WINS/LOSSES", "0/0")
-                    
-                    cols[3].metric("LAST_ACTION", final_sig)
-                    
-                    # Display log table
-                    st.dataframe(
-                        df_log.head(20), 
-                        use_container_width=True, 
-                        hide_index=True
-                    )
-            
-            # ═══ SLEEP UNTIL NEXT CANDLE ═══
-            now = datetime.now()
-            seconds_until_next_minute = 60 - now.second
-            time.sleep(max(1, seconds_until_next_minute))
+    
+    # Control buttons
+    st.markdown("---")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("🔄 Reload Data"):
             st.rerun()
-            
-        except Exception as e:
-            st.error(f"⚠️ SYSTEM ERROR: {e}")
-            logger.error(f"Error in main loop: {e}", exc_info=True)
-            time.sleep(5)
+    
+    with col2:
+        if st.button("🗑️ Clear Cache"):
+            st.cache_resource.clear()
+            st.success("Cache cleared!")
+    
+    with col3:
+        if st.button("📤 Test Discord"):
+            if config['discord_webhook']:
+                send_discord_alert(config['discord_webhook'], 'heartbeat', {'uptime': 'Test'})
+                st.success("Test sent!")
+            else:
+                st.error("No webhook configured")
+    
+    # Footer
+    st.caption("Monster Bot v14.4 BTC Golden Ratio | 27% Backtest Win | Full UI Version")
 
 if __name__ == "__main__":
     main()
