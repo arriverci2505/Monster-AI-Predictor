@@ -17,146 +17,41 @@ import time
 # ════════════════════════════════════════════════════════════════════════════
 
 st.set_page_config(
-    page_title="Monster Bot v14.4",
+    page_title="Monster Bot v14.4 Titan",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ════════════════════════════════════════════════════════════════════════════
-# CUSTOM CSS
-# ════════════════════════════════════════════════════════════════════════════
-
+# CSS Custom để giống v13 và fix lỗi giao diện
 st.markdown("""
 <style>
-    /* Fix Sidebar Label Overlapping */
-    [data-testid="stSidebar"] {
-        padding-top: 2rem;
-    }
+    /* Fix lỗi nhãn Sidebar bị đè */
+    [data-testid="stSidebar"] { padding-top: 1rem; }
     
-    [data-testid="stSidebar"] .element-container {
-        margin-bottom: 1rem;
-    }
-    
-    /* Custom Card Styling */
-    .status-card {
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        padding: 1.5rem;
-        border-radius: 10px;
-        border: 2px solid #4a90e2;
-        margin-bottom: 1rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    }
-    
-    .trade-card {
-        background: linear-gradient(135deg, #2d3436 0%, #636e72 100%);
-        padding: 1.5rem;
-        border-radius: 10px;
-        border-left: 5px solid #00ff41;
-        margin-bottom: 1rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    }
-    
-    .metric-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.5rem;
-        background: rgba(255,255,255,0.05);
+    /* Metrics Style */
+    div[data-testid="metric-container"] {
+        background-color: #262730;
+        border: 1px solid #464b5c;
+        padding: 10px;
         border-radius: 5px;
-        margin: 0.5rem 0;
-    }
-    
-    .metric-label {
-        font-size: 0.9rem;
-        color: #a0a0a0;
-        font-weight: 500;
-    }
-    
-    .metric-value {
-        font-size: 1.1rem;
-        color: #ffffff;
-        font-weight: bold;
-    }
-    
-    .profit-positive {
-        color: #00ff41 !important;
-        font-weight: bold;
-    }
-    
-    .profit-negative {
-        color: #ff0000 !important;
-        font-weight: bold;
-    }
-    
-    /* Header Styling */
-    .main-header {
-        text-align: center;
-        padding: 1rem;
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        border-radius: 10px;
-        margin-bottom: 2rem;
-    }
-    
-    .main-header h1 {
         color: white;
-        margin: 0;
-        font-size: 2.5rem;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
     }
     
-    /* Status Badge */
-    .status-badge {
-        display: inline-block;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-weight: bold;
-        font-size: 0.9rem;
+    /* Bảng Log đẹp hơn */
+    div[data-testid="stDataFrame"] {
+        width: 100%;
     }
     
-    .status-running {
-        background: #00ff41;
-        color: #000;
-    }
-    
-    .status-stopped {
-        background: #ff0000;
-        color: #fff;
-    }
-    
-    .status-error {
-        background: #ffa500;
-        color: #000;
-    }
-    
-    /* Progress Bar Custom */
+    /* Thanh Progress Bar màu xanh/đỏ */
     .stProgress > div > div > div > div {
-        background: linear-gradient(90deg, #ff0000 0%, #ffa500 50%, #00ff41 100%);
-    }
-    
-    /* Table Styling */
-    .dataframe {
-        font-size: 0.9rem;
-    }
-    
-    /* Sidebar Styling */
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
-    }
-    
-    [data-testid="stSidebar"] h1, 
-    [data-testid="stSidebar"] h2, 
-    [data-testid="stSidebar"] h3 {
-        color: #00ff41;
+        background-image: linear-gradient(to right, #4caf50, #8bc34a);
     }
 </style>
 """, unsafe_allow_html=True)
 
-# ════════════════════════════════════════════════════════════════════════════
-# STATE MANAGEMENT
-# ════════════════════════════════════════════════════════════════════════════
-
-STATE_FILE = "bot_state.json"
+# File dữ liệu được tạo ra bởi monster_engine.py
+STATE_FILE = 'bot_state.json'
 
 def load_bot_state():
     """Load bot state from JSON file"""
@@ -440,94 +335,125 @@ def display_trade_history(history):
 # ════════════════════════════════════════════════════════════════════════════
 
 def main():
-    """Main Streamlit app"""
-    
-    # Sidebar
-    with st.sidebar:
-        st.markdown("### ⚙️ Dashboard Settings")
-        
-        auto_refresh = st.checkbox("Auto Refresh", value=True)
-        
-        if auto_refresh:
-            refresh_rate = st.slider("Refresh Rate (seconds)", 5, 60, 15)
-        
-        st.markdown("---")
-        
-        st.markdown("### 📊 System Info")
-        st.info("""
-        **Monster Bot v14.4**
-        
-        ✅ Cloud-optimized architecture
-        ✅ Read-only dashboard
-        ✅ Real-time state monitoring
-        
-        **Features:**
-        - Smart Exit Logic
-        - Profit Lock System
-        - Trailing Stop
-        - Discord Alerts
-        """)
-        
-        st.markdown("---")
-        
-        if st.button("🔄 Manual Refresh"):
-            st.rerun()
-    
-    # Load state
-    state = load_bot_state()
-    
-    if state is None:
-        st.error("Failed to load bot state. Please check if monster_engine.py is running.")
-        return
-    
-    # Display header
-    display_header(state)
-    
-    # Main content area
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        # Active trades
-        if state.get('open_trades'):
-            for trade in state['open_trades']:
-                # Try to get current price from last known state
-                # In production, you might fetch this from exchange
-                display_active_trade(trade)
-        else:
-            st.info("🔍 No active positions")
-        
-        # Pending orders
-        if state.get('pending_orders'):
-            display_pending_orders(state['pending_orders'])
-    
-    with col2:
-        # Quick stats
-        st.markdown("### 📈 Quick Stats")
-        
-        balance = state.get('balance', 10000.0)
-        initial_balance = 10000.0
-        total_pnl = ((balance - initial_balance) / initial_balance) * 100
-        
-        st.metric(
-            "Portfolio PnL",
-            f"{total_pnl:+.2f}%",
-            delta=f"${balance - initial_balance:+,.2f}"
-        )
-        
-        st.metric("Open Positions", len(state.get('open_trades', [])))
-        st.metric("Pending Orders", len(state.get('pending_orders', [])))
-        
-        history = state.get('trade_history', [])
-        st.metric("Total Trades", len(history))
-    
-    # Trade history (full width)
+    st.title("🤖 MONSTER BOT v14.4 - TITAN INTERACTIVE")
     st.markdown("---")
-    display_trade_history(state.get('trade_history', []))
-    
-    # Auto-refresh
-    if auto_refresh:
-        time.sleep(refresh_rate)
+
+    # --- Đọc dữ liệu mới nhất ---
+    state = load_state()
+
+    # Nếu chưa có file (Engine chưa chạy)
+    if not state:
+        st.warning("⚠️ Đang chờ Monster Engine khởi động... (Chưa thấy file data)")
+        time.sleep(2)
         st.rerun()
+        return
+
+    # Lấy dữ liệu ra biến
+    last_update = state.get('last_update', 'N/A')
+    current_price = state.get('current_price', 0)
+    regime = state.get('regime', 'Scanning...')
+    balance = state.get('balance', 0)
+    open_trades = state.get('open_trades', [])
+    trade_history = state.get('trade_history', [])
+    config = state.get('config', {})
+
+    # --- SIDEBAR (GIỐNG V13) ---
+    with st.sidebar:
+        st.header("⚙️ LIVE CONFIGURATION")
+        st.success("✅ Engine is Running 24/7")
+        st.info(f"🕒 Last Update: {last_update}")
+        
+        # Hiển thị thông số (Read-only)
+        if config:
+            st.code(json.dumps(config, indent=2), language='json')
+        else:
+            st.text("Loading Config...")
+            
+        st.markdown("---")
+        st.metric("REAL-TIME EQUITY", f"${balance:,.2f}")
+
+    # --- KHU VỰC METRICS (GIỐNG V13) ---
+    # Tính toán chỉ số Winrate từ lịch sử
+    wins = 0
+    losses = 0
+    total_pnl = 0.0
+    
+    if trade_history:
+        df_hist = pd.DataFrame(trade_history)
+        # Giả sử trong history có cột 'pnl_percent' hoặc 'net_pnl'
+        # Logic đếm win/loss
+        wins = len([t for t in trade_history if t.get('pnl', 0) > 0])
+        losses = len([t for t in trade_history if t.get('pnl', 0) <= 0])
+        total_pnl = sum([t.get('pnl', 0) for t in trade_history])
+        
+        win_rate = (wins / len(trade_history)) * 100 if len(trade_history) > 0 else 0
+    else:
+        win_rate = 0.0
+
+    # Hiển thị 4 cột chỉ số
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("CURRENT PRICE", f"${current_price:,.2f}", f"{regime}")
+    col2.metric("WIN RATE", f"{win_rate:.1f}%")
+    col3.metric("WINS / LOSSES", f"{wins} / {losses}")
+    col4.metric("TOTAL NET PNL", f"${total_pnl:.2f}")
+
+    # --- KHU VỰC LỆNH ĐANG MỞ (ACTIVE TRADE) ---
+    if open_trades:
+        st.markdown("### ⚡ ACTIVE POSITIONS")
+        for trade in open_trades:
+            # Tính toán PnL tạm tính
+            entry_price = trade.get('entry_price', current_price)
+            side = trade.get('side', 'BUY')
+            
+            if side == 'BUY':
+                pnl_pct = ((current_price - entry_price) / entry_price) * 100
+            else:
+                pnl_pct = ((entry_price - current_price) / entry_price) * 100
+            
+            # Màu sắc
+            color = "green" if pnl_pct >= 0 else "red"
+            
+            with st.container():
+                c1, c2, c3, c4 = st.columns([1, 1, 2, 1])
+                c1.markdown(f"**{trade.get('symbol')} ({side})**")
+                c2.markdown(f"Entry: `${entry_price:,.2f}`")
+                c3.progress(0.5) # Để tạm 50%, nếu muốn tính chính xác cần TP/SL
+                c4.markdown(f":{color}[**{pnl_pct:+.2f}%**]")
+                st.caption(f"Reason: {trade.get('entry_reason', 'AI Signal')}")
+        st.markdown("---")
+
+    # --- KHU VỰC NHẬT KÝ LỆNH (LOG TABLE) ---
+    st.markdown("### 📜 TRADING LOG (LIVE)")
+    
+    if trade_history:
+        # Tạo DataFrame hiển thị
+        df_log = pd.DataFrame(trade_history)
+        
+        # Sắp xếp mới nhất lên đầu
+        df_log = df_log.iloc[::-1]
+        
+        # Format lại bảng cho đẹp
+        st.dataframe(
+            df_log,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "timestamp": "Time",
+                "symbol": "Symbol",
+                "side": "Side",
+                "entry_price": st.column_config.NumberColumn("Entry", format="$%.2f"),
+                "exit_price": st.column_config.NumberColumn("Exit", format="$%.2f"),
+                "pnl_percent": st.column_config.NumberColumn("Net PnL %", format="%.2f%%"),
+                "exit_reason": "Reason"
+            }
+        )
+    else:
+        st.info("Chưa có lệnh nào được đóng.")
+
+    # --- AUTO REFRESH (Cơ chế tự động làm mới trang) ---
+    # Tự động refresh sau mỗi 5 giây để cập nhật giá
+    time.sleep(5) 
+    st.rerun()
 
 if __name__ == "__main__":
     main()
