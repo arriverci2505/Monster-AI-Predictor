@@ -77,7 +77,7 @@ BTC_GOLDEN_CONFIG = {
     # --- RISK MANAGEMENT (CHO LÃI "THỞ") ---
     'use_advanced_exit': True,
     'use_profit_lock': True,
-        ai_exit_threshold': 0.70,
+    'ai_exit_threshold': 0.70,
           
     'profit_lock_levels': [
         (1.8, 1.2),                    
