@@ -42,32 +42,51 @@ BTC_GOLDEN_CONFIG = {
     'sequence_length': 30,
     
     # AI Model Settings - Dual Threshold System
-    'temperature': 0.42,
-    'buy_threshold_trending': 0.36,
-    'sell_threshold_trending': 0.36,
-    'buy_threshold_sideway': 0.22,
-    'sell_threshold_sideway': 0.22,
-    
-    # Risk Management - BTC Optimized
-    'atr_multiplier_sl': 3.2,
-    'atr_multiplier_tp': 18.5,
-    
-    # Regime Detection
-    'adx_threshold_trending': 25,
-    'adx_min': 15,
-    'adx_max': 100,
-    'use_sma_filter': True,
-    
-    # Smart Exit - BTC Tier (from backtest)
-    'enable_profit_lock': True,
-    'enable_trailing': True,
+    'temperature': 1.2,
+    'entry_percentile': 25,            
+          
+    # TRENDING MODE
+    'trending_buy_threshold': 0.40,    
+    'trending_sell_threshold': 0.42,
+          
+    # SIDEWAY MODE
+    'sideway_buy_threshold': 0.22,      
+    'sideway_sell_threshold': 0.22,
+          
+    # --- REGIME CLASSIFICATION ---
+    'trending_adx_min': 30,
+    'sideway_adx_max': 30,
+    'choppiness_threshold_high': 58.0,
+    'choppiness_extreme_low': 30,      
+
+    # --- SIDEWAY FILTERS (MỞ RỘNG BIÊN) ---
+    'deviation_zscore_threshold': 1.4,  
+    'mean_reversion_min_shadow_atr': 0.1,
+    'bb_squeeze_percentile': 0.35,
+          
+    # --- TRENDING MODE (SIẾT SL, THẢ TP) ---
+    'sl_std_multiplier': 1.5,          
+    'max_holding_bars': 200,             
+          
+    # --- SIDEWAY EXIT ---
+    'mean_reversion_sl_pct': 1.0,       
+    'mean_reversion_tp_pct': 3.5,       
+    'time_barrier': 20,
+    'min_profit_for_target': 0.009,     
+
+    # --- RISK MANAGEMENT (CHO LÃI "THỞ") ---
+    'use_advanced_exit': True,
+    'use_profit_lock': True,
+        ai_exit_threshold': 0.70,
+          
     'profit_lock_levels': [
-        {'trigger': 1.8, 'lock': 1.2},
-        {'trigger': 3.5, 'lock': 2.8},
-        {'trigger': 5.5, 'lock': 4.5}
+        (1.8, 1.2),                    
+        (3.5, 2.8),
+        (5.5, 4.5)
     ],
-    'trailing_activation': 1.5,
-    'trailing_distance': 0.6,
+
+    'trailing_stop_activation': 1.5,    
+    'trailing_stop_distance': 0.6,
     
     # System
     'discord_webhook': '',
