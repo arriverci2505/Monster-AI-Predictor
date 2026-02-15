@@ -59,34 +59,6 @@ STATE_FILE = "bot_state.json"
 # ════════════════════════════════════════════════════════════════════════════
 # 2. BỘ NÃO ENGINE (CHẠY NGẦM) - KHỞI TẠO ĐẦY ĐỦ BIẾN
 # ════════════════════════════════════════════════════════════════════════════
-def background_engine():
-    exch = ccxt.kraken()
-    while True:
-        try:
-            ticker = exch.fetch_ticker('BTC/USDT')
-            price = ticker['last']
-            
-            # Khởi tạo dữ liệu mẫu với ĐẦY ĐỦ CÁC KEY để tránh lỗi KeyError
-            state = {
-                "current_price": price,
-                "last_update": datetime.now().strftime("%H:%M:%S"),
-                "balance": 10500.0,
-                "win_rate": 85.5,  # Thêm key này để fix lỗi bạn gặp
-                "regime": "UPTREND",
-                "trade_history": [
-                    {"Time": datetime.now().strftime("%H:%M"), "Side": "BUY", "Price": price, "PnL": "+0.5%"}
-                ]
-            }
-            with open(STATE_FILE, "w") as f:
-                json.dump(state, f)
-            time.sleep(15)
-        except Exception as e:
-            print(f"Engine Error: {e}")
-            time.sleep(20)
-
-if "engine_started" not in st.session_state:
-    threading.Thread(target=background_engine, daemon=True).start()
-    st.session_state.engine_started = True
 
 # ════════════════════════════════════════════════════════════════════════════
 # 3. LAYOUT CHIA ĐÔI (LEFT: LOGIC | RIGHT: CHART)
