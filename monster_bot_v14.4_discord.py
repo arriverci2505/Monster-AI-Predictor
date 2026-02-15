@@ -339,7 +339,7 @@ def main():
     st.markdown("---")
 
     # --- Đọc dữ liệu mới nhất ---
-    state = load_state()
+    state = load_bot_state()
 
     # Nếu chưa có file (Engine chưa chạy)
     if not state:
