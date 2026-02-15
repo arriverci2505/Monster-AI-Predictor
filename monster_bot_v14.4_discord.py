@@ -5,7 +5,23 @@ import os
 import time
 from datetime import datetime
 import streamlit.components.v1 as components
+import subprocess
+import sys
+import os
 
+def start_engine():
+    # Sử dụng biến file giả để kiểm tra xem engine đã được kích hoạt trong session này chưa
+    if "engine_started" not in st.session_state:
+        st.info("🚀 Đang khởi động Ares Titan Engine trên Cloud...")
+        # Chạy monster_engine.py như một tiến trình độc lập
+        subprocess.Popen([sys.executable, "monster_engine.py"], 
+                         stdout=subprocess.PIPE, 
+                         stderr=subprocess.PIPE)
+        st.session_state.engine_started = True
+        time.sleep(5) # Đợi 5 giây để engine kịp tạo file JSON lần đầu
+        st.rerun()
+
+start_engine()
 # ════════════════════════════════════════════════════════════════════════════
 # 1. CẤU HÌNH TRANG & THEME (V13 ORIGINAL STYLE)
 # ════════════════════════════════════════════════════════════════════════════
