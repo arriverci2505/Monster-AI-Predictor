@@ -784,7 +784,9 @@ if data:
             "mainSeriesProperties.candleStyle.borderUpColor": "#00f2ff",
             "mainSeriesProperties.candleStyle.borderDownColor": "#ff0055",
             "mainSeriesProperties.candleStyle.wickUpColor": "#00f2ff",
-            "mainSeriesProperties.candleStyle.wickDownColor": "#ff0055"
+            "mainSeriesProperties.candleStyle.wickDownColor": "#ff0055",
+            "studiesOverrides.moving average.line.color": "#FFD700",
+            "studiesOverrides.moving average.line.linewidth": 3
           }
         });
         </script>
