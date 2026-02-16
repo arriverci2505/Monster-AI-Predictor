@@ -233,34 +233,46 @@ st.markdown("""
         box-shadow: 0 8px 32px rgba(0, 242, 255, 0.2);
         position: relative;
         border: 1px solid rgba(0, 242, 255, 0.1);
-        overflow: hidden;
+        overflow: hidden; 
+        z-index: 1;
     }
     
     .hud-header::before {
-      content: '';
+        content: '';
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, #00f2ff, #bd00ff, transparent);
-        animation: fullBorderScan 10s linear infinite;
+        /* Tạo một hình vuông cực lớn để xoay */
+        width: 200%;
+        height: 500%;
+        top: -200%;
+        left: -50%;
+        background: conic-gradient(
+            from 0deg,
+            transparent 0deg,
+            transparent 150deg,
+            #00f2ff 180deg, /* Màu tia sáng */
+            #ffffff 185deg, /* Điểm rực sáng nhất */
+            #bd00ff 190deg, /* Màu pha tím */
+            transparent 220deg,
+            transparent 360deg
+        );
+        /* Xoay tròn cái dải màu này */
+        animation: rotateBeam 6s linear infinite;
+        z-index: -1;
     }
 
-    @keyframes fullBorderScan {
-        0% { top: 0; left: -100px; width: 100px; height: 3px; transform: rotate(0deg); }
-        20% { top: 0; left: calc(100% - 100px); width: 100px; height: 3px; transform: rotate(0deg); }
+    /* Lớp phủ bên trên để tạo hiệu ứng viền mảnh */
+    .hud-header::after {
+        content: '';
+        position: absolute;
+        inset: 2px; /* Thụt vào 2px để lộ tia sáng ở viền */
+        background: rgba(0, 5, 10, 0.95); /* Màu nền che phần giữa */
+        border-radius: 13px; /* Bo góc nhỏ hơn lớp ngoài một chút */
+        z-index: -1;
+    }
 
-        25% { top: 0; left: 100%; width: 3px; height: 100px; transform: translateX(-3px); }
-        45% { top: calc(100% - 100px); left: 100%; width: 3px; height: 100px; transform: translateX(-3px); }
-
-        50% { top: 100%; left: calc(100% - 100px); width: 100px; height: 3px; transform: translateY(-3px); }
-        70% { top: 100%; left: 0; width: 100px; height: 3px; transform: translateY(-3px); }
-
-        75% { top: calc(100% - 100px); left: 0; width: 3px; height: 100px; transform: translateX(0); }
-        95% { top: 0; left: 0; width: 3px; height: 100px; transform: translateX(0); }
-        
-        100% { top: 0; left: -100px; }
+    @keyframes rotateBeam {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
     
     .hud-title {
