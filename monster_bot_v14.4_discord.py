@@ -729,39 +729,7 @@ if data:
     col_main, col_terminal = st.columns([7, 3])
     
     with col_main:
-        # Tiêu đề này sẽ ngang hàng với "MATRIX TERMINAL" bên phải
-        st.markdown("### 📈 TRADING ANALYSIS")
-
-        # ═══════════════════════════════════════════════════════════════
-        # AI CONFIDENCE CHART - CĂN BẰNG VỚI CHỮ "MONSTER"
-        # ═══════════════════════════════════════════════════════════════
-        fig_ai = go.Figure()
-        fig_ai.add_trace(go.Bar(
-            y=['NEUTRAL', 'BUY', 'SELL'],
-            x=[prob_neutral * 100, prob_buy * 100, prob_sell * 100],
-            orientation='h',
-            marker=dict(
-                color=['#ffaa00', '#00f2ff', '#bd00ff'],
-                line=dict(color='#00f2ff', width=2)
-            ),
-            text=[f"{prob_neutral*100:.1f}%", f"{prob_buy*100:.1f}%", f"{prob_sell*100:.1f}%"],
-            textposition='auto',
-            textfont=dict(color='#ffffff', size=14, family='JetBrains Mono', weight='bold'),
-        ))
         
-        fig_ai.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',  # Nền trong suốt
-            plot_bgcolor='rgba(0,0,0,0)',   # Nền biểu đồ trong suốt
-            font=dict(color='#e0e0e0', family='JetBrains Mono'),
-            xaxis=dict(range=[0, 100], showgrid=False, visible=False), # Ẩn trục X để tiết kiệm diện tích
-            yaxis=dict(color='#00f2ff', tickfont=dict(size=12)),
-            height=150,                     # Chiều cao thấp để khớp với cụm chữ MONSTER
-            margin=dict(l=0, r=0, t=0, b=0), # Đẩy sát lên trên cùng
-            showlegend=False,
-        )
-        
-        st.plotly_chart(fig_ai, use_container_width=True, config={'displayModeBar': False})
-
         # ═══════════════════════════════════════════════════════════════
         # TRADINGVIEW WIDGET
         # ═══════════════════════════════════════════════════════════════
@@ -927,7 +895,39 @@ if data:
             {terminal_output}
         </div>
         """, unsafe_allow_html=True)
-    
+        
+        st.markdown("### 📈 TRADING ANALYSIS")
+
+        # ═══════════════════════════════════════════════════════════════
+        # AI CONFIDENCE CHART - CĂN BẰNG VỚI CHỮ "MONSTER"
+        # ═══════════════════════════════════════════════════════════════
+        fig_ai = go.Figure()
+        fig_ai.add_trace(go.Bar(
+            y=['NEUTRAL', 'BUY', 'SELL'],
+            x=[prob_neutral * 100, prob_buy * 100, prob_sell * 100],
+            orientation='h',
+            marker=dict(
+                color=['#ffaa00', '#00f2ff', '#bd00ff'],
+                line=dict(color='#00f2ff', width=2)
+            ),
+            text=[f"{prob_neutral*100:.1f}%", f"{prob_buy*100:.1f}%", f"{prob_sell*100:.1f}%"],
+            textposition='auto',
+            textfont=dict(color='#ffffff', size=14, family='JetBrains Mono', weight='bold'),
+        ))
+        
+        fig_ai.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',  # Nền trong suốt
+            plot_bgcolor='rgba(0,0,0,0)',   # Nền biểu đồ trong suốt
+            font=dict(color='#e0e0e0', family='JetBrains Mono'),
+            xaxis=dict(range=[0, 100], showgrid=False, visible=False), # Ẩn trục X để tiết kiệm diện tích
+            yaxis=dict(color='#00f2ff', tickfont=dict(size=12)),
+            height=150,                     # Chiều cao thấp để khớp với cụm chữ MONSTER
+            margin=dict(l=0, r=0, t=0, b=0), # Đẩy sát lên trên cùng
+            showlegend=False,
+        )
+        
+        st.plotly_chart(fig_ai, use_container_width=True, config={'displayModeBar': False})
+
     # ═══════════════════════════════════════════════════════════════════════════
     # TRADE HISTORY TABLE
     # ═══════════════════════════════════════════════════════════════════════════
