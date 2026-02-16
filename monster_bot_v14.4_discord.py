@@ -230,51 +230,65 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: center;
+        /* Viền mờ làm nền */
         border: 1px solid rgba(0, 242, 255, 0.1);
         z-index: 1;
-        overflow: hidden; /* Cắt khối sáng theo bo góc */
+        overflow: hidden;
     }
 
-    /* Khối sáng laser */
+    /* Tạo 1 tia sáng duy nhất bám viền */
     .hud-header::before {
         content: '';
         position: absolute;
-        width: 300px; /* Độ dài tia sáng */
-        height: 300px; /* Độ cao lớn để phủ cả góc dọc */
-        /* Màu tia sáng rực rỡ */
-        background: radial-gradient(circle, #00f2ff 0%, #bd00ff 50%, transparent 70%);
-        filter: blur(20px); /* Làm nhòe để tia sáng bám theo viền bo 15px */
-        z-index: -1;
-        animation: runBorder 6s linear infinite;
-        opacity: 0.8;
+        /* Tạo một khối màu Gradient dài */
+        inset: -2px;
+        border-radius: 15px;
+        padding: 2px; /* Độ dày viền */
+        background: conic-gradient(
+            from var(--angle),
+            #00f2ff 0%,
+            #ffffff 5%,
+            #bd00ff 10%,
+            transparent 30%,
+            transparent 100%
+        );
+        /* Ép chỉ hiển thị ở viền */
+        -webkit-mask: 
+            linear-gradient(#fff 0 0) content-box, 
+            linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        
+        animation: rotateSingle 4s linear infinite;
     }
 
-    /* Lớp phủ bên trên để giữ lại cái rãnh viền */
-    .hud-header::after {
-        content: '';
-        position: absolute;
-        inset: 2px; /* Tạo độ dày viền 2px */
-        background: rgba(0, 5, 10, 0.95);
-        border-radius: 13px;
-        z-index: -1;
+    /* Kỹ thuật fix lỗi không hiện: Dùng biến trực tiếp cho trình duyệt hiện đại */
+    @property --angle {
+        syntax: '<angle>';
+        initial-value: 0deg;
+        inherits: false;
     }
 
-    @keyframes runBorder {
-        /* Chạy cạnh TRÊN (Trái sang Phải) */
-        0% { top: -150px; left: -150px; }
-        30% { top: -150px; left: calc(100% - 150px); }
-        
-        /* Chạy cạnh PHẢI (Trên xuống Dưới) */
-        35% { top: -150px; left: calc(100% - 150px); }
-        50% { top: calc(100% - 150px); left: calc(100% - 150px); }
-        
-        /* Chạy cạnh DƯỚI (Phải sang Trái) */
-        55% { top: calc(100% - 150px); left: calc(100% - 150px); }
-        85% { top: calc(100% - 150px); left: -150px; }
-        
-        /* Chạy cạnh TRÁI (Dưới lên Trên) */
-        90% { top: calc(100% - 150px); left: -150px; }
-        100% { top: -150px; left: -150px; }
+    @keyframes rotateSingle {
+        from { --angle: 0deg; }
+        to { --angle: 360deg; }
+    }
+
+    /* Dự phòng cho trình duyệt không hỗ trợ @property: 
+       Tự động xoay toàn bộ lớp ::before */
+    @supports not (background: paint(something)) {
+        .hud-header::before {
+            width: 200%;
+            height: 500%;
+            top: -200%;
+            left: -50%;
+            animation: rotateLegacy 6s linear infinite;
+        }
+    }
+
+    @keyframes rotateLegacy {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
 
     .hud-title {
