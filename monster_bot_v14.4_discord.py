@@ -768,8 +768,7 @@ if data:
           "container_id": "tv_chart_container",
           "studies": [
             "RSI@tv-basicstudies",
-            {"id": "MASimple@tv-basicstudies", "inputs": { "length": 200 }},
-            "StochasticRSI@tv-basicstudies"
+            {"id": "MASimple@tv-basicstudies", "inputs": { "length": 200 }}
           ],
           "overrides": {
             "paneProperties.background": "#050505",
