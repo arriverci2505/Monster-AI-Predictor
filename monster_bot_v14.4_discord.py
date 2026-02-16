@@ -249,11 +249,11 @@ st.markdown("""
 
     @keyframes doubleScan {
         0% {top: 0;left: -150px;opacity: 1;}
-        25% {top: 0;left: 100%;opacity: 1;}
-        25.01% {top: 100%;left: 100%;opacity: 0;}
-        26% {top: calc(100% - 3px); left: 100%;opacity: 1;}
-        51% {top: calc(100% - 3px);left: -150px;opacity: 1;}
-        51.01% {top: 0;left: -150px;opacity: 0;}
+        35% {top: 0;left: 100%;opacity: 1;}
+        35.01% {top: 100%;left: 100%;opacity: 0;}
+        50% {top: calc(100% - 3px); left: 100%;opacity: 1;}
+        75% {top: calc(100% - 3px);left: -150px;opacity: 1;}
+        75.01% {top: 0;left: -150px;opacity: 0;}
         100% {top: 0;left: -150px;opacity: 0;}
     }
     
