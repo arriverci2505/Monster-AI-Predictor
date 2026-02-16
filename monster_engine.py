@@ -124,7 +124,8 @@ LIVE_CONFIG = {
 # Discord Webhook
 DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1472776784205447360/NQaLrcBstxG1vLpwIcHREhPRlFphGFSKl2lUreNMZxHdX4zVk-81F7ACogFUA6fepMMH"
 
-STATE_FILE = os.path.abspath("bot_state_v14_4.json")
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+STATE_FILE = os.path.join(BASE_PATH, "bot_state_v14_4.json")
 
 # ════════════════════════════════════════════════════════════════════════════
 # STARTUP VERIFICATION
