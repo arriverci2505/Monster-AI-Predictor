@@ -154,36 +154,36 @@ logger.info("="*80)
 # ════════════════════════════════════════════════════════════════════════════
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, max_len=5000):
+    """Positional Encoding chuẩn xác từ v14.4 Training"""
+    def __init__(self, d_model: int, max_len: int = 5000):
         super().__init__()
+        position = torch.arange(max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2) * (-np.log(10000.0) / d_model))
         pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         self.register_buffer('pe', pe.unsqueeze(0))
 
     def forward(self, x):
-        return x + self.pe[:, :x.size(1)]
+        # x: (batch, seq_len, d_model)
+        return x + self.pe[:, :x.size(1), :]
 
 class SqueezeExcitation(nn.Module):
-    def __init__(self, channels, reduction=16):
+    """Squeeze-Excitation chuẩn xác (fc1, fc2) từ v14.4 Training"""
+    def __init__(self, channels: int, reduction: int = 16):
         super().__init__()
-        self.fc = nn.Sequential(
-            nn.Linear(channels, channels // reduction, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(channels // reduction, channels, bias=False),
-            nn.Sigmoid()
-        )
+        self.fc1 = nn.Linear(channels, channels // reduction)
+        self.fc2 = nn.Linear(channels // reduction, channels)
 
     def forward(self, x):
-        # x shape: (batch, seq_len, channels)
-        b, s, c = x.size()
-        y = x.mean(dim=1) # Global Average Pooling over time
-        y = self.fc(y).view(b, 1, c)
-        return x * y.expand_as(x)
+        # Global average pooling
+        scale = x.mean(dim=1)  # (batch, channels)
+        scale = F.relu(self.fc1(scale))
+        scale = torch.sigmoid(self.fc2(scale))
+        return x * scale.unsqueeze(1)
 
 class HybridTransformerLSTM(nn.Module):
+    """Kiến trúc THE MONSTER v14.4 - Khớp 100% State Dict"""
     def __init__(self, config):
         super().__init__()
         self.input_dim = config['input_dim']
@@ -211,7 +211,7 @@ class HybridTransformerLSTM(nn.Module):
             num_layers=config.get('num_transformer_layers', 2)
         )
 
-        # 4. LSTM layers (Bidirectional)
+        # 4. Bi-LSTM layers
         self.lstm = nn.LSTM(
             input_size=self.hidden_dim,
             hidden_size=self.hidden_dim,
@@ -221,7 +221,7 @@ class HybridTransformerLSTM(nn.Module):
             bidirectional=True
         )
 
-        # 5. Squeeze-Excitation
+        # 5. Squeeze-Excitation (Khớp với fc1, fc2 trong checkpoint)
         self.se_block = SqueezeExcitation(
             channels=self.hidden_dim * 2,
             reduction=config.get('se_reduction_ratio', 16)
@@ -252,8 +252,11 @@ class HybridTransformerLSTM(nn.Module):
         x, _ = self.lstm(x)
         x = self.se_block(x)
         
-        attn_out, _ = self.final_attention(x, x, x)
-        x = attn_out.mean(dim=1) # Global pooling
+        # Self-attention cuối cùng
+        x, _ = self.final_attention(x, x, x)
+        
+        # Global Average Pooling
+        x = x.mean(dim=1)
         
         return self.classifier(x)
 # ════════════════════════════════════════════════════════════════════════════
