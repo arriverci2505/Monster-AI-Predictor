@@ -1142,6 +1142,7 @@ def main():
                             'neutral': float(prob_neutral),
                             'regime': regime
                         }
+                        save_state(state)
                         # ═══════════════════════════════════════════════════════
                         # REGIME-FIRST LOGIC (STRICT IF-ELIF-ELSE)
                         # ═══════════════════════════════════════════════════════
