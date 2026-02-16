@@ -222,7 +222,7 @@ st.markdown("""
     /* ═══════════════════════════════════════════════════════════════ */
     .hud-header {
         position: relative;
-        margin: 70px -70px 30px -70px;
+        margin: -60px -70px 30px -70px;
         padding: 15px 30px;
         background: rgba(0, 5, 10, 0.9);
         backdrop-filter: blur(10px);
@@ -230,50 +230,46 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: center;
+        /* Viền cơ bản */
         border: 1px solid rgba(0, 242, 255, 0.1);
         z-index: 1;
-        overflow: hidden; /* Cắt tia sáng theo bo góc 15px */
+        overflow: hidden;
     }
 
+    /* Lớp tia sáng chạy vòng tròn */
     .hud-header::before {
         content: '';
         position: absolute;
-        /* Tia sáng dài 200px */
-        width: 200px; 
-        height: 200px; 
-        /* Tạo dải màu gradient 4 hướng để khi chạy ở cạnh nào cũng thấy */
-        background: conic-gradient(from 0deg, #00f2ff, #bd00ff, #00f2ff);
-        filter: blur(10px); /* Làm nhòe để tia sáng mềm mại, không bị "bẻ lái" thô */
-        z-index: -1;
-        animation: borderFollow 6s linear infinite;
+        /* CỰC KỲ QUAN TRỌNG: inset âm lớn để bao phủ HUD dẹt */
+        inset: -100px -200%; 
+        background: conic-gradient(
+            from 0deg,
+            transparent 0%,
+            transparent 40%,
+            #00f2ff 50%, /* Màu tia sáng */
+            #ffffff 51%, /* Điểm sáng nhất */
+            #bd00ff 52%, /* Đuôi tím */
+            transparent 60%,
+            transparent 100%
+        );
+        /* Animation xoay tròn */
+        animation: rotateBeam 5s linear infinite;
+        z-index: -2;
     }
 
-    /* Lớp phủ bên trên để tạo viền mảnh */
+    /* Lớp phủ để biến mảng màu thành đường viền mảnh 2px */
     .hud-header::after {
         content: '';
         position: absolute;
-        inset: 2px;
-        background: rgba(0, 5, 10, 0.95);
+        inset: 2px; /* Độ dày viền */
+        background: rgba(0, 5, 10, 0.98); 
         border-radius: 13px;
         z-index: -1;
     }
 
-    @keyframes borderFollow {
-        /* Chạy cạnh TRÊN */
-        0% { top: -100px; left: -100px; }
-        25% { top: -100px; left: calc(100% - 100px); }
-        
-        /* Chạy cạnh PHẢI */
-        30% { top: -100px; left: calc(100% - 100px); }
-        50% { top: calc(100% - 100px); left: calc(100% - 100px); }
-        
-        /* Chạy cạnh DƯỚI */
-        55% { top: calc(100% - 100px); left: calc(100% - 100px); }
-        75% { top: calc(100% - 100px); left: -100px; }
-        
-        /* Chạy cạnh TRÁI */
-        80% { top: calc(100% - 100px); left: -100px; }
-        100% { top: -100px; left: -100px; }
+    @keyframes rotateBeam {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
     
     .hud-title {
