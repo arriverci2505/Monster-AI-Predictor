@@ -42,7 +42,7 @@ def is_bot_running():
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             if proc.info['cmdline']:
                 cmdline = ' '.join(proc.info['cmdline'])
-                if 'monster_engine.py' in cmdline and 'python' in cmdline.lower():
+                if 'monster_engine.py' in cmdline and 'python_path' in cmdline.lower():
                     return True, proc.info['pid']
     except Exception as e:
         st.sidebar.warning(f"Process check error: {e}")
