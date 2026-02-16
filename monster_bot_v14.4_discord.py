@@ -740,7 +740,7 @@ if data:
         showlegend=False
     )
     
-    st.plotly_chart(fig_ai, width="stretch")
+    st.plotly_chart(fig_ai, width='stretch')
     
     st.markdown("---")
     
@@ -756,7 +756,7 @@ if data:
         if history and len(history) > 0:
             chart_fig = create_price_chart_with_signals(data, history)
             if chart_fig:
-                st.plotly_chart(chart_fig, width="stretch")
+                st.plotly_chart(chart_fig, width='stretch')
             else:
                 st.info("Chart generation in progress...")
         else:
@@ -826,7 +826,7 @@ if data:
                     )
                 )
                 
-                st.plotly_chart(fig_pnl, width="stretch")
+                st.plotly_chart(fig_pnl, width='stretch')
         else:
             st.info("No trade data available yet")
     
@@ -857,7 +857,6 @@ if data:
         f"[ENGINE]  Status: {data.get('bot_status', 'Unknown')}",
         f"[PRICE]   BTC/USDT: ${current_price:,.2f}",
         f"[REGIME]  Market Mode: {regime}",
-        f"[AI]      Confidence: {ai_confidence*100:.1f}%",
         f"[TRADES]  Open Positions: {len(open_trades)}",
         f"[ORDERS]  Pending Limit: {len(pending_orders)}",
         f"[STATS]   Total Trades: {len(history)}",
@@ -865,10 +864,11 @@ if data:
         f"[STATS]   Total PnL: ${total_pnl:,.2f}",
         f"[SYSTEM]  CPU: {cpu_usage:.1f}% | RAM: {ram_usage:.1f}%",
         f"[TIME]    Last Update: {last_update_display}",
+        f"[CONFIG]  Rolling Window: {ROLLING_WINDOW} candles",
         f"[FILE]    State: {os.path.basename(STATE_FILE)}",
         "",
         "════════════════════════════════════════════════════════════════",
-        " ✅ ALL SYSTEMS OPERATIONAL. MONITORING ACTIVE.",
+        "✅ All systems operational. Monitoring active.",
         "════════════════════════════════════════════════════════════════"
     ]
     
@@ -893,7 +893,7 @@ if data:
         
         st.dataframe(
             df_history,
-            width="stretch",
+            width='stretch',
             height=400
         )
         
