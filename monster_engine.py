@@ -705,11 +705,11 @@ def load_state():
 
 def save_state(state):
     try:
-        state_path = os.path.abspath("bot_state_v14_4.json") 
+        state_path = "bot_state_v14_4.json" 
         with open(state_path, "w", encoding='utf-8') as f:
             json.dump(state, f, indent=4, ensure_ascii=False)
     except Exception as e:
-        logger.error(f"Error saving state: {e}")
+        logger.error(f"Error saving state: {e}")}")
 
 # ════════════════════════════════════════════════════════════════════════════
 # DISCORD NOTIFICATIONS
