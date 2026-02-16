@@ -969,9 +969,9 @@ if data:
 
         
         terminal_lines = [
-            "╔══════════════════════════════════════════════════════════════╗",
-            "║            MONSTER ENGINE v18.0 - NEURAL CORE                ║",
-            "╚══════════════════════════════════════════════════════════════╝",
+            "╔═════════════════════════════════════════════════════════════╗",
+            "║            MONSTER ENGINE v18.0 - NEURAL CORE               ║",
+            "╚═════════════════════════════════════════════════════════════╝",
             "",
             f"<span class='terminal-prompt'>[SYSTEM.INIT]</span> <span class='terminal-success'>NEURAL NETWORK INITIALIZED</span>",
             f"<span class='terminal-prompt'>[SYSTEM.INFO]</span> Engine Status: {data.get('bot_status', 'Unknown')}",
