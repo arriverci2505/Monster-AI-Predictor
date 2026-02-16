@@ -830,8 +830,44 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown("""
-<div style="position: fixed; top: 10px; left: 10px; color: #00f2ff; font-size: 10px; opacity: 0.5; z-index: 99">SYS_V18.0_READY</div>
-<div style="position: fixed; bottom: 10px; right: 10px; color: #00f2ff; font-size: 10px; opacity: 0.5; z-index: 99">RE-ENFORCED_AI_MODEL</div>
+<div class="cyber-overlay top-left">SYS_V18.0_READY</div>
+<div class="cyber-overlay bottom-right">RE-ENFORCED_AI_MODEL</div>
+
+<style>
+    .cyber-overlay {
+        position: fixed;
+        color: #00f2ff;
+        font-family: 'Orbitron', sans-serif; /* Hoặc font monospace của bạn */
+        font-size: 10px;
+        letter-spacing: 2px;
+        opacity: 0.6;
+        z-index: 999999; /* Ép nó lên lớp cao nhất */
+        pointer-events: none; /* Không làm vướng khi click chuột */
+        text-shadow: 0 0 5px #00f2ff;
+    }
+    
+    .top-left {
+        top: 15px;
+        left: 15px;
+        border-left: 2px solid #00f2ff;
+        padding-left: 5px;
+    }
+    
+    .bottom-right {
+        bottom: 15px;
+        right: 15px;
+        border-right: 2px solid #00f2ff;
+        padding-right: 5px;
+    }
+
+    /* Ẩn trên Mobile nếu nó làm rối mắt, hoặc giữ lại tùy bạn */
+    @media (max-width: 768px) {
+        .cyber-overlay {
+            font-size: 8px;
+            opacity: 0.4;
+        }
+    }
+</style>
 """, unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════════════
