@@ -892,59 +892,51 @@ if data:
         </div>
         """, unsafe_allow_html=True)
         
-        st.markdown("### 📈 TRADING ANALYSIS")
+        st.markdown("### 📈 AI ANALYSIS")
 
         # ═══════════════════════════════════════════════════════════════
-        # AI CONFIDENCE - FIX TRIỆT ĐỂ LỆCH KHUNG
+        # AI CONFIDENCE - FIX TRIỆT ĐỂ BẰNG CÁCH GỘP CHUNG VÀO 1 KHỐI HTML
         # ═══════════════════════════════════════════════════════════════
         
-        # Bọc toàn bộ vào một Container có ID riêng để kiểm soát CSS tuyệt đối
+        # 1. Tạo container với các góc Neon bằng CSS thuần (không sợ lệch)
         st.markdown("""
-        <div style="position: relative; 
-                    background: rgba(5, 5, 5, 0.5); 
-                    backdrop-filter: blur(10px); 
-                    border: 2px solid rgba(0, 242, 255, 0.4); 
-                    border-radius: 20px; 
-                    padding: 20px; 
-                    margin-top: 10px;
-                    box-shadow: inset 0 0 30px rgba(0, 242, 255, 0.1);">
-            
-            <div style="position: absolute; top: 10px; left: 10px; width: 15px; height: 15px; border-top: 3px solid #00f2ff; border-left: 3px solid #00f2ff; border-radius: 5px 0 0 0;"></div>
-            <div style="position: absolute; top: 10px; right: 10px; width: 15px; height: 15px; border-top: 3px solid #00f2ff; border-right: 3px solid #00f2ff; border-radius: 0 5px 0 0;"></div>
-            <div style="position: absolute; bottom: 10px; left: 10px; width: 15px; height: 15px; border-bottom: 3px solid #00f2ff; border-left: 3px solid #00f2ff; border-radius: 0 0 0 5px;"></div>
-            <div style="position: absolute; bottom: 10px; right: 10px; width: 15px; height: 15px; border-bottom: 3px solid #00f2ff; border-right: 3px solid #00f2ff; border-radius: 0 0 5px 0;"></div>
+        <div class="camera-frame" style="padding: 10px; min-height: 180px;">
+            <div class="camera-bottom-left"></div>
+            <div class="camera-bottom-right"></div>
+            <div id="plotly-anchor"></div>
+        </div>
         """, unsafe_allow_html=True)
         
+        # 2. Vẽ biểu đồ với margin âm để "nhét" nó vào khung vừa tạo
         fig_ai = go.Figure()
         fig_ai.add_trace(go.Bar(
             y=['NEUTRAL', 'BUY', 'SELL'],
             x=[prob_neutral * 100, prob_buy * 100, prob_sell * 100],
             orientation='h',
             marker=dict(
-                color=['rgba(255, 170, 0, 0.6)', 'rgba(0, 242, 255, 0.6)', 'rgba(189, 0, 255, 0.6)'],
+                color=['rgba(255, 170, 0, 0.7)', 'rgba(0, 242, 255, 0.7)', 'rgba(189, 0, 255, 0.7)'],
                 line=dict(color='#00f2ff', width=1)
             ),
             text=[f"{prob_neutral*100:.1f}%", f"{prob_buy*100:.1f}%", f"{prob_sell*100:.1f}%"],
             textposition='auto',
-            textfont=dict(color='#ffffff', size=12, family='JetBrains+Mono', weight='bold'),
+            textfont=dict(color='#ffffff', size=11, family='JetBrains Mono', weight='bold'),
         ))
         
         fig_ai.update_layout(
             paper_bgcolor='rgba(0,0,0,0)', 
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#00f2ff', family='JetBrains+Mono'),
+            font=dict(color='#00f2ff', family='JetBrains Mono'),
             xaxis=dict(range=[0, 100], showgrid=False, visible=False),
             yaxis=dict(color='#00f2ff', tickfont=dict(size=10)),
-            height=160,
+            height=150,
+            # Chỉnh margin này để biểu đồ không đè lên các góc
             margin=dict(l=70, r=20, t=10, b=10),
             showlegend=False,
-            bargap=0.4
+            bargap=0.3
         )
         
+        # Sử dụng container bao quanh của Streamlit để ép nó vào khung
         st.plotly_chart(fig_ai, use_container_width=True, config={'displayModeBar': False})
-        
-        # Đóng thẻ div container
-        st.markdown("</div>", unsafe_allow_html=True)
                 
     # ═══════════════════════════════════════════════════════════════════════════
     # TRADE HISTORY TABLE
