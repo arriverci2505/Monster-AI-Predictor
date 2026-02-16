@@ -222,7 +222,7 @@ st.markdown("""
     /* ═══════════════════════════════════════════════════════════════ */
     .hud-header {
         position: relative;
-        margin: 70px -70px 30px -70px;
+        margin: -50px -70px 30px -70px;
         padding: 15px 30px;
         background: rgba(0, 5, 10, 0.9);
         backdrop-filter: blur(10px);
@@ -247,14 +247,16 @@ st.markdown("""
     }
 
     @keyframes topBottomOnly {
-        0% {top: 0; left: -150px; opacity: 1;}
-        35% {top: 0; left: 100%; opacity: 1;}
-        35.01% {opacity: 0; left: 100%;}
-        49.99% {top: calc(100% - 2px); left: 100%;opacity: 0;}
-        50% {top: calc(100% - 2px); left: 100%;opacity: 1;}
-        85% {top: calc(100% - 2px); left: -150px;opacity: 1;}
-        85.01% {opacity: 0; left: -150px;}
-        100% {top: 0; left: -150px; opacity: 0;}
+        0% { top: 0; left: -150px; opacity: 0; }
+        5% { opacity: 1; } 
+        35% { top: 0; left: 100%; opacity: 1; }
+        40% { top: 0; left: calc(100% + 50px); opacity: 0; }
+        40.01% { top: calc(100% - 2px); left: 100%; opacity: 0; }
+        50% { top: calc(100% - 2px); left: 100%; opacity: 0; }
+        55% { opacity: 1; }
+        85% { top: calc(100% - 2px); left: -150px; opacity: 1; }
+        90% { top: calc(100% - 2px); left: -200px; opacity: 0; }
+        100% { top: 0; left: -150px; opacity: 0; }
     }
 
     .hud-title {
