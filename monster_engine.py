@@ -741,7 +741,7 @@ def load_state():
     return {
         'balance': 10000.0,
         'current_price': 0.0,
-        'ai_probs': {                # <--- THÊM CÁI NÀY
+        'ai_probs': {               
             'buy': 0.0, 
             'sell': 0.0, 
             'neutral': 1.0,
