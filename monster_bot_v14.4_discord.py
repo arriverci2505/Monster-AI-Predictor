@@ -244,7 +244,7 @@ st.markdown("""
         right: 0;
         height: 2px;
         background: linear-gradient(90deg, transparent, #00f2ff, #bd00ff, transparent);
-        animation: doubleScan 8s linear infinite;
+        animation: seamlessScan 8s linear infinite;
     }
 
     @keyframes seamlessScan {
