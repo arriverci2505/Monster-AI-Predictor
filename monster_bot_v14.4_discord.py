@@ -722,10 +722,6 @@ if data:
     # MAIN DASHBOARD: 70% CHARTS + 30% TERMINAL
     # ═══════════════════════════════════════════════════════════════════════════
     
-# ═══════════════════════════════════════════════════════════════════════════
-    # MAIN DASHBOARD: ALIGNED LAYOUT
-    # ═══════════════════════════════════════════════════════════════════════════
-    
     col_main, col_terminal = st.columns([7, 3])
     
     with col_main:
@@ -901,7 +897,7 @@ if data:
         # ═══════════════════════════════════════════════════════════════
         # AI CONFIDENCE CHART - CĂN BẰNG VỚI CHỮ "MONSTER"
         # ═══════════════════════════════════════════════════════════════
-        st.markdown('<div class="camera-frame" style="padding: 15px;">', unsafe_allow_html=True)
+        st.markdown('<div class="camera-frame" style="position: relative; padding: 20px; min-height: 200px; margin-bottom: 10px;">', unsafe_allow_html=True)
         
         fig_ai = go.Figure()
         fig_ai.add_trace(go.Bar(
@@ -909,7 +905,6 @@ if data:
             x=[prob_neutral * 100, prob_buy * 100, prob_sell * 100],
             orientation='h',
             marker=dict(
-                # Màu gradient giả lập neon
                 color=['rgba(255, 170, 0, 0.6)', 'rgba(0, 242, 255, 0.6)', 'rgba(189, 0, 255, 0.6)'],
                 line=dict(color='#00f2ff', width=1)
             ),
@@ -920,22 +915,22 @@ if data:
         
         fig_ai.update_layout(
             paper_bgcolor='rgba(0,0,0,0)', 
-            plot_bgcolor='rgba(0,242,255,0.02)', # Nền xanh cực mờ
+            plot_bgcolor='rgba(0,242,255,0.02)',
             font=dict(color='#00f2ff', family='JetBrains Mono'),
             xaxis=dict(range=[0, 100], showgrid=False, visible=False),
-            yaxis=dict(color='#00f2ff', tickfont=dict(size=10, family='Orbitron')),
-            height=160, # Chiều cao gọn để lọt vào khung
-            margin=dict(l=70, r=10, t=10, b=10),
+            yaxis=dict(color='#00f2ff', tickfont=dict(size=10)),
+            height=160, # Chiều cao cố định cho biểu đồ
+            margin=dict(l=70, r=10, t=0, b=0), # Triệt tiêu margin thừa gây lệch
             showlegend=False,
-            bargap=0.3 # Tạo khoảng cách giữa các thanh cho thoáng
+            bargap=0.4
         )
         
         st.plotly_chart(fig_ai, use_container_width=True, config={'displayModeBar': False})
         
-        # Các góc trang trí của khung
+        # Chèn các góc - Đảm bảo các góc này nằm trong div camera-frame
         st.markdown("""
-            <div class="camera-bottom-left"></div>
-            <div class="camera-bottom-right"></div>
+            <div class="camera-bottom-left" style="bottom: 5px; left: 5px;"></div>
+            <div class="camera-bottom-right" style="bottom: 5px; right: 5px;"></div>
         </div>
         """, unsafe_allow_html=True)
         
