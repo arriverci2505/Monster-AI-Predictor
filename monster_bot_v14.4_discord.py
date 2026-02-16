@@ -751,13 +751,23 @@ if data:
         """, unsafe_allow_html=True)
     
     with col2:
-        regime_icon = "📈" if regime == "TRENDING" else "↔️"
-        regime_class = "success" if regime == "TRENDING" else ""
+        if regime == "TRENDING":
+            regime_icon = "📈"
+            regime_class = "success"
+            regime_display = "TRENDING"
+        elif regime == "SIDEWAY":
+            regime_icon = "↔️"
+            regime_class = "info"
+            regime_display = "SIDEWAY"
+        else:
+            regime_icon = "🔍"
+            regime_class = "warning"
+            regime_display = "SCANNING"
         st.markdown(f"""
         <div class="metric-card">
             <div class="metric-icon">{regime_icon}</div>
             <div class="metric-label">MARKET REGIME</div>
-            <div class="metric-value {regime_class}">{regime}</div>
+            <div class="metric-value {regime_class}">{regime_display}</div>
             <div class="metric-delta">{len(open_trades)} OPEN POSITIONS</div>
         </div>
         """, unsafe_allow_html=True)
