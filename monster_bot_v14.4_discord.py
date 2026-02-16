@@ -148,8 +148,7 @@ def calculate_total_pnl(trade_history):
     total_pnl = 0
     for trade in trade_history:
         try:
-            pnl_str = trade.get('dollar_pnl', '$0.00')
-            pnl_value = float(pnl_str.replace('$', '').replace(',', ''))
+            pnl_value = trade.get('pnl_pct', 0)
             total_pnl += pnl_value
         except:
             pass
@@ -969,9 +968,7 @@ if data:
 
         
         terminal_lines = [
-            "╔══════════════════════════════════════════════════════════════╗",
-            "║           MONSTER ENGINE v18.0 - NEURAL CORE                 ║",
-            "╚══════════════════════════════════════════════════════════════╝",
+            "MONSTER ENGINE v18.0 - NEURAL CORE",
             "",
             f"<span class='terminal-prompt'>[SYSTEM.INIT]</span> <span class='terminal-success'>NEURAL NETWORK INITIALIZED</span>",
             f"<span class='terminal-prompt'>[SYSTEM.INFO]</span> Engine Status: {data.get('bot_status', 'Unknown')}",
