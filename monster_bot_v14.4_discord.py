@@ -741,12 +741,16 @@ if data:
         # ═══════════════════════════════════════════════════════════════
         # TRADINGVIEW WIDGET
         # ═══════════════════════════════════════════════════════════════
+        # 1. Tiêu đề chính (Bằng cấp độ với tiêu đề bên Terminal)
         st.markdown("### 📊 LIVE MARKET TERMINAL")
         
-        # Tạo Widget TradingView bằng HTML/Components
+        # 2. Bọc toàn bộ Chart vào trong khung Camera Frame
+        # Chiều cao 610px để cân bằng với Terminal 600px + padding/border
+        st.markdown('<div class="camera-frame">', unsafe_allow_html=True)
+        
         tradingview_html = """
-        <div class="tradingview-widget-container" style="height:500px;">
-          <div id="tradingview_chart"></div>
+        <div class="tradingview-widget-container" style="height:610px;">
+          <div id="tradingview_chart" style="height:100%;"></div>
           <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
           <script type="text/javascript">
           new TradingView.widget({
@@ -766,11 +770,16 @@ if data:
           </script>
         </div>
         """
+        # Render component với chiều cao khớp với div container
+        components.html(tradingview_html, height=610)
         
-        # Bọc Widget vào trong khung Camera Frame để đồng bộ UI
-        st.markdown('<div class="camera-frame">', unsafe_allow_html=True)
-        components.html(tradingview_html, height=500)
-        st.markdown('</div>', unsafe_allow_html=True)
+        # 3. Chèn các góc Neon trang trí vào cuối khung
+        st.markdown("""
+            <div class="camera-bottom-left"></div>
+            <div class="camera-bottom-right"></div>
+        </div>
+        """, unsafe_allow_html=True)
+        
         st.markdown("<br>", unsafe_allow_html=True)
         
         # AI Confidence Chart
