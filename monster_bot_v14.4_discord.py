@@ -232,6 +232,7 @@ st.markdown("""
         align-items: center;
         box-shadow: 0 8px 32px rgba(0, 242, 255, 0.2);
         position: relative;
+        border: 1px solid rgba(0, 242, 255, 0.1);
         overflow: hidden;
     }
     
