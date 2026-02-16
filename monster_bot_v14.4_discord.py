@@ -28,7 +28,7 @@ from plotly.subplots import make_subplots
 # CONFIGURATION - SYNCED WITH ENGINE
 # ════════════════════════════════════════════════════════════════════════════
 
-STATE_FILE = os.path.abspath("bot_state_v14_4.json")
+STATE_FILE = "bot_state_v14_4.json"
 BACKUP_DIR = "backups"
 ROLLING_WINDOW = 200
 
