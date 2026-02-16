@@ -890,70 +890,68 @@ if data:
         
         terminal_output = "<br>".join(terminal_lines)
         
-        # CSS tinh chỉnh để đẩy tiêu đề đè lên thanh kẻ
         st.markdown("""
             <style>
+                /* Xóa khoảng hở giữa Terminal và Chart */
                 [data-testid="stVerticalBlock"] > div:has(div.matrix-terminal) {
                     gap: 0rem !important;
                 }
                 
                 .matrix-terminal {
                     margin-bottom: 0px !important;
-                    padding-bottom: 10px !important;
-                    position: relative;
-                    border-radius: 12px 12px 0 0 !important;
+                    padding-bottom: 5px !important;
+                    border-radius: 10px 10px 0 0 !important;
                     background: rgba(0, 20, 20, 0.4);
                 }
                 
-                /* Thanh ngăn cách có chứa tiêu đề */
-                .separator-with-title {
-                    position: relative;
-                    height: 20px;
-                    border-bottom: 2px solid rgba(0, 242, 255, 0.3);
-                    margin-top: -10px;
-                    margin-bottom: 5px;
-                    display: flex;
-                    justify-content: center; /* Đưa chữ ra giữa hoặc left tùy bạn */
-                    align-items: center;
-                    background: rgba(0, 20, 20, 0.4);
-                }
-                
-                .inner-title {
-                    background: #001515; /* Màu nền tối để che đường kẻ phía sau */
-                    padding: 0 15px;
+                /* Thanh tiêu đề dẹt, nối liền 2 khối */
+                .ai-prediction-header {
+                    background: rgba(0, 40, 40, 0.6);
+                    border-left: 4px solid #00f2ff;
+                    border-top: 1px solid rgba(0, 242, 255, 0.3);
+                    border-bottom: 1px solid rgba(0, 242, 255, 0.3);
+                    padding: 4px 15px;
                     color: #00f2ff;
                     font-family: 'JetBrains Mono', monospace;
-                    font-size: 0.8rem;
+                    font-size: 0.75rem;
                     font-weight: bold;
                     letter-spacing: 2px;
-                    text-transform: uppercase;
-                    border: 1px solid rgba(0, 242, 255, 0.3);
-                    border-radius: 20px;
-                    z-index: 10;
+                    display: flex;
+                    align-items: center;
+                    margin-top: -1px; /* Đè khít lên đáy terminal */
+                }
+                
+                .ai-prediction-header::before {
+                    content: '●';
+                    margin-right: 10px;
+                    animation: pulse 1.5s infinite;
+                    font-size: 10px;
                 }
 
-                .hud-footer-integrated {
+                .chart-canvas-area {
                     background: rgba(0, 20, 20, 0.4);
                     border-left: 4px solid #00f2ff;
-                    border-radius: 0 0 12px 12px;
+                    border-radius: 0 0 10px 10px;
                     padding: 10px 15px;
-                    margin-top: -2px !important;
+                    margin-top: 0px !important;
+                }
+
+                @keyframes pulse {
+                    0% { opacity: 1; text-shadow: 0 0 5px #00f2ff; }
+                    50% { opacity: 0.3; text-shadow: none; }
+                    100% { opacity: 1; text-shadow: 0 0 5px #00f2ff; }
                 }
             </style>
         """, unsafe_allow_html=True)
 
-        # 1. Phần Terminal phía trên
+        # 1. Render Terminal (Trên)
         st.markdown(f'<div class="matrix-terminal">{terminal_output}</div>', unsafe_allow_html=True)
         
-        # 2. Thanh ngăn cách đè tên lên
-        st.markdown("""
-            <div class="separator-with-title">
-                <div class="inner-title">🧠 AI ENGINE PREDICTION</div>
-            </div>
-        """, unsafe_allow_html=True)
+        # 2. Render Thanh tiêu đề dẹt (Giữa)
+        st.markdown('<div class="ai-prediction-header">🧠 AI ENGINE PREDICTION</div>', unsafe_allow_html=True)
         
-        # 3. Phần Biểu đồ phía dưới
-        st.markdown('<div class="hud-footer-integrated">', unsafe_allow_html=True)
+        # 3. Render Vùng biểu đồ (Dưới)
+        st.markdown('<div class="chart-canvas-area">', unsafe_allow_html=True)
         
         fig_ai = go.Figure()
         fig_ai.add_trace(go.Bar(
