@@ -58,27 +58,16 @@ def kill_bot(pid):
             return False
 
 def load_data():
-    """Load bot state from JSON"""
-    if os.path.exists(STATE_FILE):
-        try:
-            with open(STATE_FILE, "r") as f:
-                content = f.read()
-                if content:
-                    data = json.loads(content)
-                    # 🔧 FIX: Fallback if current_price is 0 or missing
-                    if data.get('current_price', 0) == 0 and data.get('trade_history'):
-                        # Get last exit price from history
-                        last_trade = data['trade_history'][0]
-                        exit_price_str = last_trade.get('exit_price', '$0.00')
-                        try:
-                            data['current_price'] = float(exit_price_str.replace('$', '').replace(',', ''))
-                        except:
-                            pass
-                    return data
-        except Exception as e:
-            st.error(f"Error loading data: {e}")
-            return None
-    return None
+    if not os.path.exists(STATE_FILE):
+        return None
+    try:
+        with open(STATE_FILE, "r") as f:
+            content = f.read()
+            if not content: return None
+            return json.loads(content)
+    except Exception as e:
+        st.error(f"Lỗi đọc file: {e}")
+        return None
 
 def backup_state():
     """Create backup of current state"""
