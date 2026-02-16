@@ -1308,8 +1308,11 @@ def main():
             # PENDING LIMIT ORDERS (SIDEWAY)
             # ═══════════════════════════════════════════════════════════════
             
-            for pending in state['pending_orders'][:]:
-                pending['candles_waiting'] += 1
+            still_pending = [] 
+
+            for pending in state['pending_orders']:
+                pending['candles_waiting'] = pending.get('candles_waiting', 0) + 1
+                should_remove = False
                 
                 # Check if filled
                 if pending['side'] == 'LONG':
@@ -1325,8 +1328,8 @@ def main():
                             'max_pnl': -2 * COMMISSION
                         }
                         state['open_trades'].append(trade)
-                        state['pending_orders'].remove(pending)
                         logger.info(f"✅ Limit filled: {pending['side']} @ ${pending['limit_price']:.2f}")
+                        should_remove = True
                 
                 elif pending['side'] == 'SHORT':
                     if current_price >= pending['limit_price']:
@@ -1341,13 +1344,19 @@ def main():
                             'max_pnl': -2 * COMMISSION
                         }
                         state['open_trades'].append(trade)
-                        state['pending_orders'].remove(pending)
                         logger.info(f"✅ Limit filled: {pending['side']} @ ${pending['limit_price']:.2f}")
+                        should_remove = True
                 
                 # Cancel if waited too long
-                if pending['candles_waiting'] >= 2:
-                    logger.info("❌ Limit order cancelled (timeout)")
-                    state['pending_orders'].remove(pending)
+                if not should_remove and pending['candles_waiting'] >= 2:
+                      logger.info(f"❌ Limit order {pending['side']} cancelled (timeout)")
+                      should_remove = True
+                
+                # Nếu không bị xóa, giữ lệnh lại trong danh sách chờ
+                if not should_remove:
+                    still_pending.append(pending)
+
+            state['pending_orders'] = still_pending
             
             # Save state
             save_state(state)
