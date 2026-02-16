@@ -965,7 +965,7 @@ if data:
         sync_color = "terminal-error" if is_stalled else "terminal-success"
         sync_status_text = f"<span class='{sync_color}'>{last_update_display} ({int(lag_seconds)}s ago)</span>"
         if is_stalled:
-            sync_status_text += " <span class='terminal-error'>[STALLED]</span>""
+            sync_status_text += " <span class='terminal-error'>[STALLED]</span>"
 
         
         terminal_lines = [
