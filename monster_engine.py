@@ -155,77 +155,107 @@ logger.info("="*80)
 
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, max_len=5000):
-        super(PositionalEncoding, self).__init__()
+        super().__init__()
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0)
-        self.register_buffer('pe', pe)
-    
+        self.register_buffer('pe', pe.unsqueeze(0))
+
     def forward(self, x):
-        return x + self.pe[:, :x.size(1), :]
+        return x + self.pe[:, :x.size(1)]
+
+class SqueezeExcitation(nn.Module):
+    def __init__(self, channels, reduction=16):
+        super().__init__()
+        self.fc = nn.Sequential(
+            nn.Linear(channels, channels // reduction, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channels // reduction, channels, bias=False),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        # x shape: (batch, seq_len, channels)
+        b, s, c = x.size()
+        y = x.mean(dim=1) # Global Average Pooling over time
+        y = self.fc(y).view(b, 1, c)
+        return x * y.expand_as(x)
 
 class HybridTransformerLSTM(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.input_dim = config['input_dim']
         self.hidden_dim = config['hidden_dim']
-        self.num_classes = config['num_classes']
-        self.use_positional_encoding = config['use_positional_encoding']
+        self.num_classes = config.get('num_classes', 3)
+        self.use_positional_encoding = config.get('use_positional_encoding', True)
+
+        # 1. Input projection
         self.input_proj = nn.Linear(self.input_dim, self.hidden_dim)
+
+        # 2. Positional encoding
         if self.use_positional_encoding:
             self.pos_encoding = PositionalEncoding(self.hidden_dim)
+
+        # 3. Transformer layers
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=self.hidden_dim,
-            nhead=config['num_heads'],
+            nhead=config.get('num_heads', 8),
             dim_feedforward=self.hidden_dim * 4,
-            dropout=config['dropout'],
+            dropout=config.get('dropout', 0.1),
             batch_first=True
         )
         self.transformer = nn.TransformerEncoder(
             encoder_layer,
-            num_layers=config['num_transformer_layers']
+            num_layers=config.get('num_transformer_layers', 2)
         )
+
+        # 4. LSTM layers (Bidirectional)
         self.lstm = nn.LSTM(
             input_size=self.hidden_dim,
             hidden_size=self.hidden_dim,
-            num_layers=config['num_lstm_layers'],
+            num_layers=config.get('num_lstm_layers', 2),
             batch_first=True,
-            dropout=config['dropout'] if config['num_lstm_layers'] > 1 else 0,
+            dropout=config.get('dropout', 0.1) if config.get('num_lstm_layers', 1) > 1 else 0,
             bidirectional=True
         )
+
+        # 5. Squeeze-Excitation
         self.se_block = SqueezeExcitation(
             channels=self.hidden_dim * 2,
-            reduction=config['se_reduction_ratio']
+            reduction=config.get('se_reduction_ratio', 16)
         )
+
+        # 6. Final Multi-Head Attention
         self.final_attention = nn.MultiheadAttention(
             embed_dim=self.hidden_dim * 2,
-            num_heads=config['num_heads'],
-            dropout=config['dropout'],
+            num_heads=config.get('num_heads', 8),
+            dropout=config.get('dropout', 0.1),
             batch_first=True
         )
+
+        # 7. Classification head
         self.classifier = nn.Sequential(
             nn.Linear(self.hidden_dim * 2, self.hidden_dim),
             nn.ReLU(),
-            nn.Dropout(config['dropout']),
+            nn.Dropout(config.get('dropout', 0.1)),
             nn.Linear(self.hidden_dim, self.num_classes)
         )
-      
+
     def forward(self, x):
         x = self.input_proj(x)
         if self.use_positional_encoding:
             x = self.pos_encoding(x)
+        
         x = self.transformer(x)
         x, _ = self.lstm(x)
         x = self.se_block(x)
-        x, _ = self.final_attention(x, x, x)
-        x = x.mean(dim=1)
-        x = self.classifier(x)
-
-        return x
-
+        
+        attn_out, _ = self.final_attention(x, x, x)
+        x = attn_out.mean(dim=1) # Global pooling
+        
+        return self.classifier(x)
 # ════════════════════════════════════════════════════════════════════════════
 # FEATURE ENGINEERING - MATCHED WITH BACKTEST v14
 # ════════════════════════════════════════════════════════════════════════════
