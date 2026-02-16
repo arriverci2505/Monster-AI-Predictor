@@ -628,26 +628,34 @@ st.markdown("""
         }
 
         /* 1. Ẩn hoàn toàn thanh Sidebar khi mới vào trên Mobile để đỡ vướng */
-        [data-testid="stSidebarNav"], 
-        [data-testid="stSidebarUserContent"],
-        div[data-testid="stSidebarNav"] + div {
+        [data-testid="stSidebarCollapsedControl"] {
+            display: flex !important;
+            z-index: 1000001 !important;
+            background: rgba(0, 242, 255, 0.2) !important;
+            backdrop-filter: blur(10px) !important;
+            border: 1px solid #00f2ff !important;
+            border-radius: 5px !important;
+            top: 15px !important; /* Chỉnh vị trí để không đè lên HUD */
+            left: 10px !important;
+        }
+
+        /* 2. CHỈ ẨN CHỮ "SYSTEM CONTROLS" VÀ MENU THỪA */
+        [data-testid="stSidebarHeader"] > div:first-child, 
+        [data-testid="stSidebarNav"] + div {
             display: none !important;
         }
 
-        /* 2. Ẩn nút Menu (3 gạch) và System Controls ở góc trên */
-        #tabs-bui3-tabpanel-0, 
-        button[kind="header"] {
-            display: none !important;
+        /* 3. GIỮ LẠI CÁC NÚT BẤM (Restart Bot, v.v.) TRONG SIDEBAR */
+        [data-testid="stSidebarUserContent"] {
+            display: block !important;
+            padding-top: 20px !important;
         }
 
-        /* 3. Xóa bỏ phần header mặc định của Sidebar nơi chứa chữ System Controls */
-        [data-testid="stSidebarHeader"] {
-            display: none !important;
-        }
-
-        /* 4. Ép Sidebar nếu có lỡ mở ra cũng không hiện chữ đó */
-        .st-emotion-cache-6qob1r { 
-            display: none !important; 
+        /* 4. CHỈNH SIDEBAR KHÔNG CHIẾM HẾT MÀN HÌNH */
+        [data-testid="stSidebar"] {
+            width: 75vw !important;
+            background: rgba(5, 5, 10, 0.95) !important;
+            border-right: 2px solid #00f2ff !important;
         }
     
         /* Quan trọng: Reset lại Margin âm của HUD trên Mobile để không đè Sidebar */
