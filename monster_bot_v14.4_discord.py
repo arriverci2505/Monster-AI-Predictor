@@ -3,7 +3,6 @@ import pandas as pd
 import json
 import os
 import time
-import ccxt
 import numpy as np
 from datetime import datetime
 import streamlit.components.v1 as components
