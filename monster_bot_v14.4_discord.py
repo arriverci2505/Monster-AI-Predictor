@@ -159,9 +159,20 @@ st.markdown("""
     /* ═══════════════════════════════════════════════════════════════ */
     /* HIDE DEFAULT STREAMLIT ELEMENTS                                  */
     /* ═══════════════════════════════════════════════════════════════ */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+    [data-testid="stHeader"] {
+        visibility: visible !important;
+        background: rgba(5, 5, 5, 0.8) !important;
+        display: flex !important;
+    }
+    [data-testid="stHeader"] button {
+        color: #00f2ff !important;
+    }
+    
+    /* Hiện lại Sidebar bên trái */
+    [data-testid="stSidebar"] {
+        visibility: visible !important;
+        transform: translateX(0) !important;
+    }
     
     /* ═══════════════════════════════════════════════════════════════ */
     /* HUD HEADER - TOP STATUS BAR                                      */
