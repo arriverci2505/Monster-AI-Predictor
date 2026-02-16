@@ -226,50 +226,58 @@ st.markdown("""
         padding: 15px 30px;
         background: rgba(0, 5, 10, 0.9);
         backdrop-filter: blur(10px);
-        border-radius: 15px; /* Bo góc khung ngoài */
+        border-radius: 15px;
         display: flex;
         justify-content: space-between;
         align-items: center;
         z-index: 1;
-        overflow: hidden; /* Bắt buộc để cắt tia sáng theo góc bo */
-        border: 1px solid rgba(0, 242, 255, 0.1);
+        overflow: hidden;
+        border: 1px solid rgba(0, 242, 255, 0.1); /* Viền mờ cố định */
     }
 
-    /* Tia sáng chạy vòng tròn */
+    /* Lớp tia sáng chạy bám viền */
     .hud-header::before {
         content: '';
         position: absolute;
-        /* Kéo rộng vùng xoay để phủ hết chiều ngang dài của HUD */
-        width: 150%; 
-        height: 500%; 
-        top: -200%;
-        left: -25%;
+        /* Tràn ra ngoài một chút để bao phủ toàn bộ viền */
+        inset: -2px; 
+        border-radius: 15px;
+        padding: 2px; /* Độ dày tia sáng */
+        
+        /* Tạo dải màu cực dài để di chuyển */
         background: conic-gradient(
-            from 0deg,
-            transparent 0%,
-            transparent 40%,
-            #00f2ff 48%, /* Đầu tia sáng */
-            #ffffff 50%, /* Thân rực sáng */
-            #bd00ff 52%, /* Đuôi tím */
-            transparent 60%
+            from 0deg at 50% 50%,
+            transparent 25%,
+            #00f2ff 45%, 
+            #ffffff 50%, 
+            #bd00ff 55%, 
+            transparent 75%
         );
-        animation: rotateFull 5s linear infinite;
-        z-index: -2;
+        /* Kéo giãn dải màu để nó không bị tập trung ở giữa */
+        background-size: 100% 100%;
+        
+        /* Hiệu ứng Mask để chỉ hiện phần viền bo */
+        -webkit-mask: 
+            linear-gradient(#fff 0 0) content-box, 
+            linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+
+        animation: travelBorder 4s linear infinite;
     }
 
-    /* Lớp phủ bên trong để giữ lại cái viền 2px */
-    .hud-header::after {
-        content: '';
-        position: absolute;
-        inset: 2px; /* Khoảng cách này tạo độ dày cho viền */
-        background: rgba(0, 5, 10, 0.95);
-        border-radius: 13px; /* Phải nhỏ hơn border-radius ngoài 2px */
-        z-index: -1;
-    }
-
-    @keyframes rotateFull {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+    @keyframes travelBorder {
+        0% {
+            /* Di chuyển tâm của gradient để nó quét hết chiều dài */
+            background-size: 300% 300%;
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
     }
 
     .hud-title {
