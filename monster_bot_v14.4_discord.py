@@ -237,13 +237,13 @@ st.markdown("""
     }
     
     .hud-header::before {
-        content: '';
+      content: '';
         position: absolute;
-        width: 100px; 
-        height: 3px;
-        background: linear-gradient(90deg, transparent, #00f2ff, #ffffff, #00f2ff, transparent);
-        box-shadow: 0 0 15px #00f2ff;
-        z-index: 10;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #00f2ff, #bd00ff, transparent);
         animation: fullBorderScan 10s linear infinite;
     }
 
