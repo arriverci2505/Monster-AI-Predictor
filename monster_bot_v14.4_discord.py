@@ -1005,7 +1005,7 @@ if data:
             f"<span class='terminal-prompt'>[SYSTEM.RESOURCES]</span>",
             f"  ├─ CPU Usage: {cpu_usage:.1f}%",
             f"  ├─ RAM Usage: {ram_usage:.1f}%",
-            f"  └─ State File: bot_state_v14_4.json",
+            f"  └─ State File: bot_state_v14_5_1.json",
             "",
         ]
         
