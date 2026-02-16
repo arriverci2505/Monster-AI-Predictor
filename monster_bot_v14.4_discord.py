@@ -849,35 +849,45 @@ if data:
     except:
         last_update_display = last_update
     
-    terminal_lines = [
-        "╔════════════════════════════════════════════════════════════════╗",
-        "║  MONSTER ENGINE v17.0 - CYBERPUNK EDITION                      ║",
-        "╚════════════════════════════════════════════════════════════════╝",
-        "",
-        f"[ENGINE]  Status: {data.get('bot_status', 'Unknown')}",
-        f"[PRICE]   BTC/USDT: ${current_price:,.2f}",
-        f"[REGIME]  Market Mode: {regime}",
-        f"[TRADES]  Open Positions: {len(open_trades)}",
-        f"[ORDERS]  Pending Limit: {len(pending_orders)}",
-        f"[STATS]   Total Trades: {len(history)}",
-        f"[STATS]   Win Rate: {wr:.1f}%",
-        f"[STATS]   Total PnL: ${total_pnl:,.2f}",
-        f"[SYSTEM]  CPU: {cpu_usage:.1f}% | RAM: {ram_usage:.1f}%",
-        f"[TIME]    Last Update: {last_update_display}",
-        f"[CONFIG]  Rolling Window: {ROLLING_WINDOW} candles",
-        f"[FILE]    State: {os.path.basename(STATE_FILE)}",
-        "",
-        "════════════════════════════════════════════════════════════════",
-        "✅ All systems operational. Monitoring active.",
+    terminal_lines = f"""
+        "╔════════════════════════════════════════════════════════════════╗"
+        "║  MONSTER ENGINE v17.0 - CYBERPUNK EDITION                      ║"
+        "╚════════════════════════════════════════════════════════════════╝"
+        ""
+        f"[ENGINE]  Status: {data.get('bot_status', 'Unknown')}"
+        f"[PRICE]   BTC/USDT: ${current_price:,.2f}"
+        f"[REGIME]  Market Mode: {regime}"
+        f"[TRADES]  Open Positions: {len(open_trades)}"
+        f"[ORDERS]  Pending Limit: {len(pending_orders)}"
+        f"[STATS]   Total Trades: {len(history)}"
+        f"[STATS]   Win Rate: {wr:.1f}%"
+        f"[STATS]   Total PnL: ${total_pnl:,.2f}"
+        f"[SYSTEM]  CPU: {cpu_usage:.1f}% | RAM: {ram_usage.1f}%"
+        f"[TIME]    Last Update: {last_update_display}"
+        f"[CONFIG]  Rolling Window: {ROLLING_WINDOW} candles"
+        f"[FILE]    State: {os.path.basename(STATE_FILE)}"
+        ""
         "════════════════════════════════════════════════════════════════"
-    ]
-    
-    terminal_output = "\n".join(terminal_lines)
+        "✅ All systems operational. Monitoring active."
+        "════════════════════════════════════════════════════════════════"
+    """
     
     st.markdown(f"""
-    <div class="terminal-box">
-        <pre>{terminal_output}</pre>
-    </div>
+    <style>
+        .terminal-container {{
+            background-color: #000000;
+            color: #00f2ff;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #00f2ff;
+            font-family: 'Courier New', Courier, monospace !important; /* Ép dùng font đơn cách */
+            line-height: 1.2 !important;
+            white-space: pre !important; /* Giữ nguyên khoảng trắng và xuống dòng */
+            overflow-x: auto;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
+        }}
+    </style>
+    <div class="terminal-container">{terminal_content}</div>
     """, unsafe_allow_html=True)
     
     st.markdown("---")
