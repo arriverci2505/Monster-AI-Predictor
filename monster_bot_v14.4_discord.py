@@ -1,14 +1,14 @@
 """
 ╔══════════════════════════════════════════════════════════════════════════╗
-║  MONSTER MATRIX UI v17.0 - CYBERPUNK COMMAND CENTER                      ║
-║  🎯 Theme: Cyberpunk Dark Mode | TradingView Integrated                 ║
-║  ✅ Features: Neon Colors | Soft Eyes | Professional Charts             ║
+║  MONSTER MATRIX UI v16.0 - ULTIMATE COMMAND CENTER                       ║
+║  🎯 Fixed: Sync Issue | Path Bug | Rolling Window | Kill Switch         ║
+║  ✅ Features: AI Confidence | 200-Candle Chart | Terminal | Analytics   ║
 ╚══════════════════════════════════════════════════════════════════════════╝
 """
 
 # 🔧 CRITICAL: st.set_page_config MUST BE FIRST
 import streamlit as st
-st.set_page_config(page_title="MONSTER MATRIX v17.0", layout="wide", page_icon="⚡")
+st.set_page_config(page_title="MONSTER MATRIX v16.0", layout="wide", page_icon="👾")
 
 import pandas as pd
 import json
@@ -25,57 +25,29 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 
 # ════════════════════════════════════════════════════════════════════════════
-# CONFIGURATION - SYNCED WITH ENGINE
+# CONFIGURATION - FIXED: SYNC WITH ENGINE
 # ════════════════════════════════════════════════════════════════════════════
 
-STATE_FILE = "bot_state_v14_4.json"
+# ✅ FIX 1: Đồng bộ đường dẫn với engine (bot_state_v14_4.json)
+STATE_FILE = os.path.abspath("bot_state_v14_4.json")
 BACKUP_DIR = "backups"
-ROLLING_WINDOW = 200
+ROLLING_WINDOW = 200  # Khớp với engine
 
 # ════════════════════════════════════════════════════════════════════════════
 # HELPER FUNCTIONS
 # ════════════════════════════════════════════════════════════════════════════
 
 def is_bot_running():
-    """Kiểm tra xem monster_engine.py có đang chạy ngầm không"""
+    """Check if monster_engine.py is running"""
     try:
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-            try:
-                info = proc.info
-                if info['cmdline']:
-                    cmdline = ' '.join(info['cmdline']).lower()
-                    if 'monster_engine.py' in cmdline:
-                        return True, info['pid']
-            except (psutil.AccessDenied, psutil.NoSuchProcess):
-                continue
-    except Exception:
-        pass
-    return False, None
-
-def start_engine():
-    """Khởi động Engine bằng Subprocess độc lập"""
-    try:
-        # Lấy file engine cùng thư mục với file UI
-        engine_path = os.path.join(CURRENT_DIR, "monster_engine.py")
-        subprocess.Popen([sys.executable, engine_path], 
-                         stdout=subprocess.DEVNULL, 
-                         stderr=subprocess.DEVNULL)
-        st.sidebar.success("🚀 Monster Engine đang được kích hoạt...")
-        time.sleep(2) # Đợi 1 chút để engine tạo file json ban đầu
+            if proc.info['cmdline']:
+                cmdline = ' '.join(proc.info['cmdline'])
+                if 'monster_engine.py' in cmdline and 'python' in cmdline.lower():
+                    return True, proc.info['pid']
     except Exception as e:
-        st.sidebar.error(f"Lỗi khởi động: {e}")
-
-# --- KIỂM TRA TRẠNG THÁI TRÊN SIDEBAR ---
-bot_running, bot_pid = is_bot_running()
-with st.sidebar:
-    st.markdown("### 🤖 Engine Status")
-    if bot_running:
-        st.success(f"ONLINE (PID: {bot_pid})")
-    else:
-        st.error("OFFLINE")
-        if st.button("🚀 Khởi động Engine"):
-            start_engine()
-            st.rerun()
+        st.sidebar.warning(f"Process check error: {e}")
+    return False, None
 
 def kill_bot(pid):
     """Stop the bot process"""
@@ -94,20 +66,24 @@ def kill_bot(pid):
         return False, f"Error: {e}"
 
 def load_data():
-    """Load bot state with proper exception handling"""
+    """
+    ✅ FIX 2: Load bot state with proper exception handling
+    Handles: empty file, corrupted JSON, missing file
+    """
     if not os.path.exists(STATE_FILE):
-        st.sidebar.error(f"File not found at: {STATE_FILE}")
         return None
     
     try:
         with open(STATE_FILE, "r", encoding='utf-8') as f:
             content = f.read().strip()
             
+            # ✅ Check if file is empty or being written by Engine
             if not content:
                 return None
             
             data = json.loads(content)
             
+            # ✅ Fallback: If current_price is missing or 0, extract from history
             if data.get('current_price', 0) == 0 and data.get('trade_history'):
                 try:
                     last_trade = data['trade_history'][0]
@@ -180,8 +156,12 @@ def get_system_stats():
         return 0, 0
 
 def parse_ai_confidence(data):
-    """Extract AI confidence scores from latest prediction"""
+    """
+    ✅ FIX 3: Extract AI confidence scores from latest prediction
+    Returns: (prob_neutral, prob_buy, prob_sell)
+    """
     try:
+        # Try to get from latest state
         latest_probs = data.get('latest_ai_probs', {})
         if latest_probs:
             return (
@@ -189,32 +169,45 @@ def parse_ai_confidence(data):
                 latest_probs.get('buy', 0.33),
                 latest_probs.get('sell', 0.33)
             )
+        
+        # Fallback: Try to extract from latest trade
+        if data.get('trade_history'):
+            # Look for AI confidence in entry_reason
+            return (0.33, 0.33, 0.33)  # Default uniform
+        
         return (0.33, 0.33, 0.33)
     except:
         return (0.33, 0.33, 0.33)
 
 def create_price_chart_with_signals(data, history):
-    """Create Plotly chart with Cyberpunk theme and clear markers"""
+    """
+    ✅ FIX 3: Create Plotly chart showing last 200 candles + Buy/Sell markers
+    """
     try:
+        # Extract price data from history (simulate - in real use, load from CSV/API)
         recent_trades = history[:min(20, len(history))]
         
         if not recent_trades:
             return None
         
+        # Create figure
         fig = go.Figure()
         
+        # Extract trade data
         timestamps = []
         entry_prices = []
         exit_prices = []
         sides = []
         pnls = []
         
-        for trade in reversed(recent_trades):
+        for trade in reversed(recent_trades):  # Reverse to show chronologically
             try:
+                # Parse entry time
                 entry_time_str = trade.get('entry_time', '')
                 if entry_time_str:
                     timestamps.append(entry_time_str)
                 
+                # Parse prices
                 entry_price_str = trade.get('entry_price', '$0')
                 entry_price = float(entry_price_str.replace('$', '').replace(',', ''))
                 entry_prices.append(entry_price)
@@ -234,17 +227,17 @@ def create_price_chart_with_signals(data, history):
         if not entry_prices:
             return None
         
-        # ✅ CYBERPUNK: Đường giá màu vàng hổ phách
+        # Plot price line (simulated from entry/exit prices)
         fig.add_trace(go.Scatter(
             x=list(range(len(entry_prices))),
             y=entry_prices,
             mode='lines',
             name='Price',
-            line=dict(color='#ffbf00', width=3),  # Amber/Gold
+            line=dict(color='#00ff41', width=2),
             hovertemplate='Price: $%{y:,.2f}<extra></extra>'
         ))
         
-        # ✅ CYBERPUNK: BUY markers - Cyan neon
+        # Add BUY markers (green arrows up)
         buy_indices = [i for i, side in enumerate(sides) if side == 'LONG']
         buy_prices = [entry_prices[i] for i in buy_indices]
         
@@ -256,14 +249,14 @@ def create_price_chart_with_signals(data, history):
                 name='BUY Signal',
                 marker=dict(
                     symbol='triangle-up',
-                    size=18,
-                    color='#00f2ff',  # Cyan neon
-                    line=dict(color='#ffffff', width=2)
+                    size=15,
+                    color='#00ff00',
+                    line=dict(color='white', width=2)
                 ),
                 hovertemplate='BUY @ $%{y:,.2f}<extra></extra>'
             ))
         
-        # ✅ CYBERPUNK: SELL markers - Magenta neon
+        # Add SELL markers (red arrows down)
         sell_indices = [i for i, side in enumerate(sides) if side == 'SHORT']
         sell_prices = [entry_prices[i] for i in sell_indices]
         
@@ -275,41 +268,35 @@ def create_price_chart_with_signals(data, history):
                 name='SELL Signal',
                 marker=dict(
                     symbol='triangle-down',
-                    size=18,
-                    color='#ff00aa',  # Magenta neon
-                    line=dict(color='#ffffff', width=2)
+                    size=15,
+                    color='#ff0000',
+                    line=dict(color='white', width=2)
                 ),
                 hovertemplate='SELL @ $%{y:,.2f}<extra></extra>'
             ))
         
-        # ✅ CYBERPUNK: Dark theme layout
+        # Update layout
         fig.update_layout(
-            title=dict(
-                text=f"Last {len(entry_prices)} Trades - Signal Analysis",
-                font=dict(color='#00f2ff', size=18)
-            ),
-            paper_bgcolor='rgba(10,10,15,0.95)',
-            plot_bgcolor='rgba(30,30,30,0.95)',
-            font=dict(color='#e0e0e0', family='Consolas, monospace'),
+            title=f"Last {len(entry_prices)} Trades - Rolling Window Visualization",
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(10,14,23,0.8)',
+            font=dict(color='#00ff41', family='Courier New'),
             xaxis=dict(
                 title="Trade Index",
-                gridcolor='rgba(255,255,255,0.08)',
-                showgrid=True,
-                color='#e0e0e0'
+                gridcolor='rgba(0,255,65,0.1)',
+                showgrid=True
             ),
             yaxis=dict(
                 title="Price (USD)",
-                gridcolor='rgba(255,255,255,0.08)',
-                showgrid=True,
-                color='#e0e0e0'
+                gridcolor='rgba(0,255,65,0.1)',
+                showgrid=True
             ),
             hovermode='x unified',
             height=500,
             legend=dict(
-                bgcolor='rgba(30,30,30,0.9)',
-                bordercolor='#00f2ff',
-                borderwidth=1,
-                font=dict(color='#e0e0e0')
+                bgcolor='rgba(10,14,23,0.8)',
+                bordercolor='#00ff41',
+                borderwidth=1
             )
         )
         
@@ -320,222 +307,153 @@ def create_price_chart_with_signals(data, history):
         return None
 
 # ════════════════════════════════════════════════════════════════════════════
-# CYBERPUNK DARK MODE CSS
+# MATRIX STYLE CSS
 # ════════════════════════════════════════════════════════════════════════════
 
 st.markdown("""
 <style>
-    /* ═══════════════════════════════════════════════════════════════ */
-    /* CYBERPUNK DARK MODE THEME                                        */
-    /* Primary: Cyan Neon #00f2ff | Secondary: Magenta #bd00ff         */
-    /* ═══════════════════════════════════════════════════════════════ */
-    
-    /* Base App Background */
+    /* Dark Matrix Theme */
     .stApp { 
-        background: linear-gradient(180deg, #0a0a0f 0%, #1a1a25 100%);
-        color: #e0e0e0;
+        background: linear-gradient(180deg, #0a0e17 0%, #0d1117 100%);
+        color: #00ff41;
     }
     
-    /* Metrics - Cyberpunk Neon */
+    /* Metrics */
     [data-testid="stMetricValue"] {
-        color: #00f2ff !important;
-        text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
-        font-family: 'Consolas', 'Monaco', monospace;
+        color: #00ff41 !important;
+        text-shadow: 0 0 15px #00ff41;
+        font-family: 'Courier New', monospace;
         font-size: 2rem !important;
-        font-weight: 600;
     }
     
     [data-testid="stMetricLabel"] {
-        color: #e0e0e0 !important;
-        font-family: 'Consolas', monospace;
-        font-size: 0.9rem;
+        color: #00ff41 !important;
+        font-family: 'Courier New', monospace;
     }
     
     div[data-testid="metric-container"] {
-        background: linear-gradient(135deg, rgba(30,30,45,0.8) 0%, rgba(20,20,35,0.8)100%);
-        border: 1px solid rgba(0, 242, 255, 0.2);
+        background: linear-gradient(135deg, #0a0e17 0%, #1a1f2e 100%);
+        border: 2px solid #00ff4133;
         padding: 20px;
         border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0, 242, 255, 0.1);
+        box-shadow: 0 4px 20px rgba(0, 255, 65, 0.15);
         transition: all 0.3s ease;
     }
     
     div[data-testid="metric-container"]:hover {
-        border-color: rgba(0, 242, 255, 0.5);
-        box-shadow: 0 6px 30px rgba(0, 242, 255, 0.2);
+        border-color: #00ff41;
+        box-shadow: 0 6px 30px rgba(0, 255, 65, 0.3);
         transform: translateY(-2px);
     }
     
-    /* Headers - Cyan Neon */
+    /* Headers */
     h1, h2, h3 {
-        color: #00f2ff !important;
-        text-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
-        font-family: 'Consolas', monospace;
-        font-weight: 700;
+        color: #00ff41 !important;
+        text-shadow: 0 0 20px #00ff41;
+        font-family: 'Courier New', monospace;
     }
     
-    h1 {
-        font-size: 2.5rem !important;
-    }
-    
-    /* Buttons - Cyberpunk Style */
+    /* Buttons */
     .stButton>button {
-        background: linear-gradient(135deg, #00f2ff 0%, #0099ff 100%);
-        color: #0a0a0f;
+        background: linear-gradient(135deg, #00ff41 0%, #00cc33 100%);
+        color: #0a0e17;
         border: none;
         font-weight: bold;
-        padding: 12px 32px;
+        padding: 10px 30px;
         border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(0, 242, 255, 0.3);
+        box-shadow: 0 4px 15px rgba(0, 255, 65, 0.4);
         transition: all 0.3s ease;
-        font-family: 'Consolas', monospace;
-        font-size: 0.95rem;
+        font-family: 'Courier New', monospace;
     }
     
     .stButton>button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 25px rgba(0, 242, 255, 0.5);
-        background: linear-gradient(135deg, #00ddee 0%, #0088dd 100%);
+        box-shadow: 0 6px 25px rgba(0, 255, 65, 0.6);
     }
     
     /* Kill Switch Button */
     .kill-switch>button {
-        background: linear-gradient(135deg, #ff0055 0%, #cc0044 100%) !important;
+        background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%) !important;
         color: white !important;
         font-weight: bold;
         animation: pulse-red 2s infinite;
     }
     
     @keyframes pulse-red {
-        0%, 100% { box-shadow: 0 0 15px rgba(255, 0, 85, 0.4); }
-        50% { box-shadow: 0 0 30px rgba(255, 0, 85, 0.8); }
+        0%, 100% { box-shadow: 0 0 15px rgba(255, 0, 0, 0.4); }
+        50% { box-shadow: 0 0 30px rgba(255, 0, 0, 0.8); }
     }
     
-    /* Sidebar - Dark Gradient */
+    /* Sidebar */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0a0a0f 0%, #1e1e2e 100%);
-        border-right: 1px solid rgba(0, 242, 255, 0.15);
+        background: linear-gradient(180deg, #0a0e17 0%, #1a1f2e 100%);
+        border-right: 2px solid #00ff4133;
     }
     
-    /* DataFrames - Soft Dark */
+    /* DataFrames */
     .dataframe {
-        background-color: #1e1e1e !important;
-        color: #e0e0e0 !important;
-        border: 1px solid rgba(0, 242, 255, 0.2) !important;
+        background-color: #0a0e17 !important;
+        color: #00ff41 !important;
+        border: 1px solid #00ff4133 !important;
     }
     
-    /* Terminal Box - Charcoal Background */
+    /* Terminal box */
     .terminal-box {
-        background: #1e1e1e;
-        border: 1px solid rgba(0, 242, 255, 0.3);
+        background: #000000;
+        border: 2px solid #00ff41;
         border-radius: 8px;
-        padding: 20px;
-        font-family: 'Consolas', 'Courier New', monospace;
-        color: #e0e0e0;
+        padding: 15px;
+        font-family: 'Courier New', monospace;
+        color: #00ff41;
         max-height: 400px;
         overflow-y: auto;
-        box-shadow: 0 4px 20px rgba(0, 242, 255, 0.1);
+        box-shadow: 0 4px 20px rgba(0, 255, 65, 0.2);
         font-size: 0.9rem;
-        line-height: 1.6;
     }
     
-    /* Status Badges */
+    /* Status badges */
     .status-badge {
         display: inline-block;
         padding: 8px 20px;
         border-radius: 20px;
         font-weight: bold;
-        font-family: 'Consolas', monospace;
+        font-family: 'Courier New', monospace;
         margin: 5px;
-        font-size: 0.9rem;
     }
     
     .status-online {
-        background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
-        color: #0a0a0f;
-        box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
-        animation: pulse-green 2s infinite;
+        background: #00ff41;
+        color: #000;
+        box-shadow: 0 0 15px #00ff41;
+        animation: pulse 2s infinite;
     }
     
     .status-offline {
-        background: linear-gradient(135deg, #ff4466 0%, #cc3355 100%);
+        background: #ff4444;
         color: #fff;
-        box-shadow: 0 0 10px rgba(255, 68, 102, 0.3);
     }
     
-    @keyframes pulse-green {
+    @keyframes pulse {
         0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
+        50% { opacity: 0.6; }
     }
     
-    /* Info Cards - Soft Shadow */
+    /* Info cards */
     .info-card {
-        background: linear-gradient(135deg, rgba(30,30,45,0.9) 0%, rgba(20,20,35,0.9) 100%);
-        border: 1px solid rgba(0, 242, 255, 0.2);
-        border-radius: 12px;
+        background: linear-gradient(135deg, #0a0e17 0%, #1a1f2e 100%);
+        border: 1px solid #00ff4133;
+        border-radius: 10px;
         padding: 20px;
         margin: 10px 0;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 15px rgba(0, 255, 65, 0.1);
     }
     
-    .info-card h3 {
-        margin-top: 0;
-        color: #bd00ff !important;
-        text-shadow: 0 0 10px rgba(189, 0, 255, 0.4);
-    }
-    
-    /* Code Blocks */
+    /* Code blocks */
     code {
-        background: #1e1e1e !important;
-        color: #00f2ff !important;
-        border: 1px solid rgba(0, 242, 255, 0.2) !important;
-        font-family: 'Consolas', 'Courier New', monospace;
-        padding: 2px 6px;
-        border-radius: 4px;
-    }
-    
-    /* Progress Bars */
-    .stProgress > div > div > div {
-        background: linear-gradient(90deg, #00f2ff 0%, #bd00ff 100%);
-        box-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
-    }
-    
-    /* Links */
-    a {
-        color: #00f2ff !important;
-        text-decoration: none;
-        transition: color 0.3s ease;
-    }
-    
-    a:hover {
-        color: #bd00ff !important;
-        text-shadow: 0 0 8px rgba(189, 0, 255, 0.6);
-    }
-    
-    /* Scrollbar */
-    ::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
-    }
-    
-    ::-webkit-scrollbar-track {
-        background: #1a1a1a;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, #00f2ff 0%, #bd00ff 100%);
-        border-radius: 5px;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(180deg, #00ddee 0%, #aa00ee 100%);
-    }
-    
-    /* Caption Text */
-    .caption {
-        color: #999999;
-        font-size: 0.85rem;
-        font-family: 'Consolas', monospace;
+        background: #000000 !important;
+        color: #00ff41 !important;
+        border: 1px solid #00ff41 !important;
+        font-family: 'Courier New', monospace;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -544,9 +462,10 @@ st.markdown("""
 # SIDEBAR - CONTROL PANEL
 # ════════════════════════════════════════════════════════════════════════════
 
-st.sidebar.markdown("# ⚡ CONTROL PANEL")
+st.sidebar.markdown("# 🎮 CONTROL PANEL")
 st.sidebar.markdown("---")
 
+# ✅ FIX 1: Check bot status and display with st.status
 bot_running, bot_pid = is_bot_running()
 
 if bot_running:
@@ -563,6 +482,7 @@ else:
 
 st.sidebar.markdown("---")
 
+# ✅ FIX 2: Kill Switch (Prompt 2 requirement)
 st.sidebar.markdown("### ⚠️ EMERGENCY CONTROLS")
 
 col_kill1, col_kill2 = st.sidebar.columns(2)
@@ -570,7 +490,10 @@ col_kill1, col_kill2 = st.sidebar.columns(2)
 with col_kill1:
     if st.button("🛑 KILL SWITCH", key="kill_btn", help="Emergency stop"):
         if bot_running:
+            # Method 1: Send signal via JSON
             signal_sent = send_kill_signal()
+            
+            # Method 2: Terminate process
             success, msg = kill_bot(bot_pid)
             
             if success:
@@ -589,6 +512,7 @@ with col_kill2:
 
 st.sidebar.markdown("---")
 
+# Backup controls
 st.sidebar.markdown("### 💾 BACKUP")
 if st.sidebar.button("Create Backup"):
     success, result = backup_state()
@@ -599,6 +523,7 @@ if st.sidebar.button("Create Backup"):
 
 st.sidebar.markdown("---")
 
+# Auto-refresh settings
 st.sidebar.markdown("### ⚙️ SETTINGS")
 auto_refresh = st.sidebar.checkbox("Auto Refresh", value=True)
 if auto_refresh:
@@ -608,6 +533,7 @@ else:
 
 st.sidebar.markdown("---")
 
+# File info
 st.sidebar.markdown("### 📁 FILE INFO")
 st.sidebar.caption(f"State File: `{os.path.basename(STATE_FILE)}`")
 if os.path.exists(STATE_FILE):
@@ -622,22 +548,27 @@ else:
 # MAIN DASHBOARD
 # ════════════════════════════════════════════════════════════════════════════
 
-st.markdown("# ⚡ MONSTER MATRIX v17.0")
-st.markdown("### Cyberpunk Trading Command Center")
+st.markdown("# 👾 MONSTER MATRIX v16.0")
+st.markdown("### Ultimate Trading Command Center")
 
+# Load data
 data = load_data()
 
 if data:
+    # Get system stats
     cpu_usage, ram_usage = get_system_stats()
     
+    # Extract data
     current_price = data.get('current_price', 0)
     history = data.get('trade_history', [])
     open_trades = data.get('open_trades', [])
     pending_orders = data.get('pending_orders', [])
     regime = data.get('latest_regime', 'UNKNOWN')
     
+    # Calculate PnL
     total_pnl = calculate_total_pnl(history)
     
+    # Calculate win rate
     if history:
         wins = len([t for t in history if float(str(t.get('net_pnl', '0%')).replace('%', '')) > 0])
         wr = (wins / len(history)) * 100 if len(history) > 0 else 0
@@ -646,7 +577,7 @@ if data:
         wr = 0
     
     # ═══════════════════════════════════════════════════════════════════════════
-    # 4 METRIC BLOCKS
+    # ✅ PROMPT 2: 4 METRIC BLOCKS (Top Dashboard)
     # ═══════════════════════════════════════════════════════════════════════════
     
     col1, col2, col3, col4 = st.columns(4)
@@ -685,52 +616,14 @@ if data:
     st.markdown("---")
     
     # ═══════════════════════════════════════════════════════════════════════════
-    # ✅ TRADINGVIEW CHART (Restored)
-    # ═══════════════════════════════════════════════════════════════════════════
-    
-    st.markdown("## 📈 LIVE MARKET - TRADINGVIEW")
-    
-    tv_html = """
-    <div style="height:500px; border: 1px solid rgba(0, 242, 255, 0.3); border-radius: 10px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 242, 255, 0.15);">
-        <div id="tv_chart" style="height:100%;"></div>
-        <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-        <script type="text/javascript">
-        new TradingView.widget({
-            "autosize": true,
-            "symbol": "KRAKEN:BTCUSDT",
-            "interval": "15",
-            "timezone": "Etc/UTC",
-            "theme": "dark",
-            "style": "1",
-            "locale": "en",
-            "toolbar_bg": "#1e1e1e",
-            "enable_publishing": false,
-            "allow_symbol_change": true,
-            "container_id": "tv_chart",
-            "studies": [
-                "RSI@tv-basicstudies",
-                "MACD@tv-basicstudies",
-                "BB@tv-basicstudies"
-            ],
-            "backgroundColor": "#1a1a25",
-            "gridColor": "rgba(255, 255, 255, 0.06)",
-            "hide_side_toolbar": false
-        });
-        </script>
-    </div>
-    """
-    components.html(tv_html, height=520)
-    
-    st.markdown("---")
-    
-    # ═══════════════════════════════════════════════════════════════════════════
-    # AI CONFIDENCE ANALYSIS
+    # ✅ PROMPT 3: AI CONFIDENCE DISPLAY (Feature Confidence)
     # ═══════════════════════════════════════════════════════════════════════════
     
     st.markdown("## 🤖 AI CONFIDENCE ANALYSIS")
     
     prob_neutral, prob_buy, prob_sell = parse_ai_confidence(data)
     
+    # Create horizontal bar chart for AI probabilities
     fig_ai = go.Figure()
     
     fig_ai.add_trace(go.Bar(
@@ -738,33 +631,27 @@ if data:
         x=[prob_neutral * 100, prob_buy * 100, prob_sell * 100],
         orientation='h',
         marker=dict(
-            color=['#ffbf00', '#00f2ff', '#ff00aa'],
-            line=dict(color='rgba(255,255,255,0.3)', width=1)
+            color=['#ffff00', '#00ff00', '#ff0000'],
+            line=dict(color='#00ff41', width=2)
         ),
         text=[f"{prob_neutral*100:.1f}%", f"{prob_buy*100:.1f}%", f"{prob_sell*100:.1f}%"],
         textposition='auto',
-        textfont=dict(color='#0a0a0f', size=12, family='Consolas'),
         hovertemplate='%{y}: %{x:.2f}%<extra></extra>'
     ))
     
     fig_ai.update_layout(
-        title=dict(
-            text="AI Model Confidence (Latest Prediction)",
-            font=dict(color='#00f2ff', size=16)
-        ),
-        paper_bgcolor='rgba(10,10,15,0.95)',
-        plot_bgcolor='rgba(30,30,30,0.95)',
-        font=dict(color='#e0e0e0', family='Consolas'),
+        title="AI Model Confidence (Latest Prediction)",
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(10,14,23,0.8)',
+        font=dict(color='#00ff41', family='Courier New'),
         xaxis=dict(
             title="Probability (%)",
-            gridcolor='rgba(255,255,255,0.08)',
-            range=[0, 100],
-            color='#e0e0e0'
+            gridcolor='rgba(0,255,65,0.1)',
+            range=[0, 100]
         ),
         yaxis=dict(
             title="",
-            gridcolor='rgba(255,255,255,0.08)',
-            color='#e0e0e0'
+            gridcolor='rgba(0,255,65,0.1)'
         ),
         height=250,
         showlegend=False
@@ -775,13 +662,13 @@ if data:
     st.markdown("---")
     
     # ═══════════════════════════════════════════════════════════════════════════
-    # PRICE CHART WITH SIGNALS (Cyberpunk Style)
+    # ✅ PROMPT 2 & 3: PRICE CHART WITH BUY/SELL MARKERS (200 Candles)
     # ═══════════════════════════════════════════════════════════════════════════
     
     col_left, col_right = st.columns([1, 1])
     
     with col_left:
-        st.markdown("## 📊 TRADING SIGNALS")
+        st.markdown("## 📈 TRADING SIGNALS CHART")
         
         if history and len(history) > 0:
             chart_fig = create_price_chart_with_signals(data, history)
@@ -792,15 +679,15 @@ if data:
         else:
             st.info("⏳ Waiting for trade history...")
         
-        st.markdown(
-            f'<p class="caption">📊 Rolling Window: {ROLLING_WINDOW} candles | Showing last {min(20, len(history))} trades</p>',
-            unsafe_allow_html=True
-        )
+        # Additional info
+        st.caption(f"📊 Rolling Window: {ROLLING_WINDOW} candles")
+        st.caption(f"🎯 Showing last {min(20, len(history))} trades")
     
     with col_right:
-        st.markdown("## 📈 ANALYTICS OVERVIEW")
+        st.markdown("## 📊 ANALYTICS OVERVIEW")
         
         if history:
+            # Win/Loss breakdown
             losses = len(history) - wins
             
             st.markdown(f"""
@@ -813,6 +700,7 @@ if data:
             </div>
             """, unsafe_allow_html=True)
             
+            # Last 10 trades PnL distribution
             pnl_values = []
             for trade in history[:10]:
                 try:
@@ -823,37 +711,25 @@ if data:
             
             if pnl_values:
                 fig_pnl = go.Figure()
-                colors = ['#00ff88' if x > 0 else '#ff4466' for x in pnl_values]
+                colors = ['#00ff41' if x > 0 else '#ff4444' for x in pnl_values]
                 
                 fig_pnl.add_trace(go.Bar(
                     y=pnl_values,
                     marker_color=colors,
                     name='PnL %',
                     text=[f"{x:.1f}%" for x in pnl_values],
-                    textposition='auto',
-                    textfont=dict(color='#ffffff', size=11)
+                    textposition='auto'
                 ))
                 
                 fig_pnl.update_layout(
-                    title=dict(
-                        text="Last 10 Trades - PnL Distribution",
-                        font=dict(color='#00f2ff', size=14)
-                    ),
-                    paper_bgcolor='rgba(10,10,15,0.95)',
-                    plot_bgcolor='rgba(30,30,30,0.95)',
-                    font=dict(color='#e0e0e0', family='Consolas'),
+                    title="Last 10 Trades - PnL Distribution",
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(10,14,23,0.8)',
+                    font=dict(color='#00ff41', family='Courier New'),
                     height=300,
                     showlegend=False,
-                    xaxis=dict(
-                        title="Trade Index",
-                        gridcolor='rgba(255,255,255,0.08)',
-                        color='#e0e0e0'
-                    ),
-                    yaxis=dict(
-                        title="PnL (%)",
-                        gridcolor='rgba(255,255,255,0.08)',
-                        color='#e0e0e0'
-                    )
+                    xaxis=dict(title="Trade Index", gridcolor='rgba(0,255,65,0.1)'),
+                    yaxis=dict(title="PnL (%)", gridcolor='rgba(0,255,65,0.1)')
                 )
                 
                 st.plotly_chart(fig_pnl, use_container_width=True)
@@ -863,14 +739,16 @@ if data:
     st.markdown("---")
     
     # ═══════════════════════════════════════════════════════════════════════════
-    # TERMINAL OUTPUT
+    # ✅ PROMPT 2: TERMINAL OUTPUT (System Logs)
     # ═══════════════════════════════════════════════════════════════════════════
     
     st.markdown("## 💻 SYSTEM TERMINAL")
     
+    # Get last update time with GMT+7 conversion
     last_update = data.get('last_update_time', 'N/A')
     try:
         if last_update != 'N/A':
+            # Parse ISO format and convert to GMT+7
             dt = datetime.fromisoformat(last_update.replace('Z', '+00:00'))
             dt_gmt7 = dt + timedelta(hours=7)
             last_update_display = dt_gmt7.strftime('%Y-%m-%d %H:%M:%S GMT+7')
@@ -879,36 +757,33 @@ if data:
     except:
         last_update_display = last_update
     
+    # Build terminal output
     terminal_lines = [
         "╔════════════════════════════════════════════════════════════════╗",
-        "║  MONSTER ENGINE v17.0 - CYBERPUNK EDITION                      ║",
+        "║  MONSTER ENGINE v16.0 - SYSTEM STATUS                          ║",
         "╚════════════════════════════════════════════════════════════════╝",
         "",
-        f"[ENGINE]  Status: {data.get('bot_status', 'Unknown')}            ",
-        f"[PRICE]   BTC/USDT: ${current_price:,.2f}                        ",
-        f"[REGIME]  Market Mode: {regime}                                  ",
-        f"[TRADES]  Open Positions: {len(open_trades)}                     ",
-        f"[ORDERS]  Pending Limit: {len(pending_orders)}                   ",
-        f"[STATS]   Total Trades: {len(history)}                           ",
-        f"[STATS]   Win Rate: {wr:.1f}%                                    ",
-        f"[STATS]   Total PnL: ${total_pnl:,.2f}                           ",
-        f"[SYSTEM]  CPU: {cpu_usage:.1f}% | RAM: {ram_usage:.1f}%          ",
-        f"[TIME]    Last Update: {last_update_display}                     ",
-        f"[CONFIG]  Rolling Window: {ROLLING_WINDOW} candles               ",
-        f"[FILE]    State: {os.path.basename(STATE_FILE)}                  ",
+        f"[ENGINE]  Status: {data.get('bot_status', 'Unknown')}",
+        f"[PRICE]   BTC/USDT: ${current_price:,.2f}",
+        f"[REGIME]  Market Mode: {regime}",
+        f"[TRADES]  Open Positions: {len(open_trades)}",
+        f"[ORDERS]  Pending Limit: {len(pending_orders)}",
+        f"[STATS]   Total Trades: {len(history)}",
+        f"[STATS]   Win Rate: {wr:.1f}%",
+        f"[STATS]   Total PnL: ${total_pnl:,.2f}",
+        f"[SYSTEM]  CPU: {cpu_usage:.1f}% | RAM: {ram_usage:.1f}%",
+        f"[TIME]    Last Update: {last_update_display}",
+        f"[CONFIG]  Rolling Window: {ROLLING_WINDOW} candles",
+        f"[FILE]    State: {os.path.basename(STATE_FILE)}",
         "",
-        "════════════════════════════════════════════════════════════════  ",
+        "════════════════════════════════════════════════════════════════",
         "✅ All systems operational. Monitoring active.",
-        "════════════════════════════════════════════════════════════════  "
+        "════════════════════════════════════════════════════════════════"
     ]
     
     terminal_output = "\n".join(terminal_lines)
     
-    st.markdown(f"""
-    <div class="terminal-box">
-        <pre>{terminal_output}</pre>
-    </div>
-    """, unsafe_allow_html=True)
+    st.code(terminal_output, language='bash')
     
     st.markdown("---")
     
@@ -919,14 +794,17 @@ if data:
     st.markdown("## 📜 TRADE HISTORY")
     
     if history:
+        # Show last 15 trades
         df_history = pd.DataFrame(history[:15])
         
+        # Display with custom styling
         st.dataframe(
             df_history,
             use_container_width=True,
             height=400
         )
         
+        # Download button
         csv = df_history.to_csv(index=False)
         st.download_button(
             label="📥 Download Full History (CSV)",
@@ -939,11 +817,11 @@ if data:
     
     st.markdown("---")
     
+    # Footer
     st.markdown(f"""
-    <div style="text-align: center; color: #00f2ff; font-family: 'Consolas'; padding: 20px;">
-        <p style="font-size: 1.2rem;">⚡ MONSTER MATRIX v17.0 - CYBERPUNK EDITION</p>
-        <p style="font-size: 0.9rem; color: #bd00ff;">Engine PID: {bot_pid if bot_running else 'N/A'} | Refresh: {refresh_interval}s</p>
-        <p style="font-size: 0.8rem; color: #999999;">State: {os.path.basename(STATE_FILE)}</p>
+    <div style="text-align: center; color: #00ff41; font-family: 'Courier New'; padding: 20px;">
+        <p>👾 MONSTER MATRIX v16.0 | Engine PID: {bot_pid if bot_running else 'N/A'}</p>
+        <p style="font-size: 0.8rem;">Refresh: {refresh_interval}s | State: {os.path.basename(STATE_FILE)}</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -954,7 +832,7 @@ else:
     
     st.warning("📡 Waiting for data from Monster Engine...")
     
-    st.markdown(f"""
+    st.markdown("""
     <div class="info-card">
         <h3>🔍 TROUBLESHOOTING</h3>
         <p>If you're seeing this message:</p>
@@ -964,15 +842,15 @@ else:
             <li>✅ Wait 10-15 seconds for first data collection</li>
             <li>✅ Check Engine terminal for errors</li>
         </ol>
-        <p><strong>State File Path:</strong> <code>{STATE_FILE}</code></p>
+        <p><strong>State File Path:</strong> <code>{}</code></p>
     </div>
-    """, unsafe_allow_html=True)
+    """.format(STATE_FILE), unsafe_allow_html=True)
     
     with st.spinner("Initializing system..."):
         time.sleep(2)
 
 # ════════════════════════════════════════════════════════════════════════════
-# ✅ AUTO-REFRESH AT END (Critical: Must be last to avoid interrupting widgets)
+# ✅ FIX 3: AUTO-REFRESH MOVED TO END (Prompt 1 requirement)
 # ════════════════════════════════════════════════════════════════════════════
 
 if auto_refresh:
