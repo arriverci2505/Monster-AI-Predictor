@@ -77,6 +77,8 @@ def load_data():
         # Nếu đang ghi mà đọc lỗi, trả về None để vòng lặp sau thử lại
         return None
 
+data = load_data()
+
 if data:
     col_left, col_right = st.columns([1, 2.2])
 
