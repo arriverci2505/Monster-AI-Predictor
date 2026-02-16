@@ -15,7 +15,7 @@ def start_engine():
     if 'engine_started' not in st.session_state:
         st.write("⏳ Đang khởi động Monster Engine ngầm...")
         # Lệnh này sẽ chạy file monster_engine.py như một tiến trình riêng
-        subprocess.Popen(["python", "monster_engine.py"])
+        subprocess.Popen([python_path, "monster_engine.py"])
         st.session_state['engine_started'] = True
         time.sleep(2) # Đợi 2 giây để Bot kịp tạo file json
 
