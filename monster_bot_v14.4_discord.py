@@ -722,13 +722,20 @@ if data:
     # MAIN DASHBOARD: 70% CHARTS + 30% TERMINAL
     # ═══════════════════════════════════════════════════════════════════════════
     
+# ═══════════════════════════════════════════════════════════════════════════
+    # MAIN DASHBOARD: ALIGNED LAYOUT
+    # ═══════════════════════════════════════════════════════════════════════════
+    
     col_main, col_terminal = st.columns([7, 3])
     
     with col_main:
+        # Tiêu đề này sẽ ngang hàng với "MATRIX TERMINAL" bên phải
+        st.markdown("### 📈 TRADING ANALYSIS")
 
-         # AI Confidence Chart
+        # ═══════════════════════════════════════════════════════════════
+        # AI CONFIDENCE CHART - CĂN BẰNG VỚI CHỮ "MONSTER"
+        # ═══════════════════════════════════════════════════════════════
         fig_ai = go.Figure()
-        
         fig_ai.add_trace(go.Bar(
             y=['NEUTRAL', 'BUY', 'SELL'],
             x=[prob_neutral * 100, prob_buy * 100, prob_sell * 100],
@@ -740,46 +747,31 @@ if data:
             text=[f"{prob_neutral*100:.1f}%", f"{prob_buy*100:.1f}%", f"{prob_sell*100:.1f}%"],
             textposition='auto',
             textfont=dict(color='#ffffff', size=14, family='JetBrains Mono', weight='bold'),
-            hovertemplate='%{y}: %{x:.2f}%<extra></extra>'
         ))
         
         fig_ai.update_layout(
-            title=dict(
-                text="AI MODEL CONFIDENCE ANALYSIS",
-                font=dict(color='#00f2ff', size=18, family='Orbitron', weight='bold')
-            ),
-            paper_bgcolor='rgba(5,5,5,0.5)',
-            plot_bgcolor='rgba(0,0,0,0.8)',
+            paper_bgcolor='rgba(0,0,0,0)',  # Nền trong suốt
+            plot_bgcolor='rgba(0,0,0,0)',   # Nền biểu đồ trong suốt
             font=dict(color='#e0e0e0', family='JetBrains Mono'),
-            xaxis=dict(
-                title="PROBABILITY (%)",
-                gridcolor='rgba(0,242,255,0.1)',
-                range=[0, 100],
-                color='#00f2ff'
-            ),
-            yaxis=dict(
-                gridcolor='rgba(0,242,255,0.1)',
-                color='#00f2ff'
-            ),
-            height=300,
+            xaxis=dict(range=[0, 100], showgrid=False, visible=False), # Ẩn trục X để tiết kiệm diện tích
+            yaxis=dict(color='#00f2ff', tickfont=dict(size=12)),
+            height=150,                     # Chiều cao thấp để khớp với cụm chữ MONSTER
+            margin=dict(l=0, r=0, t=0, b=0), # Đẩy sát lên trên cùng
             showlegend=False,
-            margin=dict(l=80, r=20, t=60, b=50)
         )
         
-        st.plotly_chart(fig_ai, width='content')
+        st.plotly_chart(fig_ai, use_container_width=True, config={'displayModeBar': False})
 
         # ═══════════════════════════════════════════════════════════════
         # TRADINGVIEW WIDGET
         # ═══════════════════════════════════════════════════════════════
-        # 1. Tiêu đề chính (Bằng cấp độ với tiêu đề bên Terminal)
         st.markdown("### 📊 LIVE MARKET TERMINAL")
         
-        # 2. Bọc toàn bộ Chart vào trong khung Camera Frame
-        # Chiều cao 610px để cân bằng với Terminal 600px + padding/border
+        # Bọc toàn bộ Chart vào trong khung Camera Frame
         st.markdown('<div class="camera-frame">', unsafe_allow_html=True)
         
         tradingview_html = """
-        <div class="tradingview-widget-container" style="height:610px;">
+        <div class="tradingview-widget-container" style="height:550px;">
           <div id="tradingview_chart" style="height:100%;"></div>
           <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
           <script type="text/javascript">
@@ -787,45 +779,20 @@ if data:
             "autosize": true,
             "symbol": "KRAKEN:BTCUSDT",
             "interval": "15",
-            "timezone": "Etc/UTC",
             "theme": "dark",
             "style": "1",
             "locale": "en",
-            "toolbar_bg": "#f1f3f6",
-            "enable_publishing": false,
-            "hide_side_toolbar": false,
-            "allow_symbol_change": true,
             "container_id": "tradingview_chart"
           });
           </script>
         </div>
         """
-        # Render component với chiều cao khớp với div container
-        components.html(tradingview_html, height=610)
+        components.html(tradingview_html, height=550)
         
-        # 3. Chèn các góc Neon trang trí vào cuối khung
-        st.markdown("""
-            <div class="camera-bottom-left"></div>
-            <div class="camera-bottom-right"></div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # ═══════════════════════════════════════════════════════════════
-        # CAMERA LENS FRAME CONTAINER
-        # ═══════════════════════════════════════════════════════════════
-        
-        st.markdown("""
-        <div class="camera-frame">
-            <div class="camera-bottom-left"></div>
-            <div class="camera-bottom-right"></div>
-        </div>
-        """, unsafe_allow_html=True)
+        # Đóng khung Camera Frame
+        st.markdown('<div class="camera-bottom-left"></div><div class="camera-bottom-right"></div></div>', unsafe_allow_html=True)
         
         st.markdown("### 📈 TRADING ANALYSIS")
-        
-       
         
         # Recent Trades Performance
         if history and len(history) > 0:
