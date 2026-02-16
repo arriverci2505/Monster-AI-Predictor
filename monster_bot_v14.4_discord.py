@@ -885,41 +885,75 @@ if data:
         ]
         
         # ═══════════════════════════════════════════════════════════════
-        # PHƯƠNG ÁN HỢP NHẤT: TERMINAL + AI CHART 
+        # ULTIMATE INTEGRATION: TITLE ON THE BORDER
         # ═══════════════════════════════════════════════════════════════
         
         terminal_output = "<br>".join(terminal_lines)
         
-        # 1. CSS đặc trị: Ép sát và xóa bỏ mọi khoảng cách mặc định của Streamlit
+        # CSS tinh chỉnh để đẩy tiêu đề đè lên thanh kẻ
         st.markdown("""
             <style>
-                /* Xóa khoảng cách giữa các element trong cột terminal */
                 [data-testid="stVerticalBlock"] > div:has(div.matrix-terminal) {
                     gap: 0rem !important;
                 }
+                
                 .matrix-terminal {
                     margin-bottom: 0px !important;
                     padding-bottom: 10px !important;
-                    border-bottom: 1px dashed rgba(0, 242, 255, 0.3) !important;
-                    border-radius: 10px 10px 0 0 !important;
+                    position: relative;
+                    border-radius: 12px 12px 0 0 !important;
+                    background: rgba(0, 20, 20, 0.4);
                 }
-                .hud-container-integrated {
-                    background: rgba(0, 242, 255, 0.02);
+                
+                /* Thanh ngăn cách có chứa tiêu đề */
+                .separator-with-title {
+                    position: relative;
+                    height: 20px;
+                    border-bottom: 2px solid rgba(0, 242, 255, 0.3);
+                    margin-top: -10px;
+                    margin-bottom: 5px;
+                    display: flex;
+                    justify-content: center; /* Đưa chữ ra giữa hoặc left tùy bạn */
+                    align-items: center;
+                    background: rgba(0, 20, 20, 0.4);
+                }
+                
+                .inner-title {
+                    background: #001515; /* Màu nền tối để che đường kẻ phía sau */
+                    padding: 0 15px;
+                    color: #00f2ff;
+                    font-family: 'JetBrains Mono', monospace;
+                    font-size: 0.8rem;
+                    font-weight: bold;
+                    letter-spacing: 2px;
+                    text-transform: uppercase;
+                    border: 1px solid rgba(0, 242, 255, 0.3);
+                    border-radius: 20px;
+                    z-index: 10;
+                }
+
+                .hud-footer-integrated {
+                    background: rgba(0, 20, 20, 0.4);
                     border-left: 4px solid #00f2ff;
-                    border-right: 1px solid rgba(0, 242, 255, 0.1);
-                    border-bottom: 1px solid rgba(0, 242, 255, 0.1);
-                    padding: 5px 15px;
-                    margin-top: 0px !important; /* Triệt tiêu khe hở */
-                    border-radius: 0 0 10px 10px;
+                    border-radius: 0 0 12px 12px;
+                    padding: 10px 15px;
+                    margin-top: -2px !important;
                 }
             </style>
         """, unsafe_allow_html=True)
 
-        # 2. Hiển thị Terminal
+        # 1. Phần Terminal phía trên
         st.markdown(f'<div class="matrix-terminal">{terminal_output}</div>', unsafe_allow_html=True)
         
-        # 3. Hiển thị AI Analysis đè khít vào Terminal
-        st.markdown('<div class="hud-container-integrated">', unsafe_allow_html=True)
+        # 2. Thanh ngăn cách đè tên lên
+        st.markdown("""
+            <div class="separator-with-title">
+                <div class="inner-title">🧠 AI ENGINE PREDICTION</div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # 3. Phần Biểu đồ phía dưới
+        st.markdown('<div class="hud-footer-integrated">', unsafe_allow_html=True)
         
         fig_ai = go.Figure()
         fig_ai.add_trace(go.Bar(
@@ -940,15 +974,15 @@ if data:
             plot_bgcolor='rgba(0,0,0,0)',
             font=dict(color='#00f2ff', family='JetBrains Mono'),
             xaxis=dict(range=[0, 100], visible=False),
-            yaxis=dict(color='#00f2ff', tickfont=dict(size=10)),
-            height=130, # Thu nhỏ một chút để vừa vặn
-            margin=dict(l=70, r=10, t=10, b=10),
+            yaxis=dict(color='#00f2ff', tickfont=dict(size=10, weight='bold')),
+            height=130, 
+            margin=dict(l=70, r=10, t=5, b=5),
             showlegend=False,
-            bargap=0.3
+            bargap=0.35
         )
         
         st.plotly_chart(fig_ai, use_container_width=True, config={'displayModeBar': False})
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)True)
             
     # ═══════════════════════════════════════════════════════════════════════════
     # TRADE HISTORY TABLE
