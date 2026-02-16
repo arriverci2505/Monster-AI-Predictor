@@ -224,7 +224,7 @@ st.markdown("""
         background: linear-gradient(90deg, rgba(0, 242, 255, 0.05) 0%, rgba(189, 0, 255, 0.05) 100%);
         backdrop-filter: blur(10px);
         border: 1px solid rgba(0, 242, 255, 0.3);
-        border-radius: 0 0 15px 15px;
+        border-radius: 15px;
         padding: 15px 30px;
         margin: -30px -70px 30px -70px;
         display: flex;
