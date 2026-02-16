@@ -688,8 +688,8 @@ def detect_market_regime_hierarchical(adx, choppiness, config):
     Returns:
         (is_trending, is_sideway, regime_name)
     """
-    adx_sideway_max = config.get('sideway_adx_max', 20)
-    adx_trending_min = config.get('trending_adx_min', 25)
+    adx_sideway_max = config.get('sideway_adx_max', 30)
+    adx_trending_min = config.get('trending_adx_min', 30)
     chop_extreme_low = config.get('choppiness_threshold_low', 30)
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -741,12 +741,19 @@ def load_state():
     return {
         'balance': 10000.0,
         'current_price': 0.0,
+        'ai_probs': {                # <--- THÊM CÁI NÀY
+            'buy': 0.0, 
+            'sell': 0.0, 
+            'neutral': 1.0,
+            'regime': 'Unknown'
+        },
         'open_trades': [],
         'pending_orders': [],
         'trade_history': [],
         'bot_status': 'Running',
         'last_update_time': datetime.now().isoformat(),
         'win_rate': 0.0,
+        'pnl_pct': 0.0,
         'total_trades': 0
     }
 
@@ -1113,7 +1120,7 @@ def main():
                         prob_neutral = float(probabilities[0])
                         prob_buy = float(probabilities[1])
                         prob_sell = float(probabilities[2])
-                        
+
                         entry_signal = None
                         entry_mode = None
                         entry_reason = ""
@@ -1128,7 +1135,13 @@ def main():
                         bb_border = LIVE_CONFIG['bb_squeeze_percentile']
                         z_thresh = LIVE_CONFIG['deviation_zscore_threshold']
                         shadow_min = LIVE_CONFIG['mean_reversion_min_shadow_atr']
-                        
+
+                        state['ai_probs'] = {
+                            'buy': float(prob_buy),
+                            'sell': float(prob_sell),
+                            'neutral': float(prob_neutral),
+                            'regime': regime
+                        }
                         # ═══════════════════════════════════════════════════════
                         # REGIME-FIRST LOGIC (STRICT IF-ELIF-ELSE)
                         # ═══════════════════════════════════════════════════════
