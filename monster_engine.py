@@ -1097,10 +1097,9 @@ def main():
                             {"name": "Lý do thoát lệnh:", "value": exit_reason, "inline": False}
                         ]
                     )
-                else
+                else:
                     active_trades.append(trade)
-                  
-            state['open_trades'] = active_trades
+           
             # ═══════════════════════════════════════════════════════════════
             # ENTRY LOGIC - REGIME-FIRST (MATCHED WITH BACKTEST v14.4)
             # ═══════════════════════════════════════════════════════════════
@@ -1358,6 +1357,7 @@ def main():
                 if not should_remove:
                     still_pending.append(pending)
 
+            state['open_trades'] = active_trades
             state['pending_orders'] = still_pending
             
             # Save state
