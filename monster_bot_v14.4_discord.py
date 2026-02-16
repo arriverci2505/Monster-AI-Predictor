@@ -628,34 +628,32 @@ st.markdown("""
         }
 
         /* 1. Ẩn hoàn toàn thanh Sidebar khi mới vào trên Mobile để đỡ vướng */
-        [data-testid="stSidebarCollapsedControl"] {
-            display: flex !important;
-            z-index: 1000001 !important;
-            background: rgba(0, 242, 255, 0.2) !important;
-            backdrop-filter: blur(10px) !important;
-            border: 1px solid #00f2ff !important;
-            border-radius: 5px !important;
-            top: 15px !important; /* Chỉnh vị trí để không đè lên HUD */
-            left: 10px !important;
-        }
-
-        /* 2. CHỈ ẨN CHỮ "SYSTEM CONTROLS" VÀ MENU THỪA */
-        [data-testid="stSidebarHeader"] > div:first-child, 
-        [data-testid="stSidebarNav"] + div {
+        [data-testid="stSidebarHeader"] {
             display: none !important;
         }
 
-        /* 3. GIỮ LẠI CÁC NÚT BẤM (Restart Bot, v.v.) TRONG SIDEBAR */
-        [data-testid="stSidebarUserContent"] {
-            display: block !important;
-            padding-top: 20px !important;
+        /* 2. Ép thanh Sidebar phải nằm ẩn hoàn toàn khi chưa mở */
+        [data-testid="stSidebar"][aria-expanded="false"] {
+            margin-left: -100% !important;
+            display: none !important;
         }
 
-        /* 4. CHỈNH SIDEBAR KHÔNG CHIẾM HẾT MÀN HÌNH */
-        [data-testid="stSidebar"] {
-            width: 75vw !important;
-            background: rgba(5, 5, 10, 0.95) !important;
-            border-right: 2px solid #00f2ff !important;
+        /* 3. Đẩy nội dung chính sang trái để không bị cái khe trắng đè lên */
+        .main .block-container {
+            margin-left: 0 !important;
+            padding-left: 10px !important;
+            padding-right: 10px !important;
+            width: 100% !important;
+        }
+
+        /* 4. Chỉnh lại nút mở Sidebar (nếu bạn cần dùng) */
+        [data-testid="stSidebarCollapsedControl"] {
+            top: 10px !important;
+            left: 10px !important;
+            background: rgba(0, 242, 255, 0.2) !important;
+            color: #00f2ff !important;
+            border: 1px solid #00f2ff !important;
+            z-index: 1000000 !important;
         }
     
         /* Quan trọng: Reset lại Margin âm của HUD trên Mobile để không đè Sidebar */
