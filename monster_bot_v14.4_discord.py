@@ -892,73 +892,72 @@ if data:
         
         st.markdown("""
             <style>
-                /* Ép toàn bộ block không có khoảng cách */
-                [data-testid="stVerticalBlock"] > div:has(div.matrix-terminal) {
+                /* Khóa khoảng cách giữa các phần tử trong cột */
+                [data-testid="stVerticalBlock"] {
                     gap: 0rem !important;
                 }
                 
                 .matrix-terminal {
                     margin-bottom: 0px !important;
-                    padding-bottom: 8px !important;
-                    /* Bo góc trên, nhưng đáy phải vuông tuyệt đối để nối */
+                    padding: 15px;
+                    /* CHỈ bo góc trên */
                     border-radius: 12px 12px 0 0 !important;
                     background: rgba(0, 20, 20, 0.4);
-                    border: 1px solid rgba(0, 242, 255, 0.1);
-                    border-bottom: none;
+                    border: 1px solid rgba(0, 242, 255, 0.15);
+                    border-bottom: none !important; /* Xóa viền đáy để nối */
                 }
                 
                 .ai-prediction-header {
-                    background: rgba(0, 40, 40, 0.8);
+                    background: rgba(0, 40, 40, 0.9);
                     border-left: 4px solid #00f2ff;
-                    border-right: 1px solid rgba(0, 242, 255, 0.1);
-                    /* Margin âm để đè khít lên đường viền cũ, xóa vệt thừa */
-                    margin-top: -2px !important; 
-                    padding: 5px 15px;
+                    border-right: 1px solid rgba(0, 242, 255, 0.15);
+                    /* margin-top âm để đè khít lên phần trên, xóa vệt hở */
+                    margin-top: -1px !important; 
+                    padding: 8px 15px;
                     color: #00f2ff;
                     font-family: 'JetBrains Mono', monospace;
                     font-size: 0.75rem;
                     font-weight: bold;
                     display: flex;
                     align-items: center;
-                    box-shadow: 0 -2px 10px rgba(0,0,0,0.5); /* Tạo chiều sâu nhẹ */
+                    border-radius: 0 !important; /* Vuông góc để nối tiếp */
                 }
                 
                 .chart-canvas-area {
                     background: rgba(0, 20, 20, 0.4);
                     border-left: 4px solid #00f2ff;
-                    border-right: 1px solid rgba(0, 242, 255, 0.1);
-                    border-bottom: 1px solid rgba(0, 242, 255, 0.1);
-                    border-radius: 0 0 12px 12px; /* Chỉ bo góc ở đáy */
+                    border-right: 1px solid rgba(0, 242, 255, 0.15);
+                    border-bottom: 1px solid rgba(0, 242, 255, 0.15);
+                    /* CHỈ bo góc dưới cùng */
+                    border-radius: 0 0 12px 12px !important;
                     padding: 10px 15px;
                     margin-top: -1px !important;
                 }
 
                 .dot-indicator {
-                    height: 8px;
-                    width: 8px;
+                    height: 8px; width: 8px;
                     background-color: #00f2ff;
                     border-radius: 50%;
-                    display: inline-block;
                     margin-right: 10px;
                     box-shadow: 0 0 8px #00f2ff;
                     animation: pulse-dot 1.5s infinite;
                 }
 
                 @keyframes pulse-dot {
-                    0% { transform: scale(0.95); opacity: 0.7; }
+                    0% { transform: scale(0.9); opacity: 0.5; }
                     50% { transform: scale(1.1); opacity: 1; }
-                    100% { transform: scale(0.95); opacity: 0.7; }
+                    100% { transform: scale(0.9); opacity: 0.5; }
                 }
             </style>
         """, unsafe_allow_html=True)
 
-        # 1. Log Terminal
+        # 1. Render Terminal
         st.markdown(f'<div class="matrix-terminal">{terminal_output}</div>', unsafe_allow_html=True)
         
-        # 2. Thanh tiêu đề (Mối nối)
+        # 2. Render Thanh Tiêu Đề (Mối nối)
         st.markdown('<div class="ai-prediction-header"><span class="dot-indicator"></span> 🧠 AI ENGINE PREDICTION</div>', unsafe_allow_html=True)
         
-        # 3. Vùng biểu đồ
+        # 3. Render Vùng Biểu Đồ
         st.markdown('<div class="chart-canvas-area">', unsafe_allow_html=True)
         
         fig_ai = go.Figure()
