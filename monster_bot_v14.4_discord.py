@@ -898,7 +898,19 @@ if data:
         # AI CONFIDENCE CHART - CĂN BẰNG VỚI CHỮ "MONSTER"
         # ═══════════════════════════════════════════════════════════════
         st.markdown("""
-        <div class="camera-frame" style="position: relative; padding: 25px 15px 15px 15px; min-height: 200px;">
+        <div style="position: relative; 
+                    background: rgba(5, 5, 5, 0.5); 
+                    backdrop-filter: blur(10px); 
+                    border: 2px solid rgba(0, 242, 255, 0.4); 
+                    border-radius: 20px; 
+                    padding: 20px; 
+                    margin-top: 10px;
+                    box-shadow: inset 0 0 30px rgba(0, 242, 255, 0.1);">
+            
+            <div style="position: absolute; top: 10px; left: 10px; width: 15px; height: 15px; border-top: 3px solid #00f2ff; border-left: 3px solid #00f2ff; border-radius: 5px 0 0 0;"></div>
+            <div style="position: absolute; top: 10px; right: 10px; width: 15px; height: 15px; border-top: 3px solid #00f2ff; border-right: 3px solid #00f2ff; border-radius: 0 5px 0 0;"></div>
+            <div style="position: absolute; bottom: 10px; left: 10px; width: 15px; height: 15px; border-bottom: 3px solid #00f2ff; border-left: 3px solid #00f2ff; border-radius: 0 0 0 5px;"></div>
+            <div style="position: absolute; bottom: 10px; right: 10px; width: 15px; height: 15px; border-bottom: 3px solid #00f2ff; border-right: 3px solid #00f2ff; border-radius: 0 0 5px 0;"></div>
         """, unsafe_allow_html=True)
         
         fig_ai = go.Figure()
@@ -912,29 +924,25 @@ if data:
             ),
             text=[f"{prob_neutral*100:.1f}%", f"{prob_buy*100:.1f}%", f"{prob_sell*100:.1f}%"],
             textposition='auto',
-            textfont=dict(color='#ffffff', size=12, family='JetBrains Mono', weight='bold'),
+            textfont=dict(color='#ffffff', size=12, family='JetBrains+Mono', weight='bold'),
         ))
         
         fig_ai.update_layout(
             paper_bgcolor='rgba(0,0,0,0)', 
-            plot_bgcolor='rgba(0,242,255,0.02)',
-            font=dict(color='#00f2ff', family='JetBrains Mono'),
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='#00f2ff', family='JetBrains+Mono'),
             xaxis=dict(range=[0, 100], showgrid=False, visible=False),
             yaxis=dict(color='#00f2ff', tickfont=dict(size=10)),
             height=160,
-            margin=dict(l=70, r=10, t=0, b=0), # Triệt tiêu margin của Plotly để tránh đẩy khung
+            margin=dict(l=70, r=20, t=10, b=10),
             showlegend=False,
             bargap=0.4
         )
         
         st.plotly_chart(fig_ai, use_container_width=True, config={'displayModeBar': False})
         
-        # Đóng div camera-frame và chèn các dấu góc vào bên trong
-        st.markdown("""
-            <div class="camera-bottom-left" style="position: absolute; bottom: 10px; left: 10px;"></div>
-            <div class="camera-bottom-right" style="position: absolute; bottom: 10px; right: 10px;"></div>
-        </div>
-        """, unsafe_allow_html=True)
+        # Đóng thẻ div container
+        st.markdown("</div>", unsafe_allow_html=True)
                 
     # ═══════════════════════════════════════════════════════════════════════════
     # TRADE HISTORY TABLE
