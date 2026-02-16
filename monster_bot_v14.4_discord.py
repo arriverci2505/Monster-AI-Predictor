@@ -767,8 +767,11 @@ if data:
           "save_image": false,
           "container_id": "tv_chart_container",
           "studies": [
-            "RSI@tv-basicstudies",
-            {"id": "MASimple@tv-basicstudies", "inputs": { "length": 200 }}
+            {
+                "id": "MASimple@tv-basicstudies",
+                "inputs": { "length": 200 }
+            },
+            "RSI@tv-basicstudies"
           ],
           "overrides": {
             "paneProperties.background": "#050505",
