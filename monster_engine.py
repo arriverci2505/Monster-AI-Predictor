@@ -1158,12 +1158,12 @@ def main():
                             if prob_buy > trending_buy_thresh and prob_buy > prob_sell:
                                 entry_signal = 'LONG'
                                 entry_mode = 'TRENDING'
-                                entry_reason = f"AI dự đoán: {prob_buy:.3f} > {trending_buy_thresh:.3f}}"
+                                entry_reason = f"AI dự đoán: {prob_buy:.3f} > {trending_buy_thresh:.3f}"
                             
                             elif prob_sell > trending_sell_thresh and prob_sell > prob_buy:
                                 entry_signal = 'SHORT'
                                 entry_mode = 'TRENDING'
-                                entry_reason = f"AI dự đoán: {prob_sell:.3f} > {trending_sell_thresh:.3f}}"
+                                entry_reason = f"AI dự đoán: {prob_sell:.3f} > {trending_sell_thresh:.3f}"
                         
                         elif is_sideway:
                             # ───────────────────────────────────────────────────
