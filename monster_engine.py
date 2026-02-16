@@ -124,8 +124,7 @@ LIVE_CONFIG = {
 # Discord Webhook
 DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1472776784205447360/NQaLrcBstxG1vLpwIcHREhPRlFphGFSKl2lUreNMZxHdX4zVk-81F7ACogFUA6fepMMH"
 
-
-STATE_FILE = "bot_state_v14_4.json"
+STATE_FILE = os.path.abspath("bot_state_v14_4.json")
 
 # ════════════════════════════════════════════════════════════════════════════
 # STARTUP VERIFICATION
@@ -678,19 +677,6 @@ def detect_market_regime_hierarchical(adx, choppiness, config):
 # STATE MANAGEMENT
 # ════════════════════════════════════════════════════════════════════════════
 
-def start_engine_on_cloud():
-    """Lệnh này sẽ chạy Engine như một tiến trình ngầm trên Server Streamlit"""
-    if not is_bot_running()[0]:
-        try:
-            subprocess.Popen([sys.executable, "monster_engine.py"])
-            return True
-        except:
-            return False
-    return True
-
-# Tự động gọi khởi động khi UI load
-start_engine_on_cloud()
-
 def load_state():
     """Load bot state"""
     if os.path.exists(STATE_FILE):
@@ -717,12 +703,13 @@ def load_state():
     }
 
 def save_state(state):
+    """Save bot state"""
+    state['last_update_time'] = datetime.now().isoformat()
     try:
-        state_path = "bot_state_v14_4.json" 
-        with open(state_path, "w", encoding='utf-8') as f:
-            json.dump(state, f, indent=4, ensure_ascii=False)
+        with open(STATE_FILE, 'w') as f:
+            json.dump(state, f, indent=2)
     except Exception as e:
-        logger.error(f"Error saving state: {e}")}")
+        logger.error(f"Error saving state: {e}")
 
 # ════════════════════════════════════════════════════════════════════════════
 # DISCORD NOTIFICATIONS
