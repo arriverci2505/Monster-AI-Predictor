@@ -970,7 +970,7 @@ if data:
         
         terminal_lines = [
             "╔══════════════════════════════════════════════════════════════╗",
-            "║            MONSTER ENGINE v18.0 - NEURAL CORE                 ║",
+            "║            MONSTER ENGINE v18.0 - NEURAL CORE                ║",
             "╚══════════════════════════════════════════════════════════════╝",
             "",
             f"<span class='terminal-prompt'>[SYSTEM.INIT]</span> <span class='terminal-success'>NEURAL NETWORK INITIALIZED</span>",
@@ -1002,12 +1002,6 @@ if data:
             f"  ├─ RAM Usage: {ram_usage:.1f}%",
             f"  └─ State File: bot_state_v14_4.json",
             "",
-            "══════════════════════════════════════════════════════════════",
-            
-            "<span class='terminal-success'>✓ ALL SYSTEMS OPERATIONAL</span>" if not is_stalled else "<span class='terminal-error'>✗ SYSTEM STALLED - CHECK ENGINE</span>",
-            "<span class='terminal-success'>✓ MONITORING ACTIVE</span>" if not is_stalled else "<span class='terminal-warning'>! DATA STREAM DELAYED</span>",
-            "<span class='terminal-success'>✓ NEURAL CORE ONLINE</span>",
-            "══════════════════════════════════════════════════════════════",
         ]
         
         # ═══════════════════════════════════════════════════════════════
