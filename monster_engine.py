@@ -1099,7 +1099,8 @@ def main():
                     )
                 else:
                     active_trades.append(trade)
-           
+
+            state['open_trades'] = active_trades
             # ═══════════════════════════════════════════════════════════════
             # ENTRY LOGIC - REGIME-FIRST (MATCHED WITH BACKTEST v14.4)
             # ═══════════════════════════════════════════════════════════════
@@ -1222,7 +1223,7 @@ def main():
                                         reasons.append(f"Nến có râu dài: {upper_shadow:.2f} > {shadow_min:.2f}")
                                     reasons.append(f"AI đã chấp nhận vào lệnh mua: {prob_buy:.2f} > {ai_filter_threshold:.2f})")
                                     entry_reason = "|".join(reasons)
-                        
+                            
                         else:
                             # ───────────────────────────────────────────────────
                             # MODE 3: UNCLEAR REGIME → WAIT
@@ -1349,7 +1350,7 @@ def main():
                         should_remove = True
                 
                 # Cancel if waited too long
-                if not should_remove and pending['candles_waiting'] >= 2:
+                if pending['candles_waiting'] >= 2:
                       logger.info(f"❌ Limit order {pending['side']} cancelled (timeout)")
                       should_remove = True
                 
@@ -1357,7 +1358,6 @@ def main():
                 if not should_remove:
                     still_pending.append(pending)
 
-            state['open_trades'] = active_trades
             state['pending_orders'] = still_pending
             
             # Save state
