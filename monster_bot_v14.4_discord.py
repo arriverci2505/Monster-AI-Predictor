@@ -230,65 +230,61 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: center;
-        /* Viền mờ làm nền */
-        border: 1px solid rgba(0, 242, 255, 0.1);
+        /* Viền mờ cố định làm ray */
+        border: 1px solid rgba(0, 242, 255, 0.2);
         z-index: 1;
         overflow: hidden;
     }
 
-    /* Tạo 1 tia sáng duy nhất bám viền */
+    /* Tạo một tia sáng chạy bằng cách trượt Background */
     .hud-header::before {
         content: '';
         position: absolute;
-        /* Tạo một khối màu Gradient dài */
-        inset: -2px;
+        inset: 0;
         border-radius: 15px;
-        padding: 2px; /* Độ dày viền */
-        background: conic-gradient(
-            from var(--angle),
-            #00f2ff 0%,
-            #ffffff 5%,
-            #bd00ff 10%,
-            transparent 30%,
-            transparent 100%
-        );
-        /* Ép chỉ hiển thị ở viền */
-        -webkit-mask: 
-            linear-gradient(#fff 0 0) content-box, 
-            linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
+        /* Vẽ một dải màu nằm ở viền (dùng linear-gradient đơn giản) */
+        background: 
+            linear-gradient(to right, #00f2ff, #ffffff, #bd00ff, transparent) no-repeat,
+            linear-gradient(to bottom, #00f2ff, #ffffff, #bd00ff, transparent) no-repeat,
+            linear-gradient(to left, #00f2ff, #ffffff, #bd00ff, transparent) no-repeat,
+            linear-gradient(to top, #00f2ff, #ffffff, #bd00ff, transparent) no-repeat;
         
-        animation: rotateSingle 4s linear infinite;
+        /* Kích thước tia sáng cho 4 cạnh */
+        background-size: 200px 2px, 2px 200px, 200px 2px, 2px 200px;
+        
+        /* Đặt vị trí ban đầu cho chúng mất hút */
+        background-position: -200px 0, 100% -200px, calc(100% + 200px) 100%, 0 calc(100% + 200px);
+        
+        animation: boxFlow 6s linear infinite;
+        z-index: -1;
     }
 
-    /* Kỹ thuật fix lỗi không hiện: Dùng biến trực tiếp cho trình duyệt hiện đại */
-    @property --angle {
-        syntax: '<angle>';
-        initial-value: 0deg;
-        inherits: false;
+    /* Lớp phủ bên trên che phần giữa */
+    .hud-header::after {
+        content: '';
+        position: absolute;
+        inset: 2px;
+        background: rgba(0, 5, 10, 0.98);
+        border-radius: 13px;
+        z-index: -1;
     }
 
-    @keyframes rotateSingle {
-        from { --angle: 0deg; }
-        to { --angle: 360deg; }
-    }
-
-    /* Dự phòng cho trình duyệt không hỗ trợ @property: 
-       Tự động xoay toàn bộ lớp ::before */
-    @supports not (background: paint(something)) {
-        .hud-header::before {
-            width: 200%;
-            height: 500%;
-            top: -200%;
-            left: -50%;
-            animation: rotateLegacy 6s linear infinite;
-        }
-    }
-
-    @keyframes rotateLegacy {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+    @keyframes boxFlow {
+        /* Chạy cạnh TRÊN */
+        0% { background-position: -200px 0, 100% -200px, calc(100% + 200px) 100%, 0 calc(100% + 200px); }
+        25% { background-position: 100% 0, 100% -200px, calc(100% + 200px) 100%, 0 calc(100% + 200px); }
+        
+        /* Chạy cạnh PHẢI */
+        25.01% { background-position: 100% 0, 100% -200px, calc(100% + 200px) 100%, 0 calc(100% + 200px); }
+        50% { background-position: 100% 0, 100% 100%, calc(100% + 200px) 100%, 0 calc(100% + 200px); }
+        
+        /* Chạy cạnh DƯỚI */
+        50.01% { background-position: 100% 0, 100% 100%, calc(100% + 200px) 100%, 0 calc(100% + 200px); }
+        75% { background-position: 100% 0, 100% 100%, -200px 100%, 0 calc(100% + 200px); }
+        
+        /* Chạy cạnh TRÁI */
+        75.01% { background-position: 100% 0, 100% 100%, -200px 100%, 0 calc(100% + 200px); }
+        100% { background-position: 100% 0, 100% 100%, -200px 100%, 0 -200px; }
     }
 
     .hud-title {
