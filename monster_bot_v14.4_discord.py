@@ -725,18 +725,48 @@ if data:
     col_main, col_terminal = st.columns([7, 3])
     
     with col_main:
-        # ═══════════════════════════════════════════════════════════════
-        # CAMERA LENS FRAME CONTAINER
-        # ═══════════════════════════════════════════════════════════════
+
+         # AI Confidence Chart
+        fig_ai = go.Figure()
         
-        st.markdown("""
-        <div class="camera-frame">
-            <div class="camera-bottom-left"></div>
-            <div class="camera-bottom-right"></div>
-        </div>
-        """, unsafe_allow_html=True)
+        fig_ai.add_trace(go.Bar(
+            y=['NEUTRAL', 'BUY', 'SELL'],
+            x=[prob_neutral * 100, prob_buy * 100, prob_sell * 100],
+            orientation='h',
+            marker=dict(
+                color=['#ffaa00', '#00f2ff', '#bd00ff'],
+                line=dict(color='#00f2ff', width=2)
+            ),
+            text=[f"{prob_neutral*100:.1f}%", f"{prob_buy*100:.1f}%", f"{prob_sell*100:.1f}%"],
+            textposition='auto',
+            textfont=dict(color='#ffffff', size=14, family='JetBrains Mono', weight='bold'),
+            hovertemplate='%{y}: %{x:.2f}%<extra></extra>'
+        ))
         
-        st.markdown("### 📈 TRADING ANALYSIS")
+        fig_ai.update_layout(
+            title=dict(
+                text="AI MODEL CONFIDENCE ANALYSIS",
+                font=dict(color='#00f2ff', size=18, family='Orbitron', weight='bold')
+            ),
+            paper_bgcolor='rgba(5,5,5,0.5)',
+            plot_bgcolor='rgba(0,0,0,0.8)',
+            font=dict(color='#e0e0e0', family='JetBrains Mono'),
+            xaxis=dict(
+                title="PROBABILITY (%)",
+                gridcolor='rgba(0,242,255,0.1)',
+                range=[0, 100],
+                color='#00f2ff'
+            ),
+            yaxis=dict(
+                gridcolor='rgba(0,242,255,0.1)',
+                color='#00f2ff'
+            ),
+            height=300,
+            showlegend=False,
+            margin=dict(l=80, r=20, t=60, b=50)
+        )
+        
+        st.plotly_chart(fig_ai, width='content')
 
         # ═══════════════════════════════════════════════════════════════
         # TRADINGVIEW WIDGET
@@ -781,48 +811,21 @@ if data:
         """, unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
+
+        # ═══════════════════════════════════════════════════════════════
+        # CAMERA LENS FRAME CONTAINER
+        # ═══════════════════════════════════════════════════════════════
         
-        # AI Confidence Chart
-        fig_ai = go.Figure()
+        st.markdown("""
+        <div class="camera-frame">
+            <div class="camera-bottom-left"></div>
+            <div class="camera-bottom-right"></div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        fig_ai.add_trace(go.Bar(
-            y=['NEUTRAL', 'BUY', 'SELL'],
-            x=[prob_neutral * 100, prob_buy * 100, prob_sell * 100],
-            orientation='h',
-            marker=dict(
-                color=['#ffaa00', '#00f2ff', '#bd00ff'],
-                line=dict(color='#00f2ff', width=2)
-            ),
-            text=[f"{prob_neutral*100:.1f}%", f"{prob_buy*100:.1f}%", f"{prob_sell*100:.1f}%"],
-            textposition='auto',
-            textfont=dict(color='#ffffff', size=14, family='JetBrains Mono', weight='bold'),
-            hovertemplate='%{y}: %{x:.2f}%<extra></extra>'
-        ))
+        st.markdown("### 📈 TRADING ANALYSIS")
         
-        fig_ai.update_layout(
-            title=dict(
-                text="AI MODEL CONFIDENCE ANALYSIS",
-                font=dict(color='#00f2ff', size=18, family='Orbitron', weight='bold')
-            ),
-            paper_bgcolor='rgba(5,5,5,0.5)',
-            plot_bgcolor='rgba(0,0,0,0.8)',
-            font=dict(color='#e0e0e0', family='JetBrains Mono'),
-            xaxis=dict(
-                title="PROBABILITY (%)",
-                gridcolor='rgba(0,242,255,0.1)',
-                range=[0, 100],
-                color='#00f2ff'
-            ),
-            yaxis=dict(
-                gridcolor='rgba(0,242,255,0.1)',
-                color='#00f2ff'
-            ),
-            height=300,
-            showlegend=False,
-            margin=dict(l=80, r=20, t=60, b=50)
-        )
-        
-        st.plotly_chart(fig_ai, width='content')
+       
         
         # Recent Trades Performance
         if history and len(history) > 0:
