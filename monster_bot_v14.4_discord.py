@@ -344,17 +344,18 @@ st.markdown("""
         }
         
         .t-fill.buy {
-            background: linear-gradient(90deg, #00ff88, #00f2ff);
-            box-shadow: 0 0 8px rgba(0, 242, 255, 0.6);
+            background: linear-gradient(90deg, #00ff00, #32cd32);
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.7);
         }
         
         .t-fill.sell {
-            background: linear-gradient(90deg, #ff4466, #bd00ff);
-            box-shadow: 0 0 8px rgba(255, 68, 102, 0.6);
+            background: linear-gradient(90deg, #ff0000, #ff4500);
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
         }
         
         .t-fill.neutral {
-            background: #555;
+            background: linear-gradient(90deg, #ffff00, #ffd700);
+            box-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
         }
     
     /* ═══════════════════════════════════════════════════════════════ */
@@ -824,8 +825,11 @@ st.markdown("""
             width: 70% !important;
             margin-left: 15px !important;
         }
-
+    
     }
+    .terminal-success { color: #00ff00 !important; text-shadow: 0 0 5px rgba(0,255,0,0.5); }
+    .terminal-error { color: #ff0000 !important; text-shadow: 0 0 5px rgba(255,0,0,0.5); }
+    .terminal-neutral { color: #ffff00 !important; text-shadow: 0 0 5px rgba(255,255,0,0.5); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1202,12 +1206,9 @@ if data:
             f"<span class='terminal-prompt'>[MARKET.DATA]</span> Regime: <span class='terminal-info'>{regime}</span>",
             "",
             f"<span class='terminal-prompt'>[AI.ANALYSIS]</span> Neural Confidence:",
-            f"  ├─ NEUTRAL: {prob_neutral*100:.1f}%",
-            f"<div class='t-bar'><div class='t-fill neutral' style='width: {bar_neutral}%'></div></div>",
-            f"  ├─ BUY: <span class='terminal-success'>{prob_buy*100:.1f}%</span>",
-            f"<div class='t-bar'><div class='t-fill buy' style='width: {bar_buy}%'></div></div>",
-            f"  └─ SELL: <span class='terminal-warning'>{prob_sell*100:.1f}%</span>",
-            f"<div class='t-bar'><div class='t-fill sell' style='width: {bar_sell}%'></div></div>",
+            f"  ├─ NEUTRAL: <span class='terminal-neutral'>{prob_neutral*100:.1f}%</span><div class='t-bar'><div class='t-fill neutral' style='width: {bar_neutral}%'></div></div>",
+            f"  ├─ BUY:     <span class='terminal-success'>{prob_buy*100:.1f}%</span><div class='t-bar'><div class='t-fill buy' style='width: {bar_buy}%'></div></div>",
+            f"  └─ SELL:    <span class='terminal-error'>{prob_sell*100:.1f}%</span><div class='t-bar'><div class='t-fill sell' style='width: {bar_sell}%'></div></div>",
             "",
             f"<span class='terminal-prompt'>[EXECUTION.STATUS]</span>",
             f"  ├─ Open Trades:    <span class='terminal-info'>{len(open_trades)}</span>",
