@@ -230,61 +230,69 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: center;
-        /* Viền mờ cố định làm ray */
-        border: 1px solid rgba(0, 242, 255, 0.2);
+        /* Chỉ giữ viền mờ ở trên và dưới nếu bạn muốn, hoặc để nguyên như cũ */
+        border: 1px solid rgba(0, 242, 255, 0.1);
         z-index: 1;
         overflow: hidden;
     }
 
-    /* Tạo một tia sáng chạy bằng cách trượt Background */
     .hud-header::before {
         content: '';
         position: absolute;
-        inset: 0;
-        border-radius: 15px;
-        /* Vẽ một dải màu nằm ở viền (dùng linear-gradient đơn giản) */
-        background: 
-            linear-gradient(to right, #00f2ff, #ffffff, #bd00ff, transparent) no-repeat,
-            linear-gradient(to bottom, #00f2ff, #ffffff, #bd00ff, transparent) no-repeat,
-            linear-gradient(to left, #00f2ff, #ffffff, #bd00ff, transparent) no-repeat,
-            linear-gradient(to top, #00f2ff, #ffffff, #bd00ff, transparent) no-repeat;
-        
-        /* Kích thước tia sáng cho 4 cạnh */
-        background-size: 200px 2px, 2px 200px, 200px 2px, 2px 200px;
-        
-        /* Đặt vị trí ban đầu cho chúng mất hút */
-        background-position: -200px 0, 100% -200px, calc(100% + 200px) 100%, 0 calc(100% + 200px);
-        
-        animation: boxFlow 6s linear infinite;
-        z-index: -1;
+        width: 150px;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #00f2ff, #bd00ff, transparent);
+        box-shadow: 0 0 15px rgba(0, 242, 255, 0.5);
+        z-index: 10;
+        animation: topBottomOnly 8s linear infinite;
     }
 
-    /* Lớp phủ bên trên che phần giữa */
-    .hud-header::after {
-        content: '';
-        position: absolute;
-        inset: 2px;
-        background: rgba(0, 5, 10, 0.98);
-        border-radius: 13px;
-        z-index: -1;
-    }
+    @keyframes topBottomOnly {
+        /* CẠNH TRÊN: Chạy từ Trái qua Phải */
+        0% {
+            top: 0;
+            left: -150px;
+            opacity: 1;
+        }
+        35% {
+            top: 0;
+            left: 100%;
+            opacity: 1;
+        }
 
-    @keyframes boxFlow {
-        /* Chạy cạnh TRÊN */
-        0% { background-position: -200px 0, 100% -200px, calc(100% + 200px) 100%, 0 calc(100% + 200px); }
-        25% { background-position: 100% 0, 100% -200px, calc(100% + 200px) 100%, 0 calc(100% + 200px); }
-        
-        /* Chạy cạnh PHẢI */
-        25.01% { background-position: 100% 0, 100% -200px, calc(100% + 200px) 100%, 0 calc(100% + 200px); }
-        50% { background-position: 100% 0, 100% 100%, calc(100% + 200px) 100%, 0 calc(100% + 200px); }
-        
-        /* Chạy cạnh DƯỚI */
-        50.01% { background-position: 100% 0, 100% 100%, calc(100% + 200px) 100%, 0 calc(100% + 200px); }
-        75% { background-position: 100% 0, 100% 100%, -200px 100%, 0 calc(100% + 200px); }
-        
-        /* Chạy cạnh TRÁI */
-        75.01% { background-position: 100% 0, 100% 100%, -200px 100%, 0 calc(100% + 200px); }
-        100% { background-position: 100% 0, 100% 100%, -200px 100%, 0 -200px; }
+        /* TRẠNG THÁI ẨN: Di chuyển từ trên xuống dưới mà không hiện hình */
+        35.01% {
+            opacity: 0;
+            left: 100%;
+        }
+        49.99% {
+            top: calc(100% - 2px);
+            left: 100%;
+            opacity: 0;
+        }
+
+        /* CẠNH DƯỚI: Hiện ra và chạy từ Phải qua Trái */
+        50% {
+            top: calc(100% - 2px);
+            left: 100%;
+            opacity: 1;
+        }
+        85% {
+            top: calc(100% - 2px);
+            left: -150px;
+            opacity: 1;
+        }
+
+        /* TRẠNG THÁI ẨN: Di chuyển từ dưới lên trên để bắt đầu lại */
+        85.01% {
+            opacity: 0;
+            left: -150px;
+        }
+        100% {
+            top: 0;
+            left: -150px;
+            opacity: 0;
+        }
     }
 
     .hud-title {
