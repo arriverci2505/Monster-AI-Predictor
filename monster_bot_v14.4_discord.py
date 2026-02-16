@@ -887,7 +887,7 @@ if data:
             box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
         }}
     </style>
-    <div class="terminal-container">{terminal_content}</div>
+    <div class="terminal-container">{terminal_lines}</div>
     """, unsafe_allow_html=True)
     
     st.markdown("---")
