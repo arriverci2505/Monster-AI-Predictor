@@ -690,7 +690,7 @@ with st.sidebar:
                 st.rerun()
 
     with col_k2:
-        if st.button("🔄 REFRESH", key="refresh", uwidth='content'):
+        if st.button("🔄 REFRESH", key="refresh", width='content'):
             st.rerun()
 
     # Nút dọn dẹp để ở dưới cùng của nhóm control
