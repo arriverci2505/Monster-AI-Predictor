@@ -100,7 +100,7 @@ def restart_bot():
 # [Tìm hàm load_data cũ và thay thế bằng đoạn này]
 
 def load_data():
-    """Load bot state - Đảm bảo PnL và AI Probs cập nhật liên tục"""
+    """Load bot state - Lấy dữ liệu để hàm calculate_total_pnl chạy được"""
     if not os.path.exists(STATE_FILE):
         return None
     
@@ -111,38 +111,19 @@ def load_data():
                 return None
             data = json.loads(content)
             
+        # Lấy danh sách lịch sử từ Bot
         history = data.get('trade_history', [])
+        
+        # Đảm bảo gán lại vào data để hàm tính toán bên ngoài có thể truy cập
+        data['trade_history'] = history
 
-        data['pnl_pct'] = data.get('pnl_pct', 0.0)
-        data['win_rate'] = data.get('win_rate', 0.0)
-        data['total_trades'] = data.get('total_trades', 0)
-
+        # Lấy xác suất AI liên tục (mỗi phút) từ state['ai_probs']
+        # Điều này giúp UI nhảy số 43% ngay cả khi chưa vào lệnh
         if 'ai_probs' not in data:
-            if history:
-                latest = history[0]
-                data['ai_probs'] = {
-                    'neutral': latest.get('prob_neutral', 0.33),
-                    'buy': latest.get('prob_buy', 0.0),
-                    'sell': latest.get('prob_sell', 0.0)
-                }
-            else:
-                data['ai_probs'] = {'neutral': 0.33, 'buy': 0.0, 'sell': 0.0}
-
-        # 4. XỬ LÝ GIÁ HIỆN TẠI (Giữ nguyên logic của bạn)
-        if data.get('current_price', 0) == 0 and history:
-            try:
-                last_trade = history[0]
-                ep = last_trade.get('exit_price', 0)
-                # Chuyển đổi an toàn từ string/number sang float
-                data['current_price'] = float(str(ep).replace('$', '').replace(',', ''))
-            except:
-                data['current_price'] = 0
-                
+            data['ai_probs'] = {'neutral': 0.33, 'buy': 0.0, 'sell': 0.0}
+            
         return data
-
-    except Exception as e:
-        # Trả về None để tránh crash UI, log lỗi để debug nếu cần
-        print(f"Error loading state: {e}")
+    except Exception:
         return None
 
 def send_kill_signal():
