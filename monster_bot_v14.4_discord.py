@@ -164,15 +164,19 @@ def get_system_stats():
         return 0, 0
 
 def parse_ai_confidence(data):
-    """Extract AI confidence scores"""
+    """Trích xuất xác suất AI từ lệnh mới nhất trong trade_history"""
     try:
-        latest_probs = data.get('latest_ai_probs', {})
-        if latest_probs:
+        history = data.get('trade_history', [])
+        
+        if history:
+            latest_trade = history[0] 
+            
             return (
-                latest_probs.get('neutral', 0.33),
-                latest_probs.get('buy', 0.33),
-                latest_probs.get('sell', 0.33)
+                latest_trade.get('prob_neutral', 0.33),
+                latest_trade.get('prob_buy', 0.33),
+                latest_trade.get('prob_sell', 0.33)
             )
+            
         return (0.33, 0.33, 0.33)
     except:
         return (0.33, 0.33, 0.33)
