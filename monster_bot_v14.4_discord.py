@@ -641,10 +641,9 @@ else:
 
 st.sidebar.markdown("---")
 
-col_k0, col_k1, col_k2 = st.sidebar.columns(3)
-
-with col_k0:
-    st.markdown("### 🛠️ BOT CONTROL")
+with st.sidebar:
+    
+    # Nút Restart to nhất, nổi bật
     if st.button("🚀 RESTART MONSTER ENGINE", use_container_width=True):
         with st.spinner("Re-linking neural core..."):
             if restart_bot():
@@ -652,36 +651,36 @@ with col_k0:
                 time.sleep(1)
                 st.rerun()
 
-    # Thêm nút xóa cache dữ liệu nếu cần
+    # Chia 2 cột cho các nút chức năng phụ
+    col_k1, col_k2 = st.columns(2)
+    
+    with col_k1:
+        if st.button("🛑 KILL BOT", key="kill", use_container_width=True):
+            if bot_running:
+                send_kill_signal()
+                success, msg = kill_bot(bot_pid)
+                if success: st.success("Killed")
+                else: st.error("Failed")
+                time.sleep(1)
+                st.rerun()
+
+    with col_k2:
+        if st.button("🔄 REFRESH", key="refresh", use_container_width=True):
+            st.rerun()
+
+    # Nút dọn dẹp để ở dưới cùng của nhóm control
     if st.button("🧹 CLEAR STATE DATA", use_container_width=True):
         if os.path.exists(STATE_FILE):
             os.remove(STATE_FILE)
-            st.warning("State file cleared. Waiting for new sync...")
-            st.rerun()
-            
-with col_k1:
-    if st.button("🛑 KILL", key="kill"):
-        if bot_running:
-            send_kill_signal()
-            success, msg = kill_bot(bot_pid)
-            if success:
-                st.sidebar.success(msg)
-            else:
-                st.sidebar.error(msg)
+            st.warning("Data cleared!")
             time.sleep(1)
             st.rerun()
 
-with col_k2:
-    if st.button("🔄 REFRESH", key="refresh"):
-        st.rerun()
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("### ⚙️ SETTINGS")
-auto_refresh = st.sidebar.checkbox("Auto Refresh", value=True)
-if auto_refresh:
-    refresh_interval = st.sidebar.slider("Interval (s)", 3, 30, 5)
-else:
-    refresh_interval = 999999
+    st.markdown("---")
+    st.markdown("### ⚙️ SETTINGS")
+    auto_refresh = st.checkbox("Auto Refresh", value=True)
+    if auto_refresh:
+        refresh_interval = st.slider("Interval (s)", 3, 30, 5)
 
 # ════════════════════════════════════════════════════════════════════════════
 # LOAD DATA
