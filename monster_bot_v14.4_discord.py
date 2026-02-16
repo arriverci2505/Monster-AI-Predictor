@@ -226,7 +226,7 @@ st.markdown("""
         border: 1px solid rgba(0, 242, 255, 0.3);
         border-radius: 0 0 15px 15px;
         padding: 15px 30px;
-        margin: -50px 0 20px 0 30px -70px;
+        margin: -60px -70px 30px -70px;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -658,9 +658,22 @@ st.markdown("""
     
         /* Quan trọng: Reset lại Margin âm của HUD trên Mobile để không đè Sidebar */
         .hud-header {
-            margin: 0 !important; /* Bỏ margin -60px -70px trên điện thoại */
+            margin: -50px 0 20px 0 !important; 
             width: 100% !important;
             border-radius: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            padding: 15px 10px !important;
+            
+            /* Căn giữa nội dung bên trong */
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            
+            /* Đảm bảo không bị tràn */
+            box-sizing: border-box !important;
+            border-radius: 0 0 15px 15px !important;
         }
     
         /* Đẩy toàn bộ nội dung xuống dưới một chút để không bị nút Sidebar đè */
