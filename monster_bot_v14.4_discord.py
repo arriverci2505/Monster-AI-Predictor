@@ -737,6 +737,41 @@ if data:
         """, unsafe_allow_html=True)
         
         st.markdown("### 📈 TRADING ANALYSIS")
+
+        # ═══════════════════════════════════════════════════════════════
+        # TRADINGVIEW WIDGET
+        # ═══════════════════════════════════════════════════════════════
+        st.markdown("### 📊 LIVE MARKET TERMINAL")
+        
+        # Tạo Widget TradingView bằng HTML/Components
+        tradingview_html = """
+        <div class="tradingview-widget-container" style="height:500px;">
+          <div id="tradingview_chart"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+          <script type="text/javascript">
+          new TradingView.widget({
+            "autosize": true,
+            "symbol": "KRAKEN:BTCUSDT",
+            "interval": "15",
+            "timezone": "Etc/UTC",
+            "theme": "dark",
+            "style": "1",
+            "locale": "en",
+            "toolbar_bg": "#f1f3f6",
+            "enable_publishing": false,
+            "hide_side_toolbar": false,
+            "allow_symbol_change": true,
+            "container_id": "tradingview_chart"
+          });
+          </script>
+        </div>
+        """
+        
+        # Bọc Widget vào trong khung Camera Frame để đồng bộ UI
+        st.markdown('<div class="camera-frame">', unsafe_allow_html=True)
+        components.html(tradingview_html, height=500)
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         
         # AI Confidence Chart
         fig_ai = go.Figure()
