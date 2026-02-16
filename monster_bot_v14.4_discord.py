@@ -740,7 +740,7 @@ if data:
         showlegend=False
     )
     
-    st.plotly_chart(fig_ai, use_container_width=True)
+    st.plotly_chart(fig_ai, width="stretch")
     
     st.markdown("---")
     
@@ -756,7 +756,7 @@ if data:
         if history and len(history) > 0:
             chart_fig = create_price_chart_with_signals(data, history)
             if chart_fig:
-                st.plotly_chart(chart_fig, use_container_width=True)
+                st.plotly_chart(chart_fig, width="stretch")
             else:
                 st.info("Chart generation in progress...")
         else:
@@ -826,7 +826,7 @@ if data:
                     )
                 )
                 
-                st.plotly_chart(fig_pnl, use_container_width=True)
+                st.plotly_chart(fig_pnl, width="stretch")
         else:
             st.info("No trade data available yet")
     
