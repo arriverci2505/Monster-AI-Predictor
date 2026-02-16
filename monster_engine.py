@@ -40,7 +40,7 @@ import requests
 import warnings
 import logging
 import joblib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from scipy import signal as scipy_signal
 from sklearn.preprocessing import RobustScaler
 import os
