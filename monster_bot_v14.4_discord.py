@@ -230,46 +230,50 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: center;
-        /* Tạo viền tối làm nền */
         border: 1px solid rgba(0, 242, 255, 0.1);
         z-index: 1;
-        overflow: hidden;
+        overflow: hidden; /* Cắt tia sáng theo bo góc 15px */
     }
 
-    /* Hiệu ứng tia laser chạy viền */
     .hud-header::before {
         content: '';
         position: absolute;
-        /* Tạo vùng phủ rộng để khi xoay không bị hụt góc */
-        inset: -150% -50%; 
-        background: conic-gradient(
-            from 0deg,
-            transparent 0%,
-            transparent 45%,
-            #00f2ff 50%, /* Màu tia sáng */
-            #ffffff 51%, /* Điểm rực nhất */
-            #bd00ff 52%, /* Đuôi tím */
-            transparent 57%,
-            transparent 100%
-        );
-        animation: rotateBeam 4s linear infinite;
+        /* Tia sáng dài 200px */
+        width: 200px; 
+        height: 200px; 
+        /* Tạo dải màu gradient 4 hướng để khi chạy ở cạnh nào cũng thấy */
+        background: conic-gradient(from 0deg, #00f2ff, #bd00ff, #00f2ff);
+        filter: blur(10px); /* Làm nhòe để tia sáng mềm mại, không bị "bẻ lái" thô */
         z-index: -1;
+        animation: borderFollow 6s linear infinite;
     }
 
-    /* Lớp che để biến khối màu thành đường viền mảnh 2px */
+    /* Lớp phủ bên trên để tạo viền mảnh */
     .hud-header::after {
         content: '';
         position: absolute;
-        inset: 2px; /* Độ dày của viền là 2px */
-        background: inherit; /* Lấy lại màu nền của header */
-        background-color: rgba(0, 5, 10, 0.98); 
+        inset: 2px;
+        background: rgba(0, 5, 10, 0.95);
         border-radius: 13px;
         z-index: -1;
     }
 
-    @keyframes rotateBeam {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+    @keyframes borderFollow {
+        /* Chạy cạnh TRÊN */
+        0% { top: -100px; left: -100px; }
+        25% { top: -100px; left: calc(100% - 100px); }
+        
+        /* Chạy cạnh PHẢI */
+        30% { top: -100px; left: calc(100% - 100px); }
+        50% { top: calc(100% - 100px); left: calc(100% - 100px); }
+        
+        /* Chạy cạnh DƯỚI */
+        55% { top: calc(100% - 100px); left: calc(100% - 100px); }
+        75% { top: calc(100% - 100px); left: -100px; }
+        
+        /* Chạy cạnh TRÁI */
+        80% { top: calc(100% - 100px); left: -100px; }
+        100% { top: -100px; left: -100px; }
     }
     
     .hud-title {
