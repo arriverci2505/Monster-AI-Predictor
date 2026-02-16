@@ -659,7 +659,7 @@ st.markdown("""
         /* Quan trọng: Reset lại Margin âm của HUD trên Mobile để không đè Sidebar */
         .hud-header {
             /* Quan trọng: Reset margin về 0 và dùng width 100% */
-            margin: -50px 0 20px 0 !important; 
+            margin: -60px 0 30px 0 !important; 
             width: 100% !important;
             left: 0 !important;
             right: 0 !important;
