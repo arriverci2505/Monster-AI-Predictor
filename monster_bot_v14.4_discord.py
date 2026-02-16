@@ -927,15 +927,20 @@ if data:
         
         # Terminal Output
         last_update = data.get('last_update_time', 'N/A')
-        try:
-            if last_update != 'N/A':
-                dt = datetime.fromisoformat(last_update.replace('Z', '+00:00'))
+        last_update_display = 'N/A'
+        
+        if last_update != 'N/A':
+            try:
+                # Xử lý mọi loại định dạng ISO
+                clean_time = last_update.replace('Z', '').split('.')[0] # Bỏ mili giây và Z
+                dt = datetime.fromisoformat(clean_time)
+                
+                # Nếu Engine lưu giờ UTC (mặc định Cloud), cộng 7 tiếng
                 dt_gmt7 = dt + timedelta(hours=7)
                 last_update_display = dt_gmt7.strftime('%H:%M:%S')
-            else:
-                last_update_display = 'N/A'
-        except:
-            last_update_display = last_update
+            except Exception as e:
+                # Nếu lỗi, hiển thị 10 ký tự cuối của chuỗi gốc để debug
+                last_update_display = str(last_update)[-8:]
         
         terminal_lines = [
             "╔══════════════════════════════════════════════════════════════╗",
