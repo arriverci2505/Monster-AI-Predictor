@@ -330,9 +330,9 @@ st.markdown("""
     .t-bar {
             width: 80%; 
             max-width: 200px;
-            height: 4px;
+            height: 6px;
             background: rgba(255, 255, 255, 0.05);
-            margin: -2px 0 8px 25px !important;
+            margin: 8px 0 12px 25px !important;
             border-radius: 2px;
             overflow: hidden;
             border: 1px solid rgba(0, 242, 255, 0.1);
