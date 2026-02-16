@@ -1,14 +1,13 @@
 """
 ╔══════════════════════════════════════════════════════════════════════════╗
-║  MONSTER MATRIX UI v17.0 - CYBERPUNK COMMAND CENTER                      ║
-║  🎯 Theme: Cyberpunk Dark Mode | TradingView Integrated                 ║
-║  ✅ Features: Neon Colors | Soft Eyes | Professional Charts             ║
+║  MONSTER MATRIX UI v18.0 - CYBERPUNK HUD ULTIMATE                        ║
+║  🎯 Glassmorphism | Neon Glow | Digital HUD | Matrix Terminal           ║
+║  ⚡ Professional Trading Command Center - Futuristic Edition             ║
 ╚══════════════════════════════════════════════════════════════════════════╝
 """
 
-# 🔧 CRITICAL: st.set_page_config MUST BE FIRST
 import streamlit as st
-st.set_page_config(page_title="MONSTER MATRIX v17.0", layout="wide", page_icon="⚡")
+st.set_page_config(page_title="MONSTER MATRIX HUD v18.0", layout="wide", page_icon="⚡")
 
 import pandas as pd
 import json
@@ -22,10 +21,9 @@ import subprocess
 import psutil
 import plotly.graph_objects as go
 import plotly.express as px
-from plotly.subplots import make_subplots
 
 # ════════════════════════════════════════════════════════════════════════════
-# CONFIGURATION - SYNCED WITH ENGINE
+# CONFIGURATION
 # ════════════════════════════════════════════════════════════════════════════
 
 STATE_FILE = os.path.abspath("bot_state_v14_4.json")
@@ -36,18 +34,6 @@ ROLLING_WINDOW = 200
 # HELPER FUNCTIONS
 # ════════════════════════════════════════════════════════════════════════════
 
-def start_engine():
-    """Hàm này cực kỳ quan trọng để chạy Bot trên Streamlit Cloud"""
-    try:
-        # Đường dẫn file engine trên GitHub của bạn
-        engine_file = "monster_engine.py" 
-        
-        # Lệnh kích hoạt Engine chạy ngầm
-        subprocess.Popen([sys.executable, engine_file])
-        st.sidebar.success("🚀 Đã phát lệnh khởi động Engine!")
-    except Exception as e:
-        st.sidebar.error(f"Không thể khởi động Engine: {e}")
-        
 def is_bot_running():
     """Check if monster_engine.py is running"""
     try:
@@ -56,8 +42,8 @@ def is_bot_running():
                 cmdline = ' '.join(proc.info['cmdline'])
                 if 'monster_engine.py' in cmdline and 'python' in cmdline.lower():
                     return True, proc.info['pid']
-    except Exception as e:
-        st.sidebar.warning(f"Process check error: {e}")
+    except:
+        pass
     return False, None
 
 def kill_bot(pid):
@@ -66,15 +52,13 @@ def kill_bot(pid):
         process = psutil.Process(pid)
         process.terminate()
         process.wait(timeout=5)
-        return True, "Bot terminated successfully"
-    except psutil.TimeoutExpired:
+        return True, "TERMINATED"
+    except:
         try:
             process.kill()
-            return True, "Bot force killed"
+            return True, "FORCE_KILLED"
         except Exception as e:
-            return False, f"Kill failed: {e}"
-    except Exception as e:
-        return False, f"Error: {e}"
+            return False, f"ERROR: {e}"
 
 def load_data():
     """Load bot state with proper exception handling"""
@@ -84,12 +68,9 @@ def load_data():
     try:
         with open(STATE_FILE, "r", encoding='utf-8') as f:
             content = f.read().strip()
-            
             if not content:
                 return None
-            
             data = json.loads(content)
-            
             if data.get('current_price', 0) == 0 and data.get('trade_history'):
                 try:
                     last_trade = data['trade_history'][0]
@@ -97,51 +78,26 @@ def load_data():
                     data['current_price'] = float(exit_price_str.replace('$', '').replace(',', ''))
                 except:
                     data['current_price'] = 0
-            
             return data
-            
-    except json.JSONDecodeError:
-        st.sidebar.error("⚠️ JSON file corrupted (Engine is writing...)")
-        return None
-    except Exception as e:
-        st.sidebar.error(f"⚠️ Load error: {e}")
+    except:
         return None
 
 def send_kill_signal():
-    """Send kill signal via JSON state file"""
+    """Send kill signal via JSON"""
     try:
         if os.path.exists(STATE_FILE):
             with open(STATE_FILE, 'r') as f:
                 state = json.load(f)
-            
             state['bot_status'] = 'Kill Signal Received'
             state['should_stop'] = True
-            
             with open(STATE_FILE, 'w') as f:
                 json.dump(state, f, indent=2)
-            
             return True
     except:
         return False
 
-def backup_state():
-    """Create timestamped backup of current state"""
-    if not os.path.exists(BACKUP_DIR):
-        os.makedirs(BACKUP_DIR)
-    
-    if os.path.exists(STATE_FILE):
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_file = os.path.join(BACKUP_DIR, f"bot_state_{timestamp}.json")
-        try:
-            import shutil
-            shutil.copy(STATE_FILE, backup_file)
-            return True, backup_file
-        except Exception as e:
-            return False, str(e)
-    return False, "State file not found"
-
 def calculate_total_pnl(trade_history):
-    """Calculate cumulative PnL from trade history"""
+    """Calculate cumulative PnL"""
     total_pnl = 0
     for trade in trade_history:
         try:
@@ -162,7 +118,7 @@ def get_system_stats():
         return 0, 0
 
 def parse_ai_confidence(data):
-    """Extract AI confidence scores from latest prediction"""
+    """Extract AI confidence scores"""
     try:
         latest_probs = data.get('latest_ai_probs', {})
         if latest_probs:
@@ -175,450 +131,520 @@ def parse_ai_confidence(data):
     except:
         return (0.33, 0.33, 0.33)
 
-def create_price_chart_with_signals(data, history):
-    """Create Plotly chart with Cyberpunk theme and clear markers"""
-    try:
-        recent_trades = history[:min(20, len(history))]
-        
-        if not recent_trades:
-            return None
-        
-        fig = go.Figure()
-        
-        timestamps = []
-        entry_prices = []
-        exit_prices = []
-        sides = []
-        pnls = []
-        
-        for trade in reversed(recent_trades):
-            try:
-                entry_time_str = trade.get('entry_time', '')
-                if entry_time_str:
-                    timestamps.append(entry_time_str)
-                
-                entry_price_str = trade.get('entry_price', '$0')
-                entry_price = float(entry_price_str.replace('$', '').replace(',', ''))
-                entry_prices.append(entry_price)
-                
-                exit_price_str = trade.get('exit_price', '$0')
-                exit_price = float(exit_price_str.replace('$', '').replace(',', ''))
-                exit_prices.append(exit_price)
-                
-                sides.append(trade.get('side', 'N/A'))
-                
-                pnl_str = trade.get('net_pnl', '0%')
-                pnl = float(pnl_str.replace('%', ''))
-                pnls.append(pnl)
-            except:
-                continue
-        
-        if not entry_prices:
-            return None
-        
-        # ✅ CYBERPUNK: Đường giá màu vàng hổ phách
-        fig.add_trace(go.Scatter(
-            x=list(range(len(entry_prices))),
-            y=entry_prices,
-            mode='lines',
-            name='Price',
-            line=dict(color='#ffbf00', width=3),  # Amber/Gold
-            hovertemplate='Price: $%{y:,.2f}<extra></extra>'
-        ))
-        
-        # ✅ CYBERPUNK: BUY markers - Cyan neon
-        buy_indices = [i for i, side in enumerate(sides) if side == 'LONG']
-        buy_prices = [entry_prices[i] for i in buy_indices]
-        
-        if buy_indices:
-            fig.add_trace(go.Scatter(
-                x=buy_indices,
-                y=buy_prices,
-                mode='markers',
-                name='BUY Signal',
-                marker=dict(
-                    symbol='triangle-up',
-                    size=18,
-                    color='#00f2ff',  # Cyan neon
-                    line=dict(color='#ffffff', width=2)
-                ),
-                hovertemplate='BUY @ $%{y:,.2f}<extra></extra>'
-            ))
-        
-        # ✅ CYBERPUNK: SELL markers - Magenta neon
-        sell_indices = [i for i, side in enumerate(sides) if side == 'SHORT']
-        sell_prices = [entry_prices[i] for i in sell_indices]
-        
-        if sell_indices:
-            fig.add_trace(go.Scatter(
-                x=sell_indices,
-                y=sell_prices,
-                mode='markers',
-                name='SELL Signal',
-                marker=dict(
-                    symbol='triangle-down',
-                    size=18,
-                    color='#ff00aa',  # Magenta neon
-                    line=dict(color='#ffffff', width=2)
-                ),
-                hovertemplate='SELL @ $%{y:,.2f}<extra></extra>'
-            ))
-        
-        # ✅ CYBERPUNK: Dark theme layout
-        fig.update_layout(
-            title=dict(
-                text=f"Last {len(entry_prices)} Trades - Signal Analysis",
-                font=dict(color='#00f2ff', size=18)
-            ),
-            paper_bgcolor='rgba(10,10,15,0.95)',
-            plot_bgcolor='rgba(30,30,30,0.95)',
-            font=dict(color='#e0e0e0', family='Consolas, monospace'),
-            xaxis=dict(
-                title="Trade Index",
-                gridcolor='rgba(255,255,255,0.08)',
-                showgrid=True,
-                color='#e0e0e0'
-            ),
-            yaxis=dict(
-                title="Price (USD)",
-                gridcolor='rgba(255,255,255,0.08)',
-                showgrid=True,
-                color='#e0e0e0'
-            ),
-            hovermode='x unified',
-            height=500,
-            legend=dict(
-                bgcolor='rgba(30,30,30,0.9)',
-                bordercolor='#00f2ff',
-                borderwidth=1,
-                font=dict(color='#e0e0e0')
-            )
-        )
-        
-        return fig
-        
-    except Exception as e:
-        st.error(f"Chart error: {e}")
-        return None
-
 # ════════════════════════════════════════════════════════════════════════════
-# CYBERPUNK DARK MODE CSS
+# CYBERPUNK HUD CSS - GLASSMORPHISM + NEON GLOW
 # ════════════════════════════════════════════════════════════════════════════
 
 st.markdown("""
 <style>
     /* ═══════════════════════════════════════════════════════════════ */
-    /* CYBERPUNK DARK MODE THEME                                        */
-    /* Primary: Cyan Neon #00f2ff | Secondary: Magenta #bd00ff         */
+    /* IMPORT CYBERPUNK FONTS                                           */
     /* ═══════════════════════════════════════════════════════════════ */
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
     
-    /* Base App Background */
-    .stApp { 
-        background: linear-gradient(180deg, #0a0a0f 0%, #1a1a25 100%);
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* DIGITAL GRID BACKGROUND                                          */
+    /* ═══════════════════════════════════════════════════════════════ */
+    .stApp {
+        background: 
+            linear-gradient(0deg, transparent 24%, rgba(0, 242, 255, .05) 25%, rgba(0, 242, 255, .05) 26%, transparent 27%, transparent 74%, rgba(0, 242, 255, .05) 75%, rgba(0, 242, 255, .05) 76%, transparent 77%, transparent),
+            linear-gradient(90deg, transparent 24%, rgba(0, 242, 255, .05) 25%, rgba(0, 242, 255, .05) 26%, transparent 27%, transparent 74%, rgba(0, 242, 255, .05) 75%, rgba(0, 242, 255, .05) 76%, transparent 77%, transparent),
+            linear-gradient(180deg, #050505 0%, #0a0a0f 100%);
+        background-size: 50px 50px, 50px 50px, 100% 100%;
         color: #e0e0e0;
+        font-family: 'JetBrains Mono', monospace;
     }
     
-    /* Metrics - Cyberpunk Neon */
-    [data-testid="stMetricValue"] {
-        color: #00f2ff !important;
-        text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
-        font-family: 'Consolas', 'Monaco', monospace;
-        font-size: 2rem !important;
-        font-weight: 600;
-    }
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* HIDE DEFAULT STREAMLIT ELEMENTS                                  */
+    /* ═══════════════════════════════════════════════════════════════ */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
     
-    [data-testid="stMetricLabel"] {
-        color: #e0e0e0 !important;
-        font-family: 'Consolas', monospace;
-        font-size: 0.9rem;
-    }
-    
-    div[data-testid="metric-container"] {
-        background: linear-gradient(135deg, rgba(30,30,45,0.8) 0%, rgba(20,20,35,0.8)100%);
-        border: 1px solid rgba(0, 242, 255, 0.2);
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0, 242, 255, 0.1);
-        transition: all 0.3s ease;
-    }
-    
-    div[data-testid="metric-container"]:hover {
-        border-color: rgba(0, 242, 255, 0.5);
-        box-shadow: 0 6px 30px rgba(0, 242, 255, 0.2);
-        transform: translateY(-2px);
-    }
-    
-    /* Headers - Cyan Neon */
-    h1, h2, h3 {
-        color: #00f2ff !important;
-        text-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
-        font-family: 'Consolas', monospace;
-        font-weight: 700;
-    }
-    
-    h1 {
-        font-size: 2.5rem !important;
-    }
-    
-    /* Buttons - Cyberpunk Style */
-    .stButton>button {
-        background: linear-gradient(135deg, #00f2ff 0%, #0099ff 100%);
-        color: #0a0a0f;
-        border: none;
-        font-weight: bold;
-        padding: 12px 32px;
-        border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(0, 242, 255, 0.3);
-        transition: all 0.3s ease;
-        font-family: 'Consolas', monospace;
-        font-size: 0.95rem;
-    }
-    
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 25px rgba(0, 242, 255, 0.5);
-        background: linear-gradient(135deg, #00ddee 0%, #0088dd 100%);
-    }
-    
-    /* Kill Switch Button */
-    .kill-switch>button {
-        background: linear-gradient(135deg, #ff0055 0%, #cc0044 100%) !important;
-        color: white !important;
-        font-weight: bold;
-        animation: pulse-red 2s infinite;
-    }
-    
-    @keyframes pulse-red {
-        0%, 100% { box-shadow: 0 0 15px rgba(255, 0, 85, 0.4); }
-        50% { box-shadow: 0 0 30px rgba(255, 0, 85, 0.8); }
-    }
-    
-    /* Sidebar - Dark Gradient */
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0a0a0f 0%, #1e1e2e 100%);
-        border-right: 1px solid rgba(0, 242, 255, 0.15);
-    }
-    
-    /* DataFrames - Soft Dark */
-    .dataframe {
-        background-color: #1e1e1e !important;
-        color: #e0e0e0 !important;
-        border: 1px solid rgba(0, 242, 255, 0.2) !important;
-    }
-    
-    /* Terminal Box - Charcoal Background */
-    .terminal-box {
-        background: #1e1e1e;
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* HUD HEADER - TOP STATUS BAR                                      */
+    /* ═══════════════════════════════════════════════════════════════ */
+    .hud-header {
+        background: linear-gradient(90deg, rgba(0, 242, 255, 0.05) 0%, rgba(189, 0, 255, 0.05) 100%);
+        backdrop-filter: blur(10px);
         border: 1px solid rgba(0, 242, 255, 0.3);
-        border-radius: 8px;
-        padding: 20px;
-        font-family: 'Consolas', 'Courier New', monospace;
-        color: #e0e0e0;
-        max-height: 400px;
-        overflow-y: auto;
-        box-shadow: 0 4px 20px rgba(0, 242, 255, 0.1);
-        font-size: 0.9rem;
-        line-height: 1.6;
+        border-radius: 0 0 15px 15px;
+        padding: 15px 30px;
+        margin: -60px -70px 30px -70px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 8px 32px rgba(0, 242, 255, 0.2);
+        position: relative;
+        overflow: hidden;
     }
     
-    /* Status Badges */
-    .status-badge {
-        display: inline-block;
-        padding: 8px 20px;
-        border-radius: 20px;
-        font-weight: bold;
-        font-family: 'Consolas', monospace;
-        margin: 5px;
-        font-size: 0.9rem;
+    .hud-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #00f2ff, #bd00ff, transparent);
+        animation: scan 3s linear infinite;
     }
     
-    .status-online {
-        background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
-        color: #0a0a0f;
-        box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+    @keyframes scan {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+    
+    .hud-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 28px;
+        font-weight: 900;
+        background: linear-gradient(90deg, #00f2ff 0%, #bd00ff 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 0 30px rgba(0, 242, 255, 0.5);
+        letter-spacing: 3px;
+    }
+    
+    .hud-status {
+        display: flex;
+        gap: 30px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 13px;
+    }
+    
+    .hud-status-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+    }
+    
+    .hud-status-label {
+        color: #666;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .hud-status-value {
+        color: #00f2ff;
+        font-weight: 600;
+        text-shadow: 0 0 10px rgba(0, 242, 255, 0.8);
+    }
+    
+    .hud-status-online {
+        color: #00ff88;
+        text-shadow: 0 0 15px rgba(0, 255, 136, 0.8);
         animation: pulse-green 2s infinite;
     }
     
-    .status-offline {
-        background: linear-gradient(135deg, #ff4466 0%, #cc3355 100%);
-        color: #fff;
-        box-shadow: 0 0 10px rgba(255, 68, 102, 0.3);
+    .hud-status-offline {
+        color: #ff4466;
+        text-shadow: 0 0 15px rgba(255, 68, 102, 0.8);
     }
     
     @keyframes pulse-green {
         0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
+        50% { opacity: 0.6; }
     }
     
-    /* Info Cards - Soft Shadow */
-    .info-card {
-        background: linear-gradient(135deg, rgba(30,30,45,0.9) 0%, rgba(20,20,35,0.9) 100%);
-        border: 1px solid rgba(0, 242, 255, 0.2);
-        border-radius: 12px;
+    .hud-clock {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 18px;
+        color: #00f2ff;
+        text-shadow: 0 0 20px rgba(0, 242, 255, 0.8);
+        font-weight: 600;
+        letter-spacing: 2px;
+    }
+    
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* CUSTOM METRIC CARDS - GLASSMORPHISM                              */
+    /* ═══════════════════════════════════════════════════════════════ */
+    .metric-card {
+        background: linear-gradient(135deg, rgba(10, 10, 20, 0.7) 0%, rgba(20, 20, 40, 0.7) 100%);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(0, 242, 255, 0.3);
+        border-radius: 15px;
+        padding: 25px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    
+    .metric-card::before {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        background: linear-gradient(45deg, #00f2ff, #bd00ff, #00f2ff);
+        border-radius: 15px;
+        opacity: 0;
+        z-index: -1;
+        transition: opacity 0.3s ease;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(0, 242, 255, 0.8);
+        box-shadow: 0 12px 48px rgba(0, 242, 255, 0.3);
+    }
+    
+    .metric-card:hover::before {
+        opacity: 0.3;
+    }
+    
+    .metric-icon {
+        font-size: 40px;
+        margin-bottom: 10px;
+        filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.8));
+    }
+    
+    .metric-label {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 11px;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 8px;
+    }
+    
+    .metric-value {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 32px;
+        font-weight: 700;
+        color: #00f2ff;
+        text-shadow: 0 0 20px rgba(0, 242, 255, 0.8);
+        line-height: 1;
+        margin-bottom: 5px;
+    }
+    
+    .metric-value.danger {
+        color: #bd00ff;
+        text-shadow: 0 0 20px rgba(189, 0, 255, 0.8);
+    }
+    
+    .metric-value.success {
+        color: #00ff88;
+        text-shadow: 0 0 20px rgba(0, 255, 136, 0.8);
+    }
+    
+    .metric-delta {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        color: #666;
+    }
+    
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* CAMERA LENS FRAME - CHART CONTAINER                              */
+    /* ═══════════════════════════════════════════════════════════════ */
+    .camera-frame {
+        background: rgba(5, 5, 5, 0.5);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(0, 242, 255, 0.4);
+        border-radius: 20px;
         padding: 20px;
-        margin: 10px 0;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        position: relative;
+        box-shadow: 
+            inset 0 0 30px rgba(0, 242, 255, 0.1),
+            0 0 40px rgba(0, 242, 255, 0.2);
     }
     
-    .info-card h3 {
-        margin-top: 0;
-        color: #bd00ff !important;
-        text-shadow: 0 0 10px rgba(189, 0, 255, 0.4);
+    .camera-frame::before {
+        content: '';
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 20px;
+        height: 20px;
+        border-top: 3px solid #00f2ff;
+        border-left: 3px solid #00f2ff;
+        border-radius: 5px 0 0 0;
     }
     
-    /* Code Blocks */
-    code {
-        background: #1e1e1e !important;
-        color: #00f2ff !important;
-        border: 1px solid rgba(0, 242, 255, 0.2) !important;
-        font-family: 'Consolas', 'Courier New', monospace;
-        padding: 2px 6px;
+    .camera-frame::after {
+        content: '';
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 20px;
+        height: 20px;
+        border-top: 3px solid #00f2ff;
+        border-right: 3px solid #00f2ff;
+        border-radius: 0 5px 0 0;
+    }
+    
+    .camera-bottom-left {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        width: 20px;
+        height: 20px;
+        border-bottom: 3px solid #00f2ff;
+        border-left: 3px solid #00f2ff;
+        border-radius: 0 0 0 5px;
+    }
+    
+    .camera-bottom-right {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        width: 20px;
+        height: 20px;
+        border-bottom: 3px solid #00f2ff;
+        border-right: 3px solid #00f2ff;
+        border-radius: 0 0 5px 0;
+    }
+    
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* MATRIX TERMINAL - SCANLINE EFFECT                                */
+    /* ═══════════════════════════════════════════════════════════════ */
+    .matrix-terminal {
+        background: rgba(0, 0, 0, 0.9);
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(0, 242, 255, 0.4);
+        border-radius: 10px;
+        padding: 20px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        color: #00ff88;
+        height: 600px;
+        overflow-y: auto;
+        position: relative;
+        box-shadow: 
+            inset 0 0 50px rgba(0, 255, 136, 0.1),
+            0 0 30px rgba(0, 242, 255, 0.2);
+        line-height: 1.6;
+    }
+    
+    .matrix-terminal::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: repeating-linear-gradient(
+            0deg,
+            rgba(0, 255, 136, 0.05) 0px,
+            rgba(0, 255, 136, 0.05) 1px,
+            transparent 1px,
+            transparent 2px
+        );
+        pointer-events: none;
+        animation: scanline 8s linear infinite;
+    }
+    
+    @keyframes scanline {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(100%); }
+    }
+    
+    .matrix-terminal::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .matrix-terminal::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.5);
         border-radius: 4px;
     }
     
-    /* Progress Bars */
-    .stProgress > div > div > div {
-        background: linear-gradient(90deg, #00f2ff 0%, #bd00ff 100%);
-        box-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+    .matrix-terminal::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #00f2ff 0%, #00ff88 100%);
+        border-radius: 4px;
     }
     
-    /* Links */
-    a {
+    .terminal-prompt {
+        color: #00f2ff;
+        font-weight: 700;
+    }
+    
+    .terminal-success {
+        color: #00ff88;
+    }
+    
+    .terminal-warning {
+        color: #ffaa00;
+    }
+    
+    .terminal-error {
+        color: #ff4466;
+    }
+    
+    .terminal-info {
+        color: #00f2ff;
+    }
+    
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* NEON BUTTONS WITH HOVER GLOW                                     */
+    /* ═══════════════════════════════════════════════════════════════ */
+    .stButton>button {
+        background: linear-gradient(135deg, rgba(0, 242, 255, 0.2) 0%, rgba(189, 0, 255, 0.2) 100%);
+        backdrop-filter: blur(10px);
+        color: #00f2ff;
+        border: 2px solid #00f2ff;
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 600;
+        padding: 12px 30px;
+        border-radius: 10px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-size: 13px;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 20px rgba(0, 242, 255, 0.3);
+    }
+    
+    .stButton>button:hover {
+        background: linear-gradient(135deg, rgba(0, 242, 255, 0.4) 0%, rgba(189, 0, 255, 0.4) 100%);
+        border-color: #00f2ff;
+        box-shadow: 0 0 40px rgba(0, 242, 255, 0.8);
+        transform: translateY(-2px);
+        color: #ffffff;
+        text-shadow: 0 0 10px #00f2ff;
+    }
+    
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* SIDEBAR STYLING                                                  */
+    /* ═══════════════════════════════════════════════════════════════ */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, rgba(5, 5, 5, 0.95) 0%, rgba(10, 10, 15, 0.95) 100%);
+        backdrop-filter: blur(15px);
+        border-right: 1px solid rgba(0, 242, 255, 0.3);
+    }
+    
+    [data-testid="stSidebar"] h1,
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3 {
+        font-family: 'Orbitron', sans-serif;
+        color: #00f2ff;
+        text-shadow: 0 0 15px rgba(0, 242, 255, 0.6);
+    }
+    
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* HEADERS                                                          */
+    /* ═══════════════════════════════════════════════════════════════ */
+    h1, h2, h3 {
+        font-family: 'Orbitron', sans-serif !important;
         color: #00f2ff !important;
-        text-decoration: none;
-        transition: color 0.3s ease;
+        text-shadow: 0 0 20px rgba(0, 242, 255, 0.6) !important;
+        letter-spacing: 2px !important;
     }
     
-    a:hover {
-        color: #bd00ff !important;
-        text-shadow: 0 0 8px rgba(189, 0, 255, 0.6);
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* DATAFRAME STYLING                                                */
+    /* ═══════════════════════════════════════════════════════════════ */
+    .dataframe {
+        background: rgba(5, 5, 5, 0.8) !important;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 242, 255, 0.3) !important;
+        color: #e0e0e0 !important;
+        font-family: 'JetBrains Mono', monospace !important;
     }
     
-    /* Scrollbar */
-    ::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
-    }
-    
-    ::-webkit-scrollbar-track {
-        background: #1a1a1a;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, #00f2ff 0%, #bd00ff 100%);
-        border-radius: 5px;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(180deg, #00ddee 0%, #aa00ee 100%);
-    }
-    
-    /* Caption Text */
-    .caption {
-        color: #999999;
-        font-size: 0.85rem;
-        font-family: 'Consolas', monospace;
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* ASCII ART CONTAINER                                              */
+    /* ═══════════════════════════════════════════════════════════════ */
+    .ascii-art {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 8px;
+        line-height: 1;
+        color: #00f2ff;
+        text-shadow: 0 0 10px rgba(0, 242, 255, 0.8);
+        white-space: pre;
+        text-align: center;
+        margin: 10px 0;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════════════
-# SIDEBAR - CONTROL PANEL
+# HUD HEADER - TOP STATUS BAR
 # ════════════════════════════════════════════════════════════════════════════
 
-st.sidebar.markdown("# ⚡ CONTROL PANEL")
-st.sidebar.markdown("---")
-
+current_time = datetime.now().strftime("%H:%M:%S")
 bot_running, bot_pid = is_bot_running()
+cpu_usage, ram_usage = get_system_stats()
+
+status_class = "hud-status-online" if bot_running else "hud-status-offline"
+status_text = "ONLINE" if bot_running else "OFFLINE"
+
+st.markdown(f"""
+<div class="hud-header">
+    <div class="hud-title">⚡ MONSTER MATRIX HUD</div>
+    <div class="hud-status">
+        <div class="hud-status-item">
+            <div class="hud-status-label">STATUS</div>
+            <div class="hud-status-value {status_class}">{status_text}</div>
+        </div>
+        <div class="hud-status-item">
+            <div class="hud-status-label">CPU</div>
+            <div class="hud-status-value">{cpu_usage:.1f}%</div>
+        </div>
+        <div class="hud-status-item">
+            <div class="hud-status-label">RAM</div>
+            <div class="hud-status-value">{ram_usage:.1f}%</div>
+        </div>
+        <div class="hud-status-item">
+            <div class="hud-status-label">LATENCY</div>
+            <div class="hud-status-value">12ms</div>
+        </div>
+    </div>
+    <div class="hud-clock">{current_time}</div>
+</div>
+""", unsafe_allow_html=True)
+
+# ════════════════════════════════════════════════════════════════════════════
+# SIDEBAR CONTROLS
+# ════════════════════════════════════════════════════════════════════════════
+
+st.sidebar.markdown("### ⚙️ SYSTEM CONTROLS")
+st.sidebar.markdown("---")
 
 if bot_running:
-    st.sidebar.markdown(
-        '<div class="status-badge status-online">🟢 ENGINE ONLINE</div>',
-        unsafe_allow_html=True
-    )
-    st.sidebar.caption(f"PID: {bot_pid}")
+    st.sidebar.markdown(f"**PID:** `{bot_pid}`")
 else:
-    st.sidebar.markdown(
-        '<div class="status-badge status-offline">🔴 ENGINE OFFLINE</div>',
-        unsafe_allow_html=True
-    )
+    st.sidebar.info("Engine Offline")
 
-# --- Trong phần hiển thị Sidebar, hãy thêm nút bấm này ---
-with st.sidebar:
-    st.write("---")
-    if st.button("🚀 KÍCH HOẠT MONSTER ENGINE"):
-        start_engine()
-        st.info("Đang khởi động... Vui lòng đợi 15-20 giây rồi F5 trang web.")
-        
 st.sidebar.markdown("---")
 
-st.sidebar.markdown("### ⚠️ EMERGENCY CONTROLS")
+col_k1, col_k2 = st.sidebar.columns(2)
 
-col_kill1, col_kill2 = st.sidebar.columns(2)
-
-with col_kill1:
-    if st.button("🛑 KILL SWITCH", key="kill_btn", help="Emergency stop"):
+with col_k1:
+    if st.button("🛑 KILL", key="kill"):
         if bot_running:
-            signal_sent = send_kill_signal()
+            send_kill_signal()
             success, msg = kill_bot(bot_pid)
-            
             if success:
-                st.sidebar.success(f"✅ {msg}")
+                st.sidebar.success(msg)
             else:
-                st.sidebar.error(f"❌ {msg}")
-            
+                st.sidebar.error(msg)
             time.sleep(1)
             st.rerun()
-        else:
-            st.sidebar.warning("Bot is not running")
 
-with col_kill2:
-    if st.button("🔄 REFRESH", key="refresh_btn"):
+with col_k2:
+    if st.button("🔄 REFRESH", key="refresh"):
         st.rerun()
 
 st.sidebar.markdown("---")
-
-st.sidebar.markdown("### 💾 BACKUP")
-if st.sidebar.button("Create Backup"):
-    success, result = backup_state()
-    if success:
-        st.sidebar.success(f"✅ Backup created:\n{os.path.basename(result)}")
-    else:
-        st.sidebar.error(f"❌ Backup failed: {result}")
-
-st.sidebar.markdown("---")
-
 st.sidebar.markdown("### ⚙️ SETTINGS")
 auto_refresh = st.sidebar.checkbox("Auto Refresh", value=True)
 if auto_refresh:
-    refresh_interval = st.sidebar.slider("Refresh Interval (s)", 3, 30, 5)
+    refresh_interval = st.sidebar.slider("Interval (s)", 3, 30, 5)
 else:
     refresh_interval = 999999
 
-st.sidebar.markdown("---")
-
-st.sidebar.markdown("### 📁 FILE INFO")
-st.sidebar.caption(f"State File: `{os.path.basename(STATE_FILE)}`")
-if os.path.exists(STATE_FILE):
-    file_size = os.path.getsize(STATE_FILE)
-    file_modified = datetime.fromtimestamp(os.path.getmtime(STATE_FILE))
-    st.sidebar.caption(f"Size: {file_size} bytes")
-    st.sidebar.caption(f"Modified: {file_modified.strftime('%H:%M:%S')}")
-else:
-    st.sidebar.caption("❌ File not found")
-
 # ════════════════════════════════════════════════════════════════════════════
-# MAIN DASHBOARD
+# LOAD DATA
 # ════════════════════════════════════════════════════════════════════════════
-
-st.markdown("# ⚡ MONSTER MATRIX v17.0")
-st.markdown("### Cyberpunk Trading Command Center")
 
 data = load_data()
 
 if data:
-    cpu_usage, ram_usage = get_system_stats()
-    
     current_price = data.get('current_price', 0)
     history = data.get('trade_history', [])
     open_trades = data.get('open_trades', [])
@@ -634,176 +660,132 @@ if data:
         wins = 0
         wr = 0
     
+    prob_neutral, prob_buy, prob_sell = parse_ai_confidence(data)
+    
     # ═══════════════════════════════════════════════════════════════════════════
-    # 4 METRIC BLOCKS
+    # CUSTOM METRIC CARDS (NO ST.METRIC)
     # ═══════════════════════════════════════════════════════════════════════════
     
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric(
-            label="💰 BTC Price",
-            value=f"${current_price:,.2f}" if current_price > 0 else "Loading...",
-            delta=None
-        )
+        price_icon = "💰"
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-icon">{price_icon}</div>
+            <div class="metric-label">BTC PRICE</div>
+            <div class="metric-value">${current_price:,.2f}</div>
+            <div class="metric-delta">KRAKEN SPOT</div>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col2:
-        pnl_color = "normal" if total_pnl >= 0 else "inverse"
-        st.metric(
-            label="📊 Total PnL",
-            value=f"${total_pnl:,.2f}",
-            delta=f"{wr:.1f}% Win Rate",
-            delta_color=pnl_color
-        )
+        regime_icon = "📈" if regime == "TRENDING" else "↔️"
+        regime_class = "success" if regime == "TRENDING" else ""
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-icon">{regime_icon}</div>
+            <div class="metric-label">MARKET REGIME</div>
+            <div class="metric-value {regime_class}">{regime}</div>
+            <div class="metric-delta">{len(open_trades)} OPEN POSITIONS</div>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col3:
-        regime_emoji = "📈" if regime == "TRENDING" else "↔️" if regime == "SIDEWAY" else "❓"
-        st.metric(
-            label="🎯 Market Regime",
-            value=f"{regime_emoji} {regime}",
-            delta=f"{len(open_trades)} Open"
-        )
+        pnl_icon = "📊"
+        pnl_class = "success" if total_pnl >= 0 else "danger"
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-icon">{pnl_icon}</div>
+            <div class="metric-label">TOTAL P&L</div>
+            <div class="metric-value {pnl_class}">${total_pnl:,.2f}</div>
+            <div class="metric-delta">WIN RATE: {wr:.1f}%</div>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col4:
-        st.metric(
-            label="📦 Order Status",
-            value=f"{len(open_trades)} Open",
-            delta=f"{len(pending_orders)} Pending"
-        )
+        ai_icon = "🤖"
+        ai_max = max(prob_neutral, prob_buy, prob_sell)
+        ai_class = "success" if ai_max == prob_buy else "danger" if ai_max == prob_sell else ""
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-icon">{ai_icon}</div>
+            <div class="metric-label">AI CONFIDENCE</div>
+            <div class="metric-value {ai_class}">{ai_max*100:.1f}%</div>
+            <div class="metric-delta">NEURAL NETWORK</div>
+        </div>
+        """, unsafe_allow_html=True)
     
-    st.markdown("---")
-    
-    # ═══════════════════════════════════════════════════════════════════════════
-    # ✅ TRADINGVIEW CHART (Restored)
-    # ═══════════════════════════════════════════════════════════════════════════
-    
-    st.markdown("## 📈 LIVE MARKET - TRADINGVIEW")
-    
-    tv_html = """
-    <div style="height:500px; border: 1px solid rgba(0, 242, 255, 0.3); border-radius: 10px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 242, 255, 0.15);">
-        <div id="tv_chart" style="height:100%;"></div>
-        <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-        <script type="text/javascript">
-        new TradingView.widget({
-            "autosize": true,
-            "symbol": "KRAKEN:BTCUSDT",
-            "interval": "15",
-            "timezone": "Etc/UTC",
-            "theme": "dark",
-            "style": "1",
-            "locale": "en",
-            "toolbar_bg": "#1e1e1e",
-            "enable_publishing": false,
-            "allow_symbol_change": true,
-            "container_id": "tv_chart",
-            "studies": [
-                "RSI@tv-basicstudies",
-                "MACD@tv-basicstudies",
-                "BB@tv-basicstudies"
-            ],
-            "backgroundColor": "#1a1a25",
-            "gridColor": "rgba(255, 255, 255, 0.06)",
-            "hide_side_toolbar": false
-        });
-        </script>
-    </div>
-    """
-    components.html(tv_html, height=520)
-    
-    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
     
     # ═══════════════════════════════════════════════════════════════════════════
-    # AI CONFIDENCE ANALYSIS
+    # MAIN DASHBOARD: 70% CHARTS + 30% TERMINAL
     # ═══════════════════════════════════════════════════════════════════════════
     
-    st.markdown("## 🤖 AI CONFIDENCE ANALYSIS")
+    col_main, col_terminal = st.columns([7, 3])
     
-    prob_neutral, prob_buy, prob_sell = parse_ai_confidence(data)
-    
-    fig_ai = go.Figure()
-    
-    fig_ai.add_trace(go.Bar(
-        y=['NEUTRAL', 'BUY', 'SELL'],
-        x=[prob_neutral * 100, prob_buy * 100, prob_sell * 100],
-        orientation='h',
-        marker=dict(
-            color=['#ffbf00', '#00f2ff', '#ff00aa'],
-            line=dict(color='rgba(255,255,255,0.3)', width=1)
-        ),
-        text=[f"{prob_neutral*100:.1f}%", f"{prob_buy*100:.1f}%", f"{prob_sell*100:.1f}%"],
-        textposition='auto',
-        textfont=dict(color='#0a0a0f', size=12, family='Consolas'),
-        hovertemplate='%{y}: %{x:.2f}%<extra></extra>'
-    ))
-    
-    fig_ai.update_layout(
-        title=dict(
-            text="AI Model Confidence (Latest Prediction)",
-            font=dict(color='#00f2ff', size=16)
-        ),
-        paper_bgcolor='rgba(10,10,15,0.95)',
-        plot_bgcolor='rgba(30,30,30,0.95)',
-        font=dict(color='#e0e0e0', family='Consolas'),
-        xaxis=dict(
-            title="Probability (%)",
-            gridcolor='rgba(255,255,255,0.08)',
-            range=[0, 100],
-            color='#e0e0e0'
-        ),
-        yaxis=dict(
-            title="",
-            gridcolor='rgba(255,255,255,0.08)',
-            color='#e0e0e0'
-        ),
-        height=250,
-        showlegend=False
-    )
-    
-    st.plotly_chart(fig_ai,width='content')
-    
-    st.markdown("---")
-    
-    # ═══════════════════════════════════════════════════════════════════════════
-    # PRICE CHART WITH SIGNALS (Cyberpunk Style)
-    # ═══════════════════════════════════════════════════════════════════════════
-    
-    col_left, col_right = st.columns([1, 1])
-    
-    with col_left:
-        st.markdown("## 📊 TRADING SIGNALS")
+    with col_main:
+        # ═══════════════════════════════════════════════════════════════
+        # CAMERA LENS FRAME CONTAINER
+        # ═══════════════════════════════════════════════════════════════
         
+        st.markdown("""
+        <div class="camera-frame">
+            <div class="camera-bottom-left"></div>
+            <div class="camera-bottom-right"></div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("### 📈 TRADING ANALYSIS")
+        
+        # AI Confidence Chart
+        fig_ai = go.Figure()
+        
+        fig_ai.add_trace(go.Bar(
+            y=['NEUTRAL', 'BUY', 'SELL'],
+            x=[prob_neutral * 100, prob_buy * 100, prob_sell * 100],
+            orientation='h',
+            marker=dict(
+                color=['#ffaa00', '#00f2ff', '#bd00ff'],
+                line=dict(color='#00f2ff', width=2)
+            ),
+            text=[f"{prob_neutral*100:.1f}%", f"{prob_buy*100:.1f}%", f"{prob_sell*100:.1f}%"],
+            textposition='auto',
+            textfont=dict(color='#ffffff', size=14, family='JetBrains Mono', weight='bold'),
+            hovertemplate='%{y}: %{x:.2f}%<extra></extra>'
+        ))
+        
+        fig_ai.update_layout(
+            title=dict(
+                text="AI MODEL CONFIDENCE ANALYSIS",
+                font=dict(color='#00f2ff', size=18, family='Orbitron', weight='bold')
+            ),
+            paper_bgcolor='rgba(5,5,5,0.5)',
+            plot_bgcolor='rgba(0,0,0,0.8)',
+            font=dict(color='#e0e0e0', family='JetBrains Mono'),
+            xaxis=dict(
+                title="PROBABILITY (%)",
+                gridcolor='rgba(0,242,255,0.1)',
+                range=[0, 100],
+                color='#00f2ff'
+            ),
+            yaxis=dict(
+                gridcolor='rgba(0,242,255,0.1)',
+                color='#00f2ff'
+            ),
+            height=300,
+            showlegend=False,
+            margin=dict(l=80, r=20, t=60, b=50)
+        )
+        
+        st.plotly_chart(fig_ai, use_container_width=True)
+        
+        # Recent Trades Performance
         if history and len(history) > 0:
-            chart_fig = create_price_chart_with_signals(data, history)
-            if chart_fig:
-                st.plotly_chart(chart_fig, width='content')
-            else:
-                st.info("Chart generation in progress...")
-        else:
-            st.info("⏳ Waiting for trade history...")
-        
-        st.markdown(
-            f'<p class="caption">📊 Rolling Window: {ROLLING_WINDOW} candles | Showing last {min(20, len(history))} trades</p>',
-            unsafe_allow_html=True
-        )
-    
-    with col_right:
-        st.markdown("## 📈 ANALYTICS OVERVIEW")
-        
-        if history:
-            losses = len(history) - wins
-            
-            st.markdown(f"""
-            <div class="info-card">
-                <h3>📈 PERFORMANCE METRICS</h3>
-                <p><strong>Total Trades:</strong> {len(history)}</p>
-                <p><strong>Wins:</strong> {wins} 🟢 | <strong>Losses:</strong> {losses} 🔴</p>
-                <p><strong>Win Rate:</strong> {wr:.1f}%</p>
-                <p><strong>Total PnL:</strong> ${total_pnl:,.2f}</p>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown("### 📊 PERFORMANCE METRICS")
             
             pnl_values = []
-            for trade in history[:10]:
+            for trade in history[:15]:
                 try:
                     pnl = float(str(trade.get('net_pnl', '0%')).replace('%', ''))
                     pnl_values.append(pnl)
@@ -811,157 +793,175 @@ if data:
                     pass
             
             if pnl_values:
-                fig_pnl = go.Figure()
+                fig_perf = go.Figure()
                 colors = ['#00ff88' if x > 0 else '#ff4466' for x in pnl_values]
                 
-                fig_pnl.add_trace(go.Bar(
+                fig_perf.add_trace(go.Bar(
                     y=pnl_values,
-                    marker_color=colors,
-                    name='PnL %',
+                    marker=dict(
+                        color=colors,
+                        line=dict(color='#00f2ff', width=1)
+                    ),
                     text=[f"{x:.1f}%" for x in pnl_values],
-                    textposition='auto',
-                    textfont=dict(color='#ffffff', size=11)
+                    textposition='outside',
+                    textfont=dict(color='#ffffff', size=10, family='JetBrains Mono'),
+                    hovertemplate='Trade: %{x}<br>PnL: %{y:.2f}%<extra></extra>'
                 ))
                 
-                fig_pnl.update_layout(
+                fig_perf.update_layout(
                     title=dict(
-                        text="Last 10 Trades - PnL Distribution",
-                        font=dict(color='#00f2ff', size=14)
+                        text="LAST 15 TRADES - P&L DISTRIBUTION",
+                        font=dict(color='#00f2ff', size=18, family='Orbitron')
                     ),
-                    paper_bgcolor='rgba(10,10,15,0.95)',
-                    plot_bgcolor='rgba(30,30,30,0.95)',
-                    font=dict(color='#e0e0e0', family='Consolas'),
-                    height=300,
-                    showlegend=False,
+                    paper_bgcolor='rgba(5,5,5,0.5)',
+                    plot_bgcolor='rgba(0,0,0,0.8)',
+                    font=dict(color='#e0e0e0', family='JetBrains Mono'),
                     xaxis=dict(
-                        title="Trade Index",
-                        gridcolor='rgba(255,255,255,0.08)',
-                        color='#e0e0e0'
+                        title="TRADE INDEX",
+                        gridcolor='rgba(0,242,255,0.1)',
+                        color='#00f2ff'
                     ),
                     yaxis=dict(
-                        title="PnL (%)",
-                        gridcolor='rgba(255,255,255,0.08)',
-                        color='#e0e0e0'
-                    )
+                        title="P&L (%)",
+                        gridcolor='rgba(0,242,255,0.1)',
+                        color='#00f2ff',
+                        zeroline=True,
+                        zerolinecolor='rgba(0,242,255,0.5)',
+                        zerolinewidth=2
+                    ),
+                    height=400,
+                    showlegend=False,
+                    margin=dict(l=60, r=20, t=60, b=50)
                 )
                 
-                st.plotly_chart(fig_pnl, width='content')
-        else:
-            st.info("No trade data available yet")
+                st.plotly_chart(fig_perf, use_container_width=True)
     
-    st.markdown("---")
-    
-    # ═══════════════════════════════════════════════════════════════════════════
-    # TERMINAL OUTPUT
-    # ═══════════════════════════════════════════════════════════════════════════
-    
-    st.markdown("## 💻 SYSTEM TERMINAL")
-    
-    last_update = data.get('last_update_time', 'N/A')
-    try:
-        if last_update != 'N/A':
-            dt = datetime.fromisoformat(last_update.replace('Z', '+00:00'))
-            dt_gmt7 = dt + timedelta(hours=7)
-            last_update_display = dt_gmt7.strftime('%Y-%m-%d %H:%M:%S GMT+7')
-        else:
-            last_update_display = 'N/A'
-    except:
-        last_update_display = last_update
-    
-    terminal_lines = [
-        "╔════════════════════════════════════════════════════════════════╗",
-        "║  MONSTER ENGINE v17.0 - CYBERPUNK EDITION                      ║",
-        "╚════════════════════════════════════════════════════════════════╝",
-        "                                                                  ",
-        f"[ENGINE]  Status: {data.get('bot_status', 'Unknown')}            ",
-        f"[PRICE]   BTC/USDT: ${current_price:,.2f}                        ",
-        f"[REGIME]  Market Mode: {regime}                                  ",
-        f"[TRADES]  Open Positions: {len(open_trades)}                     ",
-        f"[ORDERS]  Pending Limit: {len(pending_orders)}                   ",
-        f"[STATS]   Total Trades: {len(history)}                           ",
-        f"[STATS]   Win Rate: {wr:.1f}%                                    ",
-        f"[STATS]   Total PnL: ${total_pnl:,.2f}                           ",
-        f"[SYSTEM]  CPU: {cpu_usage:.1f}% | RAM: {ram_usage:.1f}%          ",
-        f"[TIME]    Last Update: {last_update_display}                     ",
-        f"[CONFIG]  Rolling Window: {ROLLING_WINDOW} candles               ",
-        f"[FILE]    State: {os.path.basename(STATE_FILE)}                  ",
-        "                                                                  ",
-        "════════════════════════════════════════════════════════════════  ",
-        "✅ All systems operational. Monitoring active.                   ",
-        "════════════════════════════════════════════════════════════════  ",
-    ]
-    
-    terminal_output = "\n".join(terminal_lines)
-    
-    st.markdown(f"""
-    <div class="terminal-box">
-        <pre>{terminal_output}</pre>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("---")
+    with col_terminal:
+        # ═══════════════════════════════════════════════════════════════
+        # MATRIX TERMINAL WITH ASCII ART
+        # ═══════════════════════════════════════════════════════════════
+        
+        st.markdown("### 💻 MATRIX TERMINAL")
+        
+        # ASCII Art Header
+        ascii_header = """
+    ███╗   ███╗ ██████╗ ███╗   ██╗███████╗████████╗███████╗██████╗ 
+    ████╗ ████║██╔═══██╗████╗  ██║██╔════╝╚══██╔══╝██╔════╝██╔══██╗
+    ██╔████╔██║██║   ██║██╔██╗ ██║███████╗   ██║   █████╗  ██████╔╝
+    ██║╚██╔╝██║██║   ██║██║╚██╗██║╚════██║   ██║   ██╔══╝  ██╔══██╗
+    ██║ ╚═╝ ██║╚██████╔╝██║ ╚████║███████║   ██║   ███████╗██║  ██║
+    ╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝
+        """
+        
+        st.markdown(f'<div class="ascii-art">{ascii_header}</div>', unsafe_allow_html=True)
+        
+        # Terminal Output
+        last_update = data.get('last_update_time', 'N/A')
+        try:
+            if last_update != 'N/A':
+                dt = datetime.fromisoformat(last_update.replace('Z', '+00:00'))
+                dt_gmt7 = dt + timedelta(hours=7)
+                last_update_display = dt_gmt7.strftime('%H:%M:%S')
+            else:
+                last_update_display = 'N/A'
+        except:
+            last_update_display = last_update
+        
+        terminal_lines = [
+            "╔══════════════════════════════════════════════════════════════╗",
+            "║           MONSTER ENGINE v18.0 - NEURAL CORE                 ║",
+            "╚══════════════════════════════════════════════════════════════╝",
+            "",
+            f"<span class='terminal-prompt'>[SYSTEM.INIT]</span> <span class='terminal-success'>NEURAL NETWORK INITIALIZED</span>",
+            f"<span class='terminal-prompt'>[SYSTEM.INFO]</span> Engine Status: {data.get('bot_status', 'Unknown')}",
+            f"<span class='terminal-prompt'>[SYSTEM.INFO]</span> Last Sync: {last_update_display}",
+            "",
+            f"<span class='terminal-prompt'>[MARKET.DATA]</span> BTC/USDT: <span class='terminal-info'>${current_price:,.2f}</span>",
+            f"<span class='terminal-prompt'>[MARKET.DATA]</span> Regime: <span class='terminal-info'>{regime}</span>",
+            "",
+            f"<span class='terminal-prompt'>[AI.ANALYSIS]</span> Neural Confidence:",
+            f"  ├─ NEUTRAL: {prob_neutral*100:.1f}%",
+            f"  ├─ BUY:     <span class='terminal-success'>{prob_buy*100:.1f}%</span>",
+            f"  └─ SELL:    <span class='terminal-warning'>{prob_sell*100:.1f}%</span>",
+            "",
+            f"<span class='terminal-prompt'>[EXECUTION.STATUS]</span>",
+            f"  ├─ Open Trades:    <span class='terminal-info'>{len(open_trades)}</span>",
+            f"  ├─ Pending Orders: <span class='terminal-info'>{len(pending_orders)}</span>",
+            f"  └─ Total Trades:   <span class='terminal-info'>{len(history)}</span>",
+            "",
+            f"<span class='terminal-prompt'>[PERFORMANCE.STATS]</span>",
+            f"  ├─ Total P&L: <span class='terminal-success' if total_pnl >= 0 else 'terminal-error'>${total_pnl:,.2f}</span>",
+            f"  ├─ Win Rate:  <span class='terminal-success'>{wr:.1f}%</span>",
+            f"  └─ Wins/Loss: {wins}/{len(history)-wins}",
+            "",
+            f"<span class='terminal-prompt'>[SYSTEM.RESOURCES]</span>",
+            f"  ├─ CPU Usage: {cpu_usage:.1f}%",
+            f"  ├─ RAM Usage: {ram_usage:.1f}%",
+            f"  └─ State File: bot_state_v14_4.json",
+            "",
+            "══════════════════════════════════════════════════════════════",
+            "<span class='terminal-success'>✓ ALL SYSTEMS OPERATIONAL</span>",
+            "<span class='terminal-success'>✓ MONITORING ACTIVE</span>",
+            "<span class='terminal-success'>✓ NEURAL CORE ONLINE</span>",
+            "══════════════════════════════════════════════════════════════",
+        ]
+        
+        terminal_output = "<br>".join(terminal_lines)
+        
+        st.markdown(f"""
+        <div class="matrix-terminal">
+            {terminal_output}
+        </div>
+        """, unsafe_allow_html=True)
     
     # ═══════════════════════════════════════════════════════════════════════════
     # TRADE HISTORY TABLE
     # ═══════════════════════════════════════════════════════════════════════════
     
-    st.markdown("## 📜 TRADE HISTORY")
+    st.markdown("---")
+    st.markdown("### 📜 TRADE EXECUTION LOGS")
     
     if history:
-        df_history = pd.DataFrame(history[:15])
-        
-        st.dataframe(
-            df_history,
-            width='content',
-            height=400
-        )
+        df_history = pd.DataFrame(history[:10])
+        st.dataframe(df_history, use_container_width=True, height=350)
         
         csv = df_history.to_csv(index=False)
         st.download_button(
-            label="📥 Download Full History (CSV)",
+            label="📥 EXPORT TRADE DATA",
             data=csv,
             file_name=f"monster_trades_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
             mime="text/csv"
         )
     else:
-        st.info("⏳ No trade history available yet. Waiting for first trade...")
-    
-    st.markdown("---")
-    
-    st.markdown(f"""
-    <div style="text-align: center; color: #00f2ff; font-family: 'Consolas'; padding: 20px;">
-        <p style="font-size: 1.2rem;">⚡ MONSTER MATRIX v17.0 - CYBERPUNK EDITION</p>
-        <p style="font-size: 0.9rem; color: #bd00ff;">Engine PID: {bot_pid if bot_running else 'N/A'} | Refresh: {refresh_interval}s</p>
-        <p style="font-size: 0.8rem; color: #999999;">State: {os.path.basename(STATE_FILE)}</p>
-    </div>
-    """, unsafe_allow_html=True)
+        st.info("⏳ Awaiting first trade execution...")
 
 else:
     # ═══════════════════════════════════════════════════════════════════════════
-    # WAITING FOR DATA
+    # NO DATA AVAILABLE
     # ═══════════════════════════════════════════════════════════════════════════
     
-    st.warning("📡 Waiting for data from Monster Engine...")
-    
-    st.markdown(f"""
-    <div class="info-card">
-        <h3>🔍 TROUBLESHOOTING</h3>
-        <p>If you're seeing this message:</p>
-        <ol>
-            <li>✅ Verify <code>monster_engine.py</code> is running</li>
-            <li>✅ Check that <code>bot_state_v14_4.json</code> exists</li>
-            <li>✅ Wait 10-15 seconds for first data collection</li>
-            <li>✅ Check Engine terminal for errors</li>
-        </ol>
-        <p><strong>State File Path:</strong> <code>{STATE_FILE}</code></p>
+    st.markdown("""
+    <div style="text-align: center; padding: 100px 20px;">
+        <div class="ascii-art">
+    ╔═══════════════════════════════════════════════════════════════╗
+    ║                   AWAITING ENGINE CONNECTION                  ║
+    ║                                                               ║
+    ║              [████████████████░░░░░░░░░░] 60%               ║
+    ║                                                               ║
+    ║         MONSTER ENGINE v18.0 - NEURAL CORE BOOTING...        ║
+    ╚═══════════════════════════════════════════════════════════════╝
+        </div>
+        <h2 style="color: #00f2ff; margin-top: 30px;">INITIALIZING SYSTEMS</h2>
+        <p style="color: #999;">Waiting for data stream from Monster Engine...</p>
+        <p style="color: #666; font-size: 12px;">State File: bot_state_v14_4.json</p>
     </div>
     """, unsafe_allow_html=True)
     
-    with st.spinner("Initializing system..."):
+    with st.spinner("Establishing neural link..."):
         time.sleep(2)
 
 # ════════════════════════════════════════════════════════════════════════════
-# ✅ AUTO-REFRESH AT END (Critical: Must be last to avoid interrupting widgets)
+# AUTO-REFRESH (MUST BE LAST)
 # ════════════════════════════════════════════════════════════════════════════
 
 if auto_refresh:
