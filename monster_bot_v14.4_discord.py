@@ -627,6 +627,31 @@ st.markdown("""
             margin-bottom: 15px !important;
         }
 
+        /* Fix lỗi thanh Sidebar bên trái trên Mobile */
+        [data-testid="stSidebar"] {
+            width: 80% !important; /* Không cho nó chiếm hết 100% màn hình mobile */
+        }
+    
+        /* Đưa nút đóng/mở Sidebar lên lớp trên cùng để không bị HUD đè */
+        [data-testid="stSidebarCollapsedControl"] {
+            z-index: 999999 !important;
+            background-color: rgba(10, 10, 15, 0.8) !important;
+            border-radius: 0 10px 10px 0 !important;
+            top: 10px !important;
+        }
+    
+        /* Quan trọng: Reset lại Margin âm của HUD trên Mobile để không đè Sidebar */
+        .hud-header {
+            margin: 0 !important; /* Bỏ margin -60px -70px trên điện thoại */
+            width: 100% !important;
+            border-radius: 0 !important;
+        }
+    
+        /* Đẩy toàn bộ nội dung xuống dưới một chút để không bị nút Sidebar đè */
+        .stApp {
+            padding-top: 50px !important;
+        }
+    
         /* 2. Fix Header HUD bị tràn mép màn hình mobile */
         .hud-header {
             margin: -60px -10px 30px -10px !important; /* Giảm âm lề trái/phải */
@@ -650,6 +675,8 @@ st.markdown("""
         .metric-card {
             padding: 15px !important;
             min-height: 140px !important;
+            margin-bottom: 20px !important;
+            width: 100% !important;
         }
 
         .metric-value {
