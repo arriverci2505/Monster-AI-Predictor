@@ -230,47 +230,86 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: center;
-        /* Tạo viền mờ làm đường ray */
         border: 1px solid rgba(0, 242, 255, 0.1);
         z-index: 1;
         overflow: hidden;
     }
 
-    /* Tia sáng chạy bao quanh */
+    /* Tia sáng laser */
     .hud-header::before {
         content: '';
         position: absolute;
-        inset: 0;
-        border-radius: 15px;
-        /* Tạo viền sáng bằng gradient */
-        padding: 2px; /* Độ dày của tia sáng */
-        background: conic-gradient(
-            from var(--angle),
-            transparent 70%,
-            #00f2ff, 
-            #ffffff, 
-            #bd00ff, 
-            transparent 100%
-        );
-        /* Dùng mask để chỉ hiển thị phần viền */
-        -webkit-mask: 
-            linear-gradient(#fff 0 0) content-box, 
-            linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-        
-        animation: rotateAngle 4s linear infinite;
+        width: 150px; /* Độ dài tia sáng */
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #00f2ff, #ffffff, #00f2ff, transparent);
+        box-shadow: 0 0 15px #00f2ff;
+        z-index: 10;
+        /* Chạy theo Keyframes mới */
+        animation: constantSpeed 6s linear infinite;
     }
 
-    /* Đăng ký biến --angle để trình duyệt hiểu cách xoay */
-    @property --angle {
-        syntax: '<angle>';
-        initial-value: 0deg;
-        inherits: false;
-    }
-
-    @keyframes rotateAngle {
-        to { --angle: 360deg; }
+    @keyframes constantSpeed {
+        /* CẠNH TRÊN: Trái -> Phải */
+        0% {
+            top: 0;
+            left: -150px;
+            width: 150px;
+            height: 2px;
+        }
+        35% {
+            top: 0;
+            left: 100%;
+            width: 150px;
+            height: 2px;
+        }
+        /* Góc phải trên: Biến thành dọc */
+        35.01% {
+            top: 0;
+            left: calc(100% - 2px);
+            width: 2px;
+            height: 150px;
+        }
+        /* CẠNH PHẢI: Trên -> Dưới */
+        45% {
+            top: 100%;
+            left: calc(100% - 2px);
+            width: 2px;
+            height: 150px;
+        }
+        /* Góc phải dưới: Biến thành ngang */
+        45.01% {
+            top: calc(100% - 2px);
+            left: 100%;
+            width: 150px;
+            height: 2px;
+        }
+        /* CẠNH DƯỚI: Phải -> Trái */
+        80% {
+            top: calc(100% - 2px);
+            left: -150px;
+            width: 150px;
+            height: 2px;
+        }
+        /* Góc trái dưới: Biến thành dọc */
+        80.01% {
+            top: 100%;
+            left: 0;
+            width: 2px;
+            height: 150px;
+        }
+        /* CẠNH TRÁI: Dưới -> Trên */
+        95% {
+            top: -150px;
+            left: 0;
+            width: 2px;
+            height: 150px;
+        }
+        100% {
+            top: 0;
+            left: -150px;
+            width: 150px;
+            height: 2px;
+        }
     }
 
     .hud-title {
