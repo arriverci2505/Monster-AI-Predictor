@@ -236,59 +236,66 @@ st.markdown("""
         overflow: hidden;
     }
     
-    /* Tạo lớp phủ chạy viền */
-    .hud-container::before {
-        content: '';
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        top: 0;
-        left: 0;
-        pointer-events: none;
+    .cyber-frame {
+        position: relative;
+        padding: 20px;
+        background: rgba(0, 5, 10, 0.9);
+        border: 1px solid rgba(0, 242, 255, 0.1);
+        overflow: hidden; /* Quan trọng: Để tia sáng không chạy ra ngoài */
+        min-height: 200px;
     }
 
-    /* Hiệu ứng tia sáng */
-    .hud-container::after {
+    /* Tia sáng chạy viền */
+    .cyber-frame::after {
         content: '';
         position: absolute;
-        /* Kích thước tia sáng (chiều ngang) */
-        width: 150px; 
-        height: 2px;
-        background: linear-gradient(90deg, transparent, #00f2ff, #bd00ff, transparent);
-        box-shadow: 0 0 15px #00f2ff;
-        z-index: 10;
-        animation: borderScan 6s linear infinite;
+        width: 150px; /* Độ dài tia sáng */
+        height: 3px;   /* Độ dày tia sáng */
+        background: linear-gradient(90deg, transparent, #00f2ff, #ffffff, #00f2ff, transparent);
+        box-shadow: 0 0 20px #00f2ff, 0 0 5px #ffffff;
+        z-index: 999;
+        animation: doubleScan 4s linear infinite;
     }
 
-    @keyframes borderScan {
+    @keyframes doubleScan {
+        /* CHẠY VIỀN TRÊN: từ trái sang phải */
         0% {
-            /* Bắt đầu ở góc trên bên trái, chạy trên viền TOP */
             top: 0;
             left: -150px;
-            width: 150px;
-            height: 2px;
+            opacity: 1;
         }
         25% {
-            /* Chạy đến hết bên phải viền TOP */
             top: 0;
             left: 100%;
+            opacity: 1;
         }
-        /* Phân đoạn này để nó chuyển xuống dưới nhanh chóng hoặc biến mất rồi hiện ở dưới */
-        26% {
+        /* NHẢY XUỐNG DƯỚI: tàng hình trong tích tắc */
+        25.01% {
             top: 100%;
             left: 100%;
-            width: 150px;
-            height: 2px;
-            transform: scaleX(-1); /* Đảo chiều tia sáng */
+            opacity: 0;
         }
-        50% {
-            /* Chạy từ phải sang trái ở viền BOTTOM */
-            top: 100%;
+        /* CHẠY VIỀN DƯỚI: từ phải sang trái */
+        26% {
+            top: calc(100% - 3px); /* Căn chỉnh sát viền dưới */
+            left: 100%;
+            opacity: 1;
+        }
+        51% {
+            top: calc(100% - 3px);
             left: -150px;
+            opacity: 1;
+        }
+        /* BIẾN MẤT VÀ QUAY LẠI VÒNG LẶP */
+        51.01% {
+            top: 0;
+            left: -150px;
+            opacity: 0;
         }
         100% {
-            top: 100%;
+            top: 0;
             left: -150px;
+            opacity: 0;
         }
     }
     
