@@ -615,6 +615,67 @@ st.markdown("""
         text-align: center;
         margin: 10px 0;
     }
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* CHỈ KÍCH HOẠT KHI XEM TRÊN ĐIỆN THOẠI (KHÔNG LỖI PC)             */
+    /* ═══════════════════════════════════════════════════════════════ */
+    @media (max-width: 768px) {
+        /* 1. Ép các cột Streamlit xếp chồng lên nhau */
+        [data-testid="column"] {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+            margin-bottom: 15px !important;
+        }
+
+        /* 2. Fix Header HUD bị tràn mép màn hình mobile */
+        .hud-header {
+            margin: -60px -10px 30px -10px !important; /* Giảm âm lề trái/phải */
+            padding: 10px 15px !important;
+            flex-direction: column !important; /* Xếp dọc các item trong HUD */
+            gap: 10px;
+        }
+
+        .hud-title {
+            font-size: 18px !important; /* Nhỏ lại để không xuống dòng */
+            letter-spacing: 1px !important;
+        }
+
+        .hud-status {
+            gap: 15px !important;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* 3. Metric Card - Thu nhỏ để vừa màn hình dọc */
+        .metric-card {
+            padding: 15px !important;
+            min-height: 140px !important;
+        }
+
+        .metric-value {
+            font-size: 24px !important; /* 32px trên PC là quá to cho mobile */
+        }
+
+        .metric-icon {
+            font-size: 28px !important;
+        }
+
+        /* 4. Terminal và Camera Frame */
+        .camera-frame {
+            padding: 10px !important;
+        }
+        
+        .matrix-terminal {
+            min-height: 300px !important;
+            font-size: 10px !important;
+        }
+
+        /* 5. Ẩn bớt các khoảng trống thừa của Streamlit trên mobile */
+        .main .block-container {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
