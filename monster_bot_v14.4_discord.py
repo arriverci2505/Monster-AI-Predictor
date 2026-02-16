@@ -892,45 +892,47 @@ if data:
         </div>
         """, unsafe_allow_html=True)
         
+        # ═══════════════════════════════════════════════════════════════
+        # AI ANALYSIS 
+        # ═══════════════════════════════════════════════════════════════
         st.markdown("### 🧠 AI ANALYSIS")
-
-        # 1. Định nghĩa CSS để vẽ góc trực tiếp lên container của Streamlit
+        
+        # Tạo 1 container duy nhất, dùng CSS để vẽ góc trực tiếp lên nó
         st.markdown("""
             <style>
-                /* Nhắm trực tiếp vào khối container chứa chart */
-                [data-testid="stVerticalBlock"] > div:has(div.ai-glow-box) {
+                /* Nhắm vào container của Streamlit chứa chart */
+                [data-testid="stVerticalBlock"] > div:has(div.clean-camera-box) {
                     position: relative;
                     background: rgba(5, 5, 5, 0.4);
                     backdrop-filter: blur(10px);
-                    border: 1px solid rgba(0, 242, 255, 0.2); /* Viền mảnh mờ */
+                    border: 1px solid rgba(0, 242, 255, 0.15);
                     border-radius: 15px;
                     padding: 20px;
+                    margin-bottom: 20px;
                 }
-
-                /* Vẽ 4 góc Neon bám chặt vào container */
-                .ai-glow-box::before {
-                    content: ''; position: absolute; top: 5px; left: 5px;
+                /* Vẽ 4 góc Neon chuẩn */
+                .clean-camera-box::before {
+                    content: ''; position: absolute; top: 8px; left: 8px;
                     width: 15px; height: 15px; border-top: 3px solid #00f2ff; border-left: 3px solid #00f2ff; border-radius: 4px 0 0 0;
                 }
-                .ai-glow-box::after {
-                    content: ''; position: absolute; top: 5px; right: 5px;
+                .clean-camera-box::after {
+                    content: ''; position: absolute; top: 8px; right: 8px;
                     width: 15px; height: 15px; border-top: 3px solid #00f2ff; border-right: 3px solid #00f2ff; border-radius: 0 4px 0 0;
                 }
-                .bottom-corners::before {
-                    content: ''; position: absolute; bottom: 5px; left: 5px;
+                .bottom-corners-fix::before {
+                    content: ''; position: absolute; bottom: 8px; left: 8px;
                     width: 15px; height: 15px; border-bottom: 3px solid #00f2ff; border-left: 3px solid #00f2ff; border-radius: 0 0 0 4px;
                 }
-                .bottom-corners::after {
-                    content: ''; position: absolute; bottom: 5px; right: 5px;
+                .bottom-corners-fix::after {
+                    content: ''; position: absolute; bottom: 8px; right: 8px;
                     width: 15px; height: 15px; border-bottom: 3px solid #00f2ff; border-right: 3px solid #00f2ff; border-radius: 0 0 4px 0;
                 }
             </style>
         """, unsafe_allow_html=True)
 
-        # 2. Render biểu đồ trong 1 container duy nhất
         with st.container():
-            # Marker này giúp CSS nhận diện đúng vị trí để vẽ khung
-            st.markdown('<div class="ai-glow-box">', unsafe_allow_html=True)
+            # Marker class để CSS nhận diện và vẽ khung
+            st.markdown('<div class="clean-camera-box">', unsafe_allow_html=True)
             
             fig_ai = go.Figure()
             fig_ai.add_trace(go.Bar(
@@ -943,7 +945,7 @@ if data:
                 ),
                 text=[f"{prob_neutral*100:.1f}%", f"{prob_buy*100:.1f}%", f"{prob_sell*100:.1f}%"],
                 textposition='auto',
-                textfont=dict(color='#ffffff', size=11, family='JetBrains Mono', weight='bold'),
+                textfont=dict(color='#ffffff', size=12, family='JetBrains Mono', weight='bold'),
             ))
             
             fig_ai.update_layout(
@@ -952,7 +954,7 @@ if data:
                 font=dict(color='#00f2ff', family='JetBrains Mono'),
                 xaxis=dict(range=[0, 100], showgrid=False, visible=False),
                 yaxis=dict(color='#00f2ff', tickfont=dict(size=10)),
-                height=150,
+                height=160,
                 margin=dict(l=70, r=20, t=5, b=5),
                 showlegend=False,
                 bargap=0.4
@@ -960,8 +962,8 @@ if data:
             
             st.plotly_chart(fig_ai, use_container_width=True, config={'displayModeBar': False})
             
-            # Đóng div và thêm 2 góc dưới
-            st.markdown('<div class="bottom-corners"></div></div>', unsafe_allow_html=True)
+            # Đóng div và vẽ 2 góc dưới
+            st.markdown('<div class="bottom-corners-fix"></div></div>', unsafe_allow_html=True)
                 
     # ═══════════════════════════════════════════════════════════════════════════
     # TRADE HISTORY TABLE
