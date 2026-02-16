@@ -1097,7 +1097,10 @@ def main():
                             {"name": "Lý do thoát lệnh:", "value": exit_reason, "inline": False}
                         ]
                     )
-            
+                else
+                    active_trades.append(trade)
+                  
+            state['open_trades'] = active_trades
             # ═══════════════════════════════════════════════════════════════
             # ENTRY LOGIC - REGIME-FIRST (MATCHED WITH BACKTEST v14.4)
             # ═══════════════════════════════════════════════════════════════
