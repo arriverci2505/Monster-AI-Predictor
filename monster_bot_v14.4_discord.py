@@ -829,45 +829,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<div class="cyber-overlay top-left">SYS_V18.0_READY</div>
-<div class="cyber-overlay bottom-right">RE-ENFORCED_AI_MODEL</div>
-
-<style>
-    .cyber-overlay {
-        position: fixed;
-        color: #00f2ff;
-        font-family: 'Orbitron', sans-serif;
-        font-size: 10px;
-        letter-spacing: 2px;
-        opacity: 0.6;
-        z-index: 9999; /* Đủ cao để nổi lên nhưng không đè menu chính */
-        pointer-events: none;
-        text-shadow: 0 0 5px #00f2ff;
-    }
-    
-    .top-left {
-        top: 60px; /* Hạ xuống một chút để né thanh Stop/Share của Streamlit */
-        left: 15px;
-        border-left: 2px solid #00f2ff;
-        padding-left: 5px;
-    }
-    
-    .bottom-right {
-        bottom: 70px; /* Đẩy lên cao hẳn (70px) để nằm TRÊN nút Manage App */
-        right: 15px;
-        border-right: 2px solid #00f2ff;
-        padding-right: 5px;
-    }
-
-    @media (max-width: 768px) {
-        .bottom-right {
-            bottom: 100px; /* Trên mobile nút Manage App to hơn, nên đẩy cao hơn nữa */
-        }
-    }
-</style>
-""", unsafe_allow_html=True)
-
 # ════════════════════════════════════════════════════════════════════════════
 # HUD HEADER - TOP STATUS BAR
 # ════════════════════════════════════════════════════════════════════════════
