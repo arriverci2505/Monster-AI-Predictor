@@ -238,17 +238,28 @@ st.markdown("""
     .hud-header::before {
         content: '';
         position: absolute;
-        top: 0;
         left: 0;
         right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, #00f2ff, #bd00ff, transparent);
-        animation: scan 3s linear infinite;
+        height: 40px; 
+        background: linear-gradient(180deg, 
+            transparent, 
+            rgba(0, 242, 255, 0.3), 
+            #00f2ff, 
+            rgba(0, 242, 255, 0.3), 
+            transparent);
+        z-index: 1;
+        opacity: 0.8;
+        animation: scanVertical 4s linear infinite;
+        pointer-events: none;
     }
-    
-    @keyframes scan {
-        0% { transform: translateX(-100%); }
-        100% { transform: translateX(100%); }
+
+    @keyframes scanVertical {
+        0% {
+            top: -100px; 
+        }
+        100% {
+            top: 100%; 
+        }
     }
     
     .hud-title {
