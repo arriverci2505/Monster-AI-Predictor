@@ -634,13 +634,6 @@ st.markdown(f"""
 st.sidebar.markdown("### ⚙️ SYSTEM CONTROLS")
 st.sidebar.markdown("---")
 
-if bot_running:
-    st.sidebar.markdown(f"**PID:** `{bot_pid}`")
-else:
-    st.sidebar.info("Engine Offline")
-
-st.sidebar.markdown("---")
-
 with st.sidebar:
     
     # Nút Restart to nhất, nổi bật
@@ -682,6 +675,11 @@ with st.sidebar:
     if auto_refresh:
         refresh_interval = st.slider("Interval (s)", 3, 30, 5)
 
+    if bot_running:
+        st.sidebar.markdown(f"**PID:** `{bot_pid}`")
+    else:
+        st.sidebar.info("Engine Offline")
+    
 # ════════════════════════════════════════════════════════════════════════════
 # LOAD DATA
 # ════════════════════════════════════════════════════════════════════════════
