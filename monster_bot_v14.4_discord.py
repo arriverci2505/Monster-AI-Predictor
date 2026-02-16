@@ -326,6 +326,36 @@ st.markdown("""
         font-weight: 600;
         letter-spacing: 2px;
     }
+    /* Style chung cho thanh lực trong Terminal */
+    .t-bar {
+            width: 80%; 
+            max-width: 200px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            margin: 5px 0 10px 20px;
+            border-radius: 2px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 242, 255, 0.1);
+        }
+        
+        .t-fill {
+            height: 100%;
+            transition: width 0.8s ease-out;
+        }
+        
+        .t-fill.buy {
+            background: linear-gradient(90deg, #00ff88, #00f2ff);
+            box-shadow: 0 0 8px rgba(0, 242, 255, 0.6);
+        }
+        
+        .t-fill.sell {
+            background: linear-gradient(90deg, #ff4466, #bd00ff);
+            box-shadow: 0 0 8px rgba(255, 68, 102, 0.6);
+        }
+        
+        .t-fill.neutral {
+            background: #555;
+        }
     
     /* ═══════════════════════════════════════════════════════════════ */
     /* CUSTOM METRIC CARDS - GLASSMORPHISM                              */
@@ -790,44 +820,11 @@ st.markdown("""
             white-space: pre !important; /* Giữ nguyên định dạng kí hiệu */
         }
 
-        /* Style chung cho thanh lực trong Terminal */
         .t-bar {
-                width: 80%; 
-                max-width: 200px;
-                height: 4px;
-                background: rgba(255, 255, 255, 0.05);
-                margin: 5px 0 10px 20px;
-                border-radius: 2px;
-                overflow: hidden;
-                border: 1px solid rgba(0, 242, 255, 0.1);
-            }
-        
-            .t-fill {
-                height: 100%;
-                transition: width 0.8s ease-out;
-            }
-        
-            .t-fill.buy {
-                background: linear-gradient(90deg, #00ff88, #00f2ff);
-                box-shadow: 0 0 8px rgba(0, 242, 255, 0.6);
-            }
-        
-            .t-fill.sell {
-                background: linear-gradient(90deg, #ff4466, #bd00ff);
-                box-shadow: 0 0 8px rgba(255, 68, 102, 0.6);
-            }
-        
-            .t-fill.neutral {
-                background: #555;
-            }
-        
-            /* CSS CHO MOBILE ĐỂ KHÔNG BỊ TRÀN */
-            @media (max-width: 768px) {
-                .t-bar {
-                    width: 70% !important;
-                    margin-left: 15px !important;
-                }
-            }
+            width: 70% !important;
+            margin-left: 15px !important;
+        }
+
     }
 </style>
 """, unsafe_allow_html=True)
