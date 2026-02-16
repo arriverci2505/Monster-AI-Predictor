@@ -261,6 +261,19 @@ st.markdown("""
         text-shadow: 0 0 30px rgba(0, 242, 255, 0.5);
         letter-spacing: 3px;
     }
+
+    .hud-title:hover {
+        animation: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
+    }
+    
+    @keyframes glitch {
+        0% { transform: translate(0); }
+        20% { transform: translate(-2px, 2px); }
+        40% { transform: translate(-2px, -2px); }
+        60% { transform: translate(2px, 2px); }
+        80% { transform: translate(2px, -2px); }
+        100% { transform: translate(0); }
+    }
     
     .hud-status {
         display: flex;
@@ -342,6 +355,23 @@ st.markdown("""
         z-index: -1;
         transition: opacity 0.3s ease;
     }
+
+    @keyframes scan-line {
+        0% { transform: translateY(-100%); }
+        00% { transform: translateY(400%); }
+    }
+    
+    .metric-card::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #00f2ff, transparent);
+        opacity: 0.3;
+        animation: scan-line 3s linear infinite;
+    }
     
     .metric-card:hover {
         transform: translateY(-5px);
@@ -393,7 +423,18 @@ st.markdown("""
         font-size: 12px;
         color: #666;
     }
+
+    @keyframes pulse-glow {
+        0% { box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
+        50% { box-shadow: 0 0 25px rgba(0, 242, 255, 0.6); }
+        100% { box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
+    }
     
+    .metric-card.trending-active {
+        animation: pulse-glow 2s infinite ease-in-out;
+        border: 1px solid #00f2ff !important;
+    }
+        
     /* ═══════════════════════════════════════════════════════════════ */
     /* CAMERA LENS FRAME - CHART CONTAINER                              */
     /* ═══════════════════════════════════════════════════════════════ */
@@ -748,8 +789,52 @@ st.markdown("""
             overflow: hidden !important; /* Không cho phép đẩy ngang màn hình */
             white-space: pre !important; /* Giữ nguyên định dạng kí hiệu */
         }
+
+        /* Style chung cho thanh lực trong Terminal */
+        .t-bar {
+                width: 80%; 
+                max-width: 200px;
+                height: 4px;
+                background: rgba(255, 255, 255, 0.05);
+                margin: 5px 0 10px 20px;
+                border-radius: 2px;
+                overflow: hidden;
+                border: 1px solid rgba(0, 242, 255, 0.1);
+            }
+        
+            .t-fill {
+                height: 100%;
+                transition: width 0.8s ease-out;
+            }
+        
+            .t-fill.buy {
+                background: linear-gradient(90deg, #00ff88, #00f2ff);
+                box-shadow: 0 0 8px rgba(0, 242, 255, 0.6);
+            }
+        
+            .t-fill.sell {
+                background: linear-gradient(90deg, #ff4466, #bd00ff);
+                box-shadow: 0 0 8px rgba(255, 68, 102, 0.6);
+            }
+        
+            .t-fill.neutral {
+                background: #555;
+            }
+        
+            /* CSS CHO MOBILE ĐỂ KHÔNG BỊ TRÀN */
+            @media (max-width: 768px) {
+                .t-bar {
+                    width: 70% !important;
+                    margin-left: 15px !important;
+                }
+            }
     }
 </style>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div style="position: fixed; top: 10px; left: 10px; color: #00f2ff; font-size: 10px; opacity: 0.5; z-index: 99">SYS_V18.0_READY</div>
+<div style="position: fixed; bottom: 10px; right: 10px; color: #00f2ff; font-size: 10px; opacity: 0.5; z-index: 99">RE-ENFORCED_AI_MODEL</div>
 """, unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -1108,6 +1193,9 @@ if data:
         if is_stalled:
             sync_status_text += " <span class='terminal-error'>[STALLED]</span>"
 
+        bar_buy = prob_buy * 100
+        bar_sell = prob_sell * 100
+        bar_neutral = prob_neutral * 100
         
         terminal_lines = [
             "MONSTER ENGINE v18.0 - NEURAL CORE",
@@ -1123,8 +1211,11 @@ if data:
             "",
             f"<span class='terminal-prompt'>[AI.ANALYSIS]</span> Neural Confidence:",
             f"  ├─ NEUTRAL: {prob_neutral*100:.1f}%",
+            f"<div class='t-bar'><div class='t-fill neutral' style='width: {bar_neutral}%'></div></div>",
             f"  ├─ BUY:     <span class='terminal-success'>{prob_buy*100:.1f}%</span>",
+            f"<div class='t-bar'><div class='t-fill buy' style='width: {bar_buy}%'></div></div>",
             f"  └─ SELL:    <span class='terminal-warning'>{prob_sell*100:.1f}%</span>",
+            f"<div class='t-bar'><div class='t-fill sell' style='width: {bar_sell}%'></div></div>",
             "",
             f"<span class='terminal-prompt'>[EXECUTION.STATUS]</span>",
             f"  ├─ Open Trades:    <span class='terminal-info'>{len(open_trades)}</span>",
