@@ -669,7 +669,7 @@ st.sidebar.markdown("---")
 with st.sidebar:
     
     # Nút Restart to nhất, nổi bật
-    if st.button("🚀 RESTART MONSTER ENGINE", use_container_width=True):
+    if st.button("🚀 RESTART MONSTER ENGINE", width='content'):
         with st.spinner("Re-linking neural core..."):
             if restart_bot():
                 st.success("Engine Restarted!")
@@ -680,7 +680,7 @@ with st.sidebar:
     col_k1, col_k2 = st.columns(2)
     
     with col_k1:
-        if st.button("🛑 KILL BOT", key="kill", use_container_width=True):
+        if st.button("🛑 KILL BOT", key="kill", width='content'):
             if bot_running:
                 send_kill_signal()
                 success, msg = kill_bot(bot_pid)
@@ -690,11 +690,11 @@ with st.sidebar:
                 st.rerun()
 
     with col_k2:
-        if st.button("🔄 REFRESH", key="refresh", use_container_width=True):
+        if st.button("🔄 REFRESH", key="refresh", uwidth='content'):
             st.rerun()
 
     # Nút dọn dẹp để ở dưới cùng của nhóm control
-    if st.button("🧹 CLEAR STATE DATA", use_container_width=True):
+    if st.button("🧹 CLEAR STATE DATA", width='content'):
         if os.path.exists(STATE_FILE):
             os.remove(STATE_FILE)
             st.warning("Data cleared!")
