@@ -892,51 +892,85 @@ if data:
         </div>
         """, unsafe_allow_html=True)
         
-        st.markdown("### 📈 AI ANALYSIS")
+        st.markdown("### 🧠 AI ANALYSIS")
 
-        # ═══════════════════════════════════════════════════════════════
-        # AI CONFIDENCE - FIX TRIỆT ĐỂ BẰNG CÁCH GỘP CHUNG VÀO 1 KHỐI HTML
-        # ═══════════════════════════════════════════════════════════════
-        
-        # 1. Tạo container với các góc Neon bằng CSS thuần (không sợ lệch)
+        # 1. Tạo một container riêng cho biểu đồ
+        ai_container = st.container()
+
+        # 2. Dùng CSS để vẽ khung "Camera" bao quanh container này
+        # Chúng ta nhắm mục tiêu vào div của container thông qua class CSS
         st.markdown("""
-        <div class="camera-frame" style="padding: 10px; min-height: 180px;">
-            <div class="camera-bottom-left"></div>
-            <div class="camera-bottom-right"></div>
-            <div id="plotly-anchor"></div>
-        </div>
+            <style>
+                /* Nhắm vào khối container chứa biểu đồ */
+                [data-testid="stVerticalBlock"] > div:has(div.ai-chart-box) {
+                    position: relative;
+                    background: rgba(5, 5, 5, 0.5);
+                    backdrop-filter: blur(10px);
+                    border: 2px solid rgba(0, 242, 255, 0.4);
+                    border-radius: 20px;
+                    padding: 20px;
+                    margin-top: 10px;
+                }
+                
+                .ai-chart-box {
+                    position: relative;
+                    width: 100%;
+                }
+
+                /* Vẽ các góc Neon trực tiếp vào container */
+                .ai-chart-box::before {
+                    content: ''; position: absolute; top: -10px; left: -10px;
+                    width: 20px; height: 20px; border-top: 3px solid #00f2ff; border-left: 3px solid #00f2ff; border-radius: 5px 0 0 0; z-index: 10;
+                }
+                .ai-chart-box::after {
+                    content: ''; position: absolute; top: -10px; right: -10px;
+                    width: 20px; height: 20px; border-top: 3px solid #00f2ff; border-right: 3px solid #00f2ff; border-radius: 0 5px 0 0; z-index: 10;
+                }
+                .corner-bottom-left {
+                    position: absolute; bottom: -10px; left: -10px;
+                    width: 20px; height: 20px; border-bottom: 3px solid #00f2ff; border-left: 3px solid #00f2ff; border-radius: 0 0 0 5px; z-index: 10;
+                }
+                .corner-bottom-right {
+                    position: absolute; bottom: -10px; right: -10px;
+                    width: 20px; height: 20px; border-bottom: 3px solid #00f2ff; border-right: 3px solid #00f2ff; border-radius: 0 0 5px 0; z-index: 10;
+                }
+            </style>
         """, unsafe_allow_html=True)
-        
-        # 2. Vẽ biểu đồ với margin âm để "nhét" nó vào khung vừa tạo
-        fig_ai = go.Figure()
-        fig_ai.add_trace(go.Bar(
-            y=['NEUTRAL', 'BUY', 'SELL'],
-            x=[prob_neutral * 100, prob_buy * 100, prob_sell * 100],
-            orientation='h',
-            marker=dict(
-                color=['rgba(255, 170, 0, 0.7)', 'rgba(0, 242, 255, 0.7)', 'rgba(189, 0, 255, 0.7)'],
-                line=dict(color='#00f2ff', width=1)
-            ),
-            text=[f"{prob_neutral*100:.1f}%", f"{prob_buy*100:.1f}%", f"{prob_sell*100:.1f}%"],
-            textposition='auto',
-            textfont=dict(color='#ffffff', size=11, family='JetBrains Mono', weight='bold'),
-        ))
-        
-        fig_ai.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)', 
-            plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#00f2ff', family='JetBrains Mono'),
-            xaxis=dict(range=[0, 100], showgrid=False, visible=False),
-            yaxis=dict(color='#00f2ff', tickfont=dict(size=10)),
-            height=150,
-            # Chỉnh margin này để biểu đồ không đè lên các góc
-            margin=dict(l=70, r=20, t=10, b=10),
-            showlegend=False,
-            bargap=0.3
-        )
-        
-        # Sử dụng container bao quanh của Streamlit để ép nó vào khung
-        st.plotly_chart(fig_ai, use_container_width=True, config={'displayModeBar': False})
+
+        with ai_container:
+            # Tạo một div trống có class để CSS nhận diện
+            st.markdown('<div class="ai-chart-box">', unsafe_allow_html=True)
+            
+            fig_ai = go.Figure()
+            fig_ai.add_trace(go.Bar(
+                y=['NEUTRAL', 'BUY', 'SELL'],
+                x=[prob_neutral * 100, prob_buy * 100, prob_sell * 100],
+                orientation='h',
+                marker=dict(
+                    color=['rgba(255, 170, 0, 0.7)', 'rgba(0, 242, 255, 0.7)', 'rgba(189, 0, 255, 0.7)'],
+                    line=dict(color='#00f2ff', width=1)
+                ),
+                text=[f"{prob_neutral*100:.1f}%", f"{prob_buy*100:.1f}%", f"{prob_sell*100:.1f}%"],
+                textposition='auto',
+                textfont=dict(color='#ffffff', size=11, family='JetBrains Mono', weight='bold'),
+            ))
+            
+            fig_ai.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)', 
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color='#00f2ff', family='JetBrains Mono'),
+                xaxis=dict(range=[0, 100], showgrid=False, visible=False),
+                yaxis=dict(color='#00f2ff', tickfont=dict(size=10)),
+                height=160,
+                margin=dict(l=70, r=20, t=10, b=10),
+                showlegend=False,
+                bargap=0.3
+            )
+            
+            st.plotly_chart(fig_ai, use_container_width=True, config={'displayModeBar': False})
+            
+            # Thêm các góc dưới
+            st.markdown('<div class="corner-bottom-left"></div><div class="corner-bottom-right"></div></div>', unsafe_allow_html=True)
                 
     # ═══════════════════════════════════════════════════════════════════════════
     # TRADE HISTORY TABLE
