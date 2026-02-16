@@ -244,49 +244,17 @@ st.markdown("""
         right: 0;
         height: 2px;
         background: linear-gradient(90deg, transparent, #00f2ff, #bd00ff, transparent);
-        animation: doubleScan 5s linear infinite;
+        animation: doubleScan 8s linear infinite;
     }
 
     @keyframes doubleScan {
-        /* CHẠY VIỀN TRÊN: từ trái sang phải */
-        0% {
-            top: 0;
-            left: -150px;
-            opacity: 1;
-        }
-        25% {
-            top: 0;
-            left: 100%;
-            opacity: 1;
-        }
-        /* NHẢY XUỐNG DƯỚI: tàng hình trong tích tắc */
-        25.01% {
-            top: 100%;
-            left: 100%;
-            opacity: 0;
-        }
-        /* CHẠY VIỀN DƯỚI: từ phải sang trái */
-        26% {
-            top: calc(100% - 3px); /* Căn chỉnh sát viền dưới */
-            left: 100%;
-            opacity: 1;
-        }
-        51% {
-            top: calc(100% - 3px);
-            left: -150px;
-            opacity: 1;
-        }
-        /* BIẾN MẤT VÀ QUAY LẠI VÒNG LẶP */
-        51.01% {
-            top: 0;
-            left: -150px;
-            opacity: 0;
-        }
-        100% {
-            top: 0;
-            left: -150px;
-            opacity: 0;
-        }
+        0% {top: 0;left: -150px;opacity: 1;}
+        25% {top: 0;left: 100%;opacity: 1;}
+        25.01% {top: 100%;left: 100%;opacity: 0;}
+        26% {top: calc(100% - 3px); left: 100%;opacity: 1;}
+        51% {top: calc(100% - 3px);left: -150px;opacity: 1;}
+        51.01% {top: 0;left: -150px;opacity: 0;}
+        100% {top: 0;left: -150px;opacity: 0;}
     }
     
     .hud-title {
