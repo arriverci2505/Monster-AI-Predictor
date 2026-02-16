@@ -895,63 +895,78 @@ if data:
         # ═══════════════════════════════════════════════════════════════
         # AI ANALYSIS 
         # ═══════════════════════════════════════════════════════════════
+        st.markdown("### 🧠 AI ENGINE PREDICTION")
+
+        # 1. Định nghĩa CSS cho khung nhỏ công nghệ cao
         st.markdown("""
             <style>
-                /* Khung viền Neon ôm sát */
-                .ai-mini-box {
-                    border: 1px solid rgba(0, 242, 255, 0.5);
-                    border-radius: 10px;
-                    padding: 15px;
-                    background: rgba(0, 0, 0, 0.3);
+                /* Khung chứa chính: Hiệu ứng Glassmorphism + Neon Border */
+                .cyber-mini-box {
                     position: relative;
-                    margin-top: 10px;
+                    background: rgba(0, 242, 255, 0.03);
+                    border: 1px solid rgba(0, 242, 255, 0.2);
+                    border-radius: 4px;
+                    padding: 15px;
+                    margin: 10px 0;
+                    overflow: visible; /* Quan trọng để không mất góc */
                 }
-                /* Dấu góc siêu nhỏ cho tinh tế */
-                .ai-mini-box::before {
-                    content: ''; position: absolute; top: -1px; left: -1px;
-                    width: 10px; height: 10px; border-top: 2px solid #00f2ff; border-left: 2px solid #00f2ff; border-radius: 5px 0 0 0;
+
+                /* Vẽ 4 góc bằng CSS Tuyệt đối */
+                .cyber-mini-box::before { /* Góc TRÊN TRÁI */
+                    content: ''; position: absolute; top: -2px; left: -2px;
+                    width: 12px; height: 12px; border-top: 3px solid #00f2ff; border-left: 3px solid #00f2ff;
                 }
-                .ai-mini-box::after {
-                    content: ''; position: absolute; bottom: -1px; right: -1px;
-                    width: 10px; height: 10px; border-bottom: 2px solid #00f2ff; border-right: 2px solid #00f2ff; border-radius: 0 0 5px 0;
+                .cyber-mini-box::after { /* Góc TRÊN PHẢI */
+                    content: ''; position: absolute; top: -2px; right: -2px;
+                    width: 12px; height: 12px; border-top: 3px solid #00f2ff; border-right: 3px solid #00f2ff;
+                }
+                .bottom-corner-marker::before { /* Góc DƯỚI TRÁI */
+                    content: ''; position: absolute; bottom: -2px; left: -2px;
+                    width: 12px; height: 12px; border-bottom: 3px solid #00f2ff; border-left: 3px solid #00f2ff;
+                }
+                .bottom-corner-marker::after { /* Góc DƯỚI PHẢI */
+                    content: ''; position: absolute; bottom: -2px; right: -2px;
+                    width: 12px; height: 12px; border-bottom: 3px solid #00f2ff; border-right: 3px solid #00f2ff;
                 }
             </style>
         """, unsafe_allow_html=True)
 
-        st.markdown("### 🧠 AI ANALYSIS")
-        
-        # 2. Bọc biểu đồ vào trong khung nhỏ này
         with st.container():
-            st.markdown('<div class="ai-mini-box">', unsafe_allow_html=True)
+            # Mở khung công nghệ
+            st.markdown('<div class="cyber-mini-box"><div class="bottom-corner-marker">', unsafe_allow_html=True)
             
             fig_ai = go.Figure()
+            # Màu sắc thanh bar được tinh chỉnh: Gradient mờ ảo
             fig_ai.add_trace(go.Bar(
                 y=['NEUTRAL', 'BUY', 'SELL'],
                 x=[prob_neutral * 100, prob_buy * 100, prob_sell * 100],
                 orientation='h',
                 marker=dict(
-                    color=['rgba(255, 170, 0, 0.6)', 'rgba(0, 242, 255, 0.6)', 'rgba(189, 0, 255, 0.6)'],
-                    line=dict(color='#00f2ff', width=1)
+                    color=['rgba(255, 170, 0, 0.5)', 'rgba(0, 242, 255, 0.8)', 'rgba(189, 0, 255, 0.5)'],
+                    line=dict(color='#00f2ff', width=1.5)
                 ),
                 text=[f"{prob_neutral*100:.1f}%", f"{prob_buy*100:.1f}%", f"{prob_sell*100:.1f}%"],
                 textposition='auto',
-                textfont=dict(color='#ffffff', size=11, family='JetBrains Mono'),
+                textfont=dict(color='#ffffff', size=12, family='JetBrains Mono', weight='bold'),
             ))
             
             fig_ai.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)', 
-                plot_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,242,255,0.01)', # Nền lưới xanh cực mờ
                 font=dict(color='#00f2ff', family='JetBrains Mono'),
-                xaxis=dict(range=[0, 100], visible=False),
-                yaxis=dict(color='#00f2ff', tickfont=dict(size=10)),
-                height=150,
+                xaxis=dict(range=[0, 100], showgrid=False, visible=False),
+                yaxis=dict(color='#00f2ff', tickfont=dict(size=10, weight='bold')),
+                height=140,
                 margin=dict(l=70, r=20, t=5, b=5),
                 showlegend=False,
+                bargap=0.4
             )
             
             st.plotly_chart(fig_ai, use_container_width=True, config={'displayModeBar': False})
-            st.markdown('</div>', unsafe_allow_html=True)
-                
+            
+            # Đóng khung
+            st.markdown('</div></div>', unsafe_allow_html=True)
+            
     # ═══════════════════════════════════════════════════════════════════════════
     # TRADE HISTORY TABLE
     # ═══════════════════════════════════════════════════════════════════════════
