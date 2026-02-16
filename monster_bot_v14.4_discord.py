@@ -658,9 +658,9 @@ st.markdown("""
     
         /* Quan trọng: Reset lại Margin âm của HUD trên Mobile để không đè Sidebar */
         .hud-header {
+            /* Quan trọng: Reset margin về 0 và dùng width 100% */
             margin: -50px 0 20px 0 !important; 
             width: 100% !important;
-            border-radius: 0 !important;
             left: 0 !important;
             right: 0 !important;
             padding: 15px 10px !important;
@@ -675,38 +675,30 @@ st.markdown("""
             box-sizing: border-box !important;
             border-radius: 0 0 15px 15px !important;
         }
-    
-        /* Đẩy toàn bộ nội dung xuống dưới một chút để không bị nút Sidebar đè */
-        .stApp {
-            padding-top: 50px !important;
-        }
-    
-        /* 2. Fix Header HUD bị tràn mép màn hình mobile */
-        .hud-header {
-            margin: -60px -10px 30px -10px !important; /* Giảm âm lề trái/phải */
-            padding: 10px 15px !important;
-            flex-direction: column !important; /* Xếp dọc các item trong HUD */
-            gap: 10px;
-        }
 
+        /* 3. ĐIỀU CHỈNH TIÊU ĐỀ HUB */
         .hud-title {
-            font-size: 18px !important; /* Nhỏ lại để không xuống dòng */
+            font-size: 20px !important; /* Thu nhỏ một chút để không bị xuống dòng */
+            text-align: center !important;
+            width: 100% !important;
             letter-spacing: 1px !important;
+            margin-bottom: 10px !important;
         }
 
+        /* 4. ĐIỀU CHỈNH CÁC CHỈ SỐ STATUS/CPU/RAM */
         .hud-status {
             gap: 15px !important;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        /* 3. Metric Card - Thu nhỏ để vừa màn hình dọc */
-        .metric-card {
-            padding: 15px !important;
-            min-height: 140px !important;
-            margin-bottom: 20px !important;
+            justify-content: center !important;
             width: 100% !important;
         }
+
+        /* 5. CĂN GIỮA CÁC CARD DƯỚI HUB */
+        .metric-card {
+            width: 92% !important; /* Tạo khoảng trống nhẹ 2 bên lề */
+            margin-left: auto !important;
+            margin-right: auto !important;
+            margin-bottom: 25px !important; /* Tách các card ra */
+        }}
 
         .metric-value {
             font-size: 24px !important; /* 32px trên PC là quá to cho mobile */
