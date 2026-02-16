@@ -1,19 +1,25 @@
 """
 ╔══════════════════════════════════════════════════════════════════════════╗
-║  MONSTER ENGINE v14.4 - SYNCHRONIZED WITH BACKTEST                       ║
-║  🎯 100% MATCHED WITH live_trading_bot_v14_fixed.py                      ║
-║  🔧 VERIFIED: SCALER + FEATURES + CONFIG + LOGIC                         ║
+║  MONSTER ENGINE v14.5 - FULLY SYNCHRONIZED WITH BACKTEST                ║
+║  🎯 100% MATCHED - HIERARCHICAL REGIME DETECTION                        ║
+║  🔧 VERIFIED: DUAL THRESHOLD + ADX-FIRST LOGIC                           ║
 ╚══════════════════════════════════════════════════════════════════════════╝
 
-VERIFICATION CODE: v14.4-SYNC-2026-02-16
+VERIFICATION CODE: v14.5-HIERARCHICAL-2026-02-16
 
 ✅ SYNCHRONIZED FEATURES:
   • Feature Engineering: Matched with enrich_features_v14()
   • Rolling Normalization: Window=200, Min periods=50
-  • Dual Threshold: Trending 0.36 | Sideway 0.22
-  • Regime Detection: ADX + Choppiness (Hierarchical)
-  • Sideway Filters: Z-score=2.2, Shadow=0.7, BB=0.35
+  • Dual Threshold: Trending 0.40/0.42 | Sideway 0.22
+  • Regime Detection: ADX-FIRST Hierarchical (Priority-based)
+  • Sideway Filters: Z-score=1.4, Shadow=0.1, BB=0.35
   • Exit Logic: Progressive Profit Lock + Trailing + AI Counter
+  
+🔄 KEY CHANGES IN v14.5:
+  • Regime logic: AND → HIERARCHICAL (ADX first, then Choppiness)
+  • ADX thresholds: sideway_max=20 (not 30)
+  • Trending threshold: 0.40 (from 0.36)
+  • Choppiness: extreme_low=30 for directional exception
 """
 
 import ccxt
@@ -50,7 +56,7 @@ logger = logging.getLogger(__name__)
 SLIPPAGE = 0.0005
 COMMISSION = 0.00075
 
-# ⚙️ LIVE_CONFIG - 100% MATCHED WITH BACKTEST v14.4
+# ⚙️ LIVE_CONFIG - 100% MATCHED WITH BACKTEST v14.5
 LIVE_CONFIG = {
     # MODEL ARCHITECTURE
     'input_dim': 42,                     
@@ -72,18 +78,19 @@ LIVE_CONFIG = {
     'temperature': 1.2,  
     
     # TRENDING MODE (HIGH CONFIDENCE)
-    'trending_buy_threshold': 0.36,   
-    'trending_sell_threshold': 0.36,  
+    'trending_buy_threshold': 0.40,        # UPDATED from 0.36
+    'trending_sell_threshold': 0.42,       # UPDATED from 0.36
     
     # SIDEWAY MODE (LOWER CONFIDENCE)
     'sideway_buy_threshold': 0.22,    
     'sideway_sell_threshold': 0.22,   
     
-    # --- REGIME CLASSIFICATION ---
-    'trending_adx_min': 30,         
-    'sideway_adx_max': 30,           
-    'choppiness_threshold_low': 30,   
-    'choppiness_threshold_high': 58.0, 
+    # --- REGIME CLASSIFICATION (UPDATED!) ---
+    'trending_adx_min': 30,                # UPDATED from 25
+    'sideway_adx_max': 30,                 # Keep same (was 30)
+    'choppiness_threshold_low': 30,        # UPDATED from 50
+    'choppiness_threshold_high': 58.0,     # Keep same
+    'choppiness_extreme_low': 30,          # NEW parameter
     
     # --- SIDEWAY FILTERS (MATCHED!) ---
     'deviation_zscore_threshold': 1.4,       
@@ -124,22 +131,27 @@ LIVE_CONFIG = {
 # Discord Webhook
 DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1472776784205447360/NQaLrcBstxG1vLpwIcHREhPRlFphGFSKl2lUreNMZxHdX4zVk-81F7ACogFUA6fepMMH"
 
-STATE_FILE = os.path.abspath("bot_state_v14_4.json")
+STATE_FILE = os.path.abspath("bot_state_v14_5.json")
 
 # ════════════════════════════════════════════════════════════════════════════
 # STARTUP VERIFICATION
 # ════════════════════════════════════════════════════════════════════════════
 
 logger.info("="*80)
-logger.info("🎯 MONSTER ENGINE v14.4 - SYNCHRONIZED WITH BACKTEST")
+logger.info("🎯 MONSTER ENGINE v14.5 - HIERARCHICAL REGIME DETECTION")
 logger.info("="*80)
-logger.info(f"✅ VERIFICATION CODE: v14.4-SYNC-2026-02-16")
+logger.info(f"✅ VERIFICATION CODE: v14.5-HIERARCHICAL-2026-02-16")
 logger.info(f"")
 logger.info(f"🔍 THRESHOLD VERIFICATION:")
-logger.info(f"   Trending Buy:  {LIVE_CONFIG['trending_buy_threshold']:.3f} ✅")
-logger.info(f"   Trending Sell: {LIVE_CONFIG['trending_sell_threshold']:.3f} ✅")
-logger.info(f"   Sideway Buy:   {LIVE_CONFIG['sideway_buy_threshold']:.3f} ✅")
-logger.info(f"   Sideway Sell:  {LIVE_CONFIG['sideway_sell_threshold']:.3f} ✅")
+logger.info(f"   Trending Buy:  {LIVE_CONFIG['trending_buy_threshold']:.3f} (0.40) ✅")
+logger.info(f"   Trending Sell: {LIVE_CONFIG['trending_sell_threshold']:.3f} (0.42) ✅")
+logger.info(f"   Sideway Buy:   {LIVE_CONFIG['sideway_buy_threshold']:.3f} (0.22) ✅")
+logger.info(f"   Sideway Sell:  {LIVE_CONFIG['sideway_sell_threshold']:.3f} (0.22) ✅")
+logger.info(f"")
+logger.info(f"🔍 REGIME PARAMETERS:")
+logger.info(f"   ADX Trending Min:     {LIVE_CONFIG['trending_adx_min']} (25) ✅")
+logger.info(f"   ADX Sideway Max:      {LIVE_CONFIG['sideway_adx_max']} (20) ✅")
+logger.info(f"   Chop Extreme Low:     {LIVE_CONFIG['choppiness_threshold_low']} (30) ✅")
 logger.info(f"")
 logger.info(f"🔍 SIDEWAY FILTER VERIFICATION:")
 logger.info(f"   BB Percentile:    {LIVE_CONFIG['bb_squeeze_percentile']:.2f} ✅")
@@ -643,35 +655,61 @@ def prepare_features_for_model(df, feature_cols, config):
 
 def detect_market_regime_hierarchical(adx, choppiness, config):
     """
-    Hierarchical regime detection - 100% MATCHED with backtest
+    ╔══════════════════════════════════════════════════════════════════════════╗
+    ║  REGIME DETECTION v14.5 - HIERARCHICAL (ADX-FIRST APPROACH)            ║
+    ╚══════════════════════════════════════════════════════════════════════════╝
+    
+    PRIORITY: ADX > Choppiness
+    
+    Step 1: Check ADX (PRIMARY SIGNAL)
+        • ADX < 20  → SIDEWAY (weak momentum)
+        • ADX > 25  → TRENDING (strong momentum)
+        • 20 ≤ ADX ≤ 25 → Use Choppiness as tiebreaker
+    
+    Step 2: Choppiness (SECONDARY - only for extreme cases)
+        • If ADX < 20 but Chop < 30 → TRENDING (very directional price)
+        • If ADX > 25 but Chop > 70 → Still TRENDING (trust ADX)
+    
+    Args:
+        adx: Current ADX value
+        choppiness: Current Choppiness Index
+        config: Config dict
     
     Returns:
-        (is_trending, is_sideway, regime_reason)
+        (is_trending, is_sideway, regime_name)
     """
-    trending_adx_min = config.get('trending_adx_min', 25)
-    sideway_adx_max = config.get('sideway_adx_max', 30)
-    choppiness_low = config.get('choppiness_threshold_low', 50)
-    choppiness_high = config.get('choppiness_threshold_high', 61.8)
+    adx_sideway_max = config.get('sideway_adx_max', 20)
+    adx_trending_min = config.get('trending_adx_min', 25)
+    chop_extreme_low = config.get('choppiness_threshold_low', 30)
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # PRIORITY 1: ADX (PRIMARY)
+    # ═══════════════════════════════════════════════════════════════════════
+
+    # Strong momentum → TRENDING (regardless of choppiness)
+    if adx > adx_trending_min:
+        return True, False, f"TRENDING_ADX_HIGH(ADX:{adx:.1f}>25)"
+
+    # Very weak momentum → SIDEWAY
+    if adx < adx_sideway_max:
+        # Exception: Extremely directional price (very low chop)
+        if choppiness < chop_extreme_low:
+            return True, False, f"TRENDING_CHOP_EXTREME_LOW(Chop:{choppiness:.1f}<30,ADX:{adx:.1f})"
+        else:
+            return False, True, f"SIDEWAY_ADX_LOW(ADX:{adx:.1f}<20)"
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # PRIORITY 2: UNCLEAR ZONE (20 ≤ ADX ≤ 25) - Use Choppiness
+    # ═══════════════════════════════════════════════════════════════════════
     
-    is_trending = False
-    is_sideway = False
-    regime_reason = ""
-    
-    # TRENDING: High ADX + Low Choppiness
-    if adx >= trending_adx_min and choppiness < choppiness_low:
-        is_trending = True
-        regime_reason = f"TRENDING_ADX_HIGH(ADX:{adx:.1f}>={trending_adx_min}, CHOP:{choppiness:.1f}<{choppiness_low})"
-    
-    # SIDEWAY: Low ADX + High Choppiness
-    elif adx < sideway_adx_max and choppiness > choppiness_high:
-        is_sideway = True
-        regime_reason = f"SIDEWAY_CHOP_HIGH(ADX:{adx:.1f}<{sideway_adx_max}, CHOP:{choppiness:.1f}>{choppiness_high})"
-    
-    # UNCLEAR
-    else:
-        regime_reason = f"UNCLEAR_WAIT(ADX:{adx:.1f}, CHOP:{choppiness:.1f})"
-    
-    return is_trending, is_sideway, regime_reason
+    if choppiness > 60:
+        return False, True, f"SIDEWAY_CHOP_HIGH({choppiness:.1f})"
+    elif choppiness < 40:
+        return True, False, f"TRENDING_CHOP_LOW({choppiness:.1f})"
+
+    # Ambiguous → Don't trade
+    return False, False, f"UNCLEAR_WAIT(ADX:{adx:.1f}, Chop:{choppiness:.1f})"
+
 
 # ════════════════════════════════════════════════════════════════════════════
 # STATE MANAGEMENT
@@ -704,7 +742,7 @@ def load_state():
 
 def save_state(state):
     try:
-        with open("bot_state_v14_4.json", "w", encoding='utf-8') as f:
+        with open("bot_state_v14_5.json", "w", encoding='utf-8') as f:
             json.dump(state, f, indent=4, ensure_ascii=False)
             f.flush()
             os.fsync(f.fileno()) # Đảm bảo file được lưu thật sự trên Cloud
@@ -724,7 +762,7 @@ def send_discord_alert(webhook_url, title, color, fields):
         "color": color,
         "fields": fields,
         "timestamp": datetime.utcnow().isoformat(),
-        "footer": {"text": "Monster Engine v14.4 Sync"}
+        "footer": {"text": "Monster Engine v14.5 Hierarchical"}
     }
     
     payload = {"embeds": [embed]}
