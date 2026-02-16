@@ -8,7 +8,17 @@ import numpy as np
 from datetime import datetime
 import streamlit.components.v1 as components
 import subprocess
+import psutil
 
+def is_bot_running():
+    for proc in psutil.process_iter(['cmdline']):
+        if proc.info['cmdline'] and 'monster_engine.py' in proc.info['cmdline']:
+            return True
+    return False
+
+if not is_bot_running():
+    subprocess.Popen([sys.executable, "monster_engine.py"])
+    
 python_path = sys.executable
 # --- ĐOẠN CODE KÍCH HOẠT BOT NGẦM ---
 def start_engine():
