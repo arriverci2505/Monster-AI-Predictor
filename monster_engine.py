@@ -1101,8 +1101,7 @@ def main():
             # ═══════════════════════════════════════════════════════════════
             # ENTRY LOGIC - REGIME-FIRST (MATCHED WITH BACKTEST v14.4)
             # ═══════════════════════════════════════════════════════════════
-            
-            if not state['open_trades'] and not state['pending_orders']:
+            if len(state.get('open_trades', [])) == 0 and len(state.get('pending_orders', [])) == 0:
                 try:
                     # Prepare sequences for model
                     sequences = prepare_features_for_model(df_enriched, feature_cols, LIVE_CONFIG)
