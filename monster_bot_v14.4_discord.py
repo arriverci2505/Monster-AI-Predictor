@@ -239,23 +239,28 @@ st.markdown("""
     .hud-header::before {
         content: '';
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, #00f2ff, #bd00ff, transparent);
-        animation: seamlessScan 8s linear infinite;
+        width: 100px; 
+        height: 3px;
+        background: linear-gradient(90deg, transparent, #00f2ff, #ffffff, #00f2ff, transparent);
+        box-shadow: 0 0 15px #00f2ff;
+        z-index: 10;
+        animation: fullBorderScan 10s linear infinite;
     }
 
-    @keyframes seamlessScan {
-        /* ---------- CHẠY VIỀN TRÊN ---------- */
-        0% {top: 0;left: 0;transform: translateX(-100%);}
-        40% {top: 0;left: 100%;transform: translateX(0%);}
-        45% {top: 0;left: 100%;transform: translateX(100%);}
-        45.01% {top: calc(100% - 2px);left: 100%;transform: translateX(100%);}
-        50% {top: calc(100% - 2px);left: 100%;transform: translateX(0%);}
-        90% {top: calc(100% - 2px);left: 0%;transform: translateX(-100%);}
-        100% {top: 0;left: 0;transform: translateX(-100%);}
+    @keyframes fullBorderScan {
+        0% { top: 0; left: -100px; width: 100px; height: 3px; transform: rotate(0deg); }
+        20% { top: 0; left: calc(100% - 100px); width: 100px; height: 3px; transform: rotate(0deg); }
+
+        25% { top: 0; left: 100%; width: 3px; height: 100px; transform: translateX(-3px); }
+        45% { top: calc(100% - 100px); left: 100%; width: 3px; height: 100px; transform: translateX(-3px); }
+
+        50% { top: 100%; left: calc(100% - 100px); width: 100px; height: 3px; transform: translateY(-3px); }
+        70% { top: 100%; left: 0; width: 100px; height: 3px; transform: translateY(-3px); }
+
+        75% { top: calc(100% - 100px); left: 0; width: 3px; height: 100px; transform: translateX(0); }
+        95% { top: 0; left: 0; width: 3px; height: 100px; transform: translateX(0); }
+        
+        100% { top: 0; left: -100px; }
     }
     
     .hud-title {
