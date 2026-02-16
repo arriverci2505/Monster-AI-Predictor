@@ -627,17 +627,28 @@ st.markdown("""
             margin-bottom: 15px !important;
         }
 
-        /* Fix lỗi thanh Sidebar bên trái trên Mobile */
-        [data-testid="stSidebar"] {
-            width: 80% !important; /* Không cho nó chiếm hết 100% màn hình mobile */
+        /* 1. Ẩn hoàn toàn thanh Sidebar khi mới vào trên Mobile để đỡ vướng */
+        [data-testid="stSidebar"][aria-expanded="true"] {
+            width: 85vw !important;
+            margin-left: 0 !important;
         }
-    
-        /* Đưa nút đóng/mở Sidebar lên lớp trên cùng để không bị HUD đè */
+
+        /* 2. Ép nội dung chính không được thụt vào khi Sidebar mở */
+        .main .block-container {
+            max-width: 100% !important;
+            padding: 1rem !important;
+        }
+
+        /* 3. Di chuyển nút mở Sidebar ra vị trí không che HUD */
         [data-testid="stSidebarCollapsedControl"] {
-            z-index: 999999 !important;
-            background-color: rgba(10, 10, 15, 0.8) !important;
+            background: rgba(0, 242, 255, 0.1) !important;
+            backdrop-filter: blur(5px) !important;
             border-radius: 0 10px 10px 0 !important;
-            top: 10px !important;
+            border: 1px solid rgba(0, 242, 255, 0.3) !important;
+            top: 70px !important; /* Đẩy nó xuống dưới HUD một chút */
+            left: 0 !important;
+            width: 40px !important;
+            height: 40px !important;
         }
     
         /* Quan trọng: Reset lại Margin âm của HUD trên Mobile để không đè Sidebar */
