@@ -897,7 +897,9 @@ if data:
         # ═══════════════════════════════════════════════════════════════
         # AI CONFIDENCE CHART - CĂN BẰNG VỚI CHỮ "MONSTER"
         # ═══════════════════════════════════════════════════════════════
-        st.markdown('<div class="camera-frame" style="position: relative; padding: 20px; min-height: 200px; margin-bottom: 10px;">', unsafe_allow_html=True)
+        st.markdown("""
+        <div class="camera-frame" style="position: relative; padding: 25px 15px 15px 15px; min-height: 200px;">
+        """, unsafe_allow_html=True)
         
         fig_ai = go.Figure()
         fig_ai.add_trace(go.Bar(
@@ -919,21 +921,21 @@ if data:
             font=dict(color='#00f2ff', family='JetBrains Mono'),
             xaxis=dict(range=[0, 100], showgrid=False, visible=False),
             yaxis=dict(color='#00f2ff', tickfont=dict(size=10)),
-            height=160, # Chiều cao cố định cho biểu đồ
-            margin=dict(l=70, r=10, t=0, b=0), # Triệt tiêu margin thừa gây lệch
+            height=160,
+            margin=dict(l=70, r=10, t=0, b=0), # Triệt tiêu margin của Plotly để tránh đẩy khung
             showlegend=False,
             bargap=0.4
         )
         
         st.plotly_chart(fig_ai, use_container_width=True, config={'displayModeBar': False})
         
-        # Chèn các góc - Đảm bảo các góc này nằm trong div camera-frame
+        # Đóng div camera-frame và chèn các dấu góc vào bên trong
         st.markdown("""
-            <div class="camera-bottom-left" style="bottom: 5px; left: 5px;"></div>
-            <div class="camera-bottom-right" style="bottom: 5px; right: 5px;"></div>
+            <div class="camera-bottom-left" style="position: absolute; bottom: 10px; left: 10px;"></div>
+            <div class="camera-bottom-right" style="position: absolute; bottom: 10px; right: 10px;"></div>
         </div>
         """, unsafe_allow_html=True)
-        
+                
     # ═══════════════════════════════════════════════════════════════════════════
     # TRADE HISTORY TABLE
     # ═══════════════════════════════════════════════════════════════════════════
