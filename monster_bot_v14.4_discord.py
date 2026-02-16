@@ -766,6 +766,11 @@ if data:
           "hide_legend": false,
           "save_image": false,
           "container_id": "tv_chart_container",
+          "studies": [
+            "RSI@tv-basicstudies",
+            {"id": "MASimple@tv-basicstudies", "inputs": { "length": 200 }},
+            "StochasticRSI@tv-basicstudies"
+          ],
           "overrides": {
             "paneProperties.background": "#050505",
             "paneProperties.vertGridProperties.color": "rgba(0, 242, 255, 0.05)",
