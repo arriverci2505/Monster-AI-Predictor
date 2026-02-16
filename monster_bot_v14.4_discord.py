@@ -862,7 +862,7 @@ if data:
         f"[STATS]   Total Trades: {len(history)}"
         f"[STATS]   Win Rate: {wr:.1f}%"
         f"[STATS]   Total PnL: ${total_pnl:,.2f}"
-        f"[SYSTEM]  CPU: {cpu_usage:.1f}% | RAM: {ram_usage.1f}%"
+        f"[SYSTEM]  CPU: {cpu_usage:.1f}% | RAM: {ram_usage:.1f}%"
         f"[TIME]    Last Update: {last_update_display}"
         f"[CONFIG]  Rolling Window: {ROLLING_WINDOW} candles"
         f"[FILE]    State: {os.path.basename(STATE_FILE)}"
