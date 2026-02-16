@@ -678,6 +678,19 @@ def detect_market_regime_hierarchical(adx, choppiness, config):
 # STATE MANAGEMENT
 # ════════════════════════════════════════════════════════════════════════════
 
+def start_engine_on_cloud():
+    """Lệnh này sẽ chạy Engine như một tiến trình ngầm trên Server Streamlit"""
+    if not is_bot_running()[0]:
+        try:
+            subprocess.Popen([sys.executable, "monster_engine.py"])
+            return True
+        except:
+            return False
+    return True
+
+# Tự động gọi khởi động khi UI load
+start_engine_on_cloud()
+
 def load_state():
     """Load bot state"""
     if os.path.exists(STATE_FILE):
