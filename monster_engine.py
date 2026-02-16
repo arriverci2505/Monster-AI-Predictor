@@ -750,14 +750,34 @@ def load_state():
         'total_trades': 0
     }
 
+# [Tìm hàm save_state cũ và thay thế bằng đoạn này]
+
 def save_state(state):
+    """
+    ATOMIC WRITE MECHANISM:
+    1. Write to .tmp file
+    2. Flush & Fsync to disk
+    3. Atomic Replace (Rename)
+    """
     try:
-        with open("bot_state_v14_5_1.json", "w", encoding='utf-8') as f:
+        # 1. Cập nhật Timestamp chuẩn UTC ngay trước khi lưu
+        state['last_update_time'] = datetime.now(timezone.utc).isoformat()
+        
+        # 2. Tạo tên file tạm
+        temp_file = f"{STATE_FILE}.tmp"
+        
+        # 3. Ghi vào file tạm
+        with open(temp_file, "w", encoding='utf-8') as f:
             json.dump(state, f, indent=4, ensure_ascii=False)
-            f.flush()
-            os.fsync(f.fileno())
+            f.flush()              # Đẩy dữ liệu từ bộ đệm Python xuống OS
+            os.fsync(f.fileno())   # Ép OS ghi dữ liệu xuống đĩa cứng vật lý
+            
+        # 4. Thay thế file chính bằng file tạm (Hành động nguyên tử - Atomic)
+        # Trên Linux/Unix, thao tác này diễn ra ngay lập tức, không có độ trễ
+        os.replace(temp_file, STATE_FILE)
+        
     except Exception as e:
-        logger.error(f"Error saving state: {e}")
+        logger.error(f"❌ FATAL ERROR saving state: {e}")
 # ════════════════════════════════════════════════════════════════════════════
 # DISCORD NOTIFICATIONS
 # ════════════════════════════════════════════════════════════════════════════
