@@ -164,23 +164,19 @@ def get_system_stats():
         return 0, 0
 
 def parse_ai_confidence(data):
-    """Trích xuất xác suất AI từ lệnh mới nhất trong trade_history"""
+    """Trích xuất xác suất AI liên tục từ trạng thái mới nhất của Bot"""
     try:
-        history = data.get('trade_history', [])
-        
-        if history:
-            latest_trade = history[0] 
-            
+        live_probs = data.get('ai_probs', {})
+        if live_probs:
             return (
-                latest_trade.get('prob_neutral', 0.33),
-                latest_trade.get('prob_buy', 0.33),
-                latest_trade.get('prob_sell', 0.33)
+                live_probs.get('neutral', 0.33),
+                live_probs.get('buy', 0.0),
+                live_probs.get('sell', 0.0)
             )
-            
-        return (0.33, 0.33, 0.33)
-    except:
-        return (0.33, 0.33, 0.33)
 
+        return (0.33, 0.33, 0.33)
+    except Exception:
+        return (0.33, 0.33, 0.33)
 # ════════════════════════════════════════════════════════════════════════════
 # CYBERPUNK HUD CSS - GLASSMORPHISM + NEON GLOW
 # ════════════════════════════════════════════════════════════════════════════
