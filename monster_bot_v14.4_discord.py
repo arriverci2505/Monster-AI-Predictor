@@ -247,14 +247,49 @@ st.markdown("""
         animation: doubleScan 8s linear infinite;
     }
 
-    @keyframes doubleScan {
-        0% {top: 0;left: -150px;opacity: 1;}
-        35% {top: 0;left: 100%;opacity: 1;}
-        35.01% {top: 100%;left: 100%;opacity: 0;}
-        50% {top: calc(100% - 3px); left: 100%;opacity: 1;}
-        75% {top: calc(100% - 3px);left: -150px;opacity: 1;}
-        75.01% {top: 0;left: -150px;opacity: 0;}
-        100% {top: 0;left: -150px;opacity: 0;}
+    @keyframes seamlessScan {
+        /* ---------- CHẠY VIỀN TRÊN ---------- */
+        0% {
+            top: 0;
+            left: 0;
+            transform: translateX(-100%); /* Giấu toàn bộ thân vào lề trái */
+        }
+        40% {
+            top: 0;
+            left: 100%;
+            transform: translateX(0%); /* Chạy đến khi đầu chạm lề phải */
+        }
+        45% {
+            top: 0;
+            left: 100%;
+            transform: translateX(100%); /* Đuôi chui hết vào lề phải mới mất */
+        }
+
+        /* ---------- CHUYỂN TRẠNG THÁI TỨC THÌ ---------- */
+        45.01% {
+            top: calc(100% - 2px);
+            left: 100%;
+            transform: translateX(100%); /* Nhảy xuống dưới trong khi vẫn đang ẩn */
+        }
+
+        /* ---------- CHẠY VIỀN DƯỚI ---------- */
+        50% {
+            top: calc(100% - 2px);
+            left: 100%;
+            transform: translateX(0%); /* Đầu bắt đầu ló ra từ lề phải */
+        }
+        90% {
+            top: calc(100% - 2px);
+            left: 0%;
+            transform: translateX(-100%); /* Chạy lùi về trái cho đến khi đuôi mất hẳn */
+        }
+
+        /* ---------- KẾT THÚC VÒNG LẶP ---------- */
+        100% {
+            top: 0;
+            left: 0;
+            transform: translateX(-100%);
+        }
     }
     
     .hud-title {
