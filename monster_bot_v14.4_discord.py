@@ -737,21 +737,42 @@ if data:
         st.markdown('<div class="camera-frame">', unsafe_allow_html=True)
         
         tradingview_html = """
-        <div class="tradingview-widget-container" style="height:550px;">
-          <div id="tradingview_chart" style="height:100%;"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-          <script type="text/javascript">
-          new TradingView.widget({
-            "autosize": true,
-            "symbol": "KRAKEN:BTCUSDT",
-            "interval": "15",
-            "theme": "dark",
-            "style": "1",
-            "locale": "en",
-            "container_id": "tradingview_chart"
-          });
-          </script>
-        </div>
+            <div id="tradingview_chart"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+            <script type="text/javascript">
+            new TradingView.widget({
+              "autosize": true,
+              "symbol": "BINANCE:BTCUSDT",
+              "interval": "15",
+              "timezone": "Asia/Ho_Chi_Minh",
+              "theme": "dark",
+              "style": "1",
+              "locale": "en",
+              "toolbar_bg": "rgba(0, 20, 20, 1)",
+              "enable_publishing": false,
+              "hide_top_toolbar": false,
+              "hide_legend": false,
+              "save_image": false,
+              "container_id": "tradingview_chart",
+              "overrides": {
+                /* Màu nền tổng thể khớp với Matrix UI */
+                "paneProperties.background": "#000a0a", 
+                "paneProperties.vertGridProperties.color": "rgba(0, 242, 255, 0.05)",
+                "paneProperties.horzGridProperties.color": "rgba(0, 242, 255, 0.05)",
+                "symbolWatermarkProperties.transparency": 90,
+                "scalesProperties.textColor": "#00f2ff",
+                "mainSeriesProperties.candleStyle.upColor": "#00f2ff",
+                "mainSeriesProperties.candleStyle.downColor": "#ff0055",
+                "mainSeriesProperties.candleStyle.drawWick": true,
+                "mainSeriesProperties.candleStyle.drawBorder": true,
+                "mainSeriesProperties.candleStyle.borderColor": "#00f2ff",
+                "mainSeriesProperties.candleStyle.borderUpColor": "#00f2ff",
+                "mainSeriesProperties.candleStyle.borderDownColor": "#ff0055",
+                "mainSeriesProperties.candleStyle.wickUpColor": "#00f2ff",
+                "mainSeriesProperties.candleStyle.wickDownColor": "#ff0055"
+              }
+            });
+            </script>
         """
         components.html(tradingview_html, height=550)
         
