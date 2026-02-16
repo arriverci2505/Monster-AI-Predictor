@@ -37,23 +37,45 @@ ROLLING_WINDOW = 200
 # ════════════════════════════════════════════════════════════════════════════
 
 def is_bot_running():
-    """Check if monster_engine.py is running - Optimized Version"""
+    """Kiểm tra xem monster_engine.py có đang chạy ngầm không"""
     try:
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             try:
-                # Kiểm tra cmdline có tồn tại không
                 info = proc.info
                 if info['cmdline']:
                     cmdline = ' '.join(info['cmdline']).lower()
-                    # Kiểm tra chính xác file engine
                     if 'monster_engine.py' in cmdline:
                         return True, info['pid']
             except (psutil.AccessDenied, psutil.NoSuchProcess):
-                # Bỏ qua nếu không có quyền truy cập tiến trình đó
                 continue
-    except Exception as e:
-        st.sidebar.warning(f"Process check error: {e}")
+    except Exception:
+        pass
     return False, None
+
+def start_engine():
+    """Khởi động Engine bằng Subprocess độc lập"""
+    try:
+        # Lấy file engine cùng thư mục với file UI
+        engine_path = os.path.join(CURRENT_DIR, "monster_engine.py")
+        subprocess.Popen([sys.executable, engine_path], 
+                         stdout=subprocess.DEVNULL, 
+                         stderr=subprocess.DEVNULL)
+        st.sidebar.success("🚀 Monster Engine đang được kích hoạt...")
+        time.sleep(2) # Đợi 1 chút để engine tạo file json ban đầu
+    except Exception as e:
+        st.sidebar.error(f"Lỗi khởi động: {e}")
+
+# --- KIỂM TRA TRẠNG THÁI TRÊN SIDEBAR ---
+bot_running, bot_pid = is_bot_running()
+with st.sidebar:
+    st.markdown("### 🤖 Engine Status")
+    if bot_running:
+        st.success(f"ONLINE (PID: {bot_pid})")
+    else:
+        st.error("OFFLINE")
+        if st.button("🚀 Khởi động Engine"):
+            start_engine()
+            st.rerun()
 
 def kill_bot(pid):
     """Stop the bot process"""
