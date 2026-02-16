@@ -83,19 +83,19 @@ LIVE_CONFIG = {
     'temperature': 1.2,  
     
     # TRENDING MODE (HIGH CONFIDENCE)
-    'trending_buy_threshold': 0.40,        # UPDATED from 0.36
-    'trending_sell_threshold': 0.42,       # UPDATED from 0.36
+    'trending_buy_threshold': 0.40,       
+    'trending_sell_threshold': 0.42,       
     
     # SIDEWAY MODE (LOWER CONFIDENCE)
     'sideway_buy_threshold': 0.22,    
     'sideway_sell_threshold': 0.22,   
     
     # --- REGIME CLASSIFICATION (UPDATED!) ---
-    'trending_adx_min': 30,                # UPDATED from 25
-    'sideway_adx_max': 30,                 # Keep same (was 30)
-    'choppiness_threshold_low': 30,        # UPDATED from 50
-    'choppiness_threshold_high': 58.0,     # Keep same
-    'choppiness_extreme_low': 30,          # NEW parameter
+    'trending_adx_min': 30,                
+    'sideway_adx_max': 30,                 
+    'choppiness_threshold_low': 30,       
+    'choppiness_threshold_high': 58.0,    
+    'choppiness_extreme_low': 30,          
     
     # --- SIDEWAY FILTERS (MATCHED!) ---
     'deviation_zscore_threshold': 1.4,       
@@ -974,23 +974,23 @@ def main():
                     if net_pnl > trailing_activation:
                         trailing_dist = LIVE_CONFIG['trailing_stop_distance'] / 100
                         if net_pnl < (trade['max_pnl'] - trailing_dist):
-                            exit_reason = 'TRAILING_STOP'
+                            exit_reason = 'Dừng lỗ động'
                     
                     # 2. Stop Loss (ATR-based)
                     sl_distance = atr * LIVE_CONFIG['sl_std_multiplier']
                     if net_pnl < -(sl_distance / trade['entry_price']):
-                        exit_reason = 'STOP_LOSS'
+                        exit_reason = 'Dừng lỗ'
                     
                     # 3. Max Holding
                     if trade['bars_held'] > LIVE_CONFIG['max_holding_bars']:
-                        exit_reason = 'MAX_HOLDING'
+                        exit_reason = 'Hết thời gian chờ'
                     
                     # 4. Profit Lock (tiered)
                     for trigger, lock in LIVE_CONFIG['profit_lock_levels']:
                         trigger_pct = trigger / 100
                         lock_pct = lock / 100
                         if trade['max_pnl'] >= trigger_pct and net_pnl < lock_pct:
-                            exit_reason = f'PROFIT_LOCK({trigger}%->{lock}%)'
+                            exit_reason = f'Khóa lợi nhuận({trigger}%->{lock}%)'
                             break
                 
                 # ───────────────────────────────────────────────────────────
@@ -1018,10 +1018,10 @@ def main():
                             
                             ai_exit_thresh = LIVE_CONFIG['ai_exit_threshold']
                             if trade['side'] in ['BUY', 'LONG'] and current_prob_sell > ai_exit_thresh:
-                                exit_reason = 'AI_COUNTER_SIGNAL'
+                                exit_reason = 'Thoát do AI báo tín hiệu ngược'
                                 logger.warning(f"⚠️ AI Counter Signal: SELL prob {current_prob_sell:.3f} > {ai_exit_thresh}")
                             elif trade['side'] in ['SELL', 'SHORT'] and current_prob_buy > ai_exit_thresh:
-                                exit_reason = 'AI_COUNTER_SIGNAL'
+                                exit_reason = 'Thoát do AI báo tín hiệu ngược'
                                 logger.warning(f"⚠️ AI Counter Signal: BUY prob {current_prob_buy:.3f} > {ai_exit_thresh}")
                     except Exception as e:
                         logger.error(f"Error in AI Counter Signal: {e}")
@@ -1031,32 +1031,32 @@ def main():
                         if trade['side'] in ['BUY', 'LONG']:
                             if current_price >= sma20:
                                 if net_pnl > min_profit_cover:
-                                    exit_reason = 'TARGET_REACHED'
+                                    exit_reason = 'Chạm mục tiêu'
                                 elif net_pnl > 0:
-                                    exit_reason = 'BREAK_EVEN'
+                                    exit_reason = 'Hòa vốn'
                         else:
                             if current_price <= sma20:
                                 if net_pnl > min_profit_cover:
-                                    exit_reason = 'TARGET_REACHED'
+                                    exit_reason = 'Chạm mục tiêu'
                                 elif net_pnl > 0:
-                                    exit_reason = 'BREAK_EVEN'
+                                    exit_reason = 'Hòa vốn'
                     
                     # 2. Stop Loss (percentage)
                     if not exit_reason:
                         mean_reversion_sl = LIVE_CONFIG['mean_reversion_sl_pct'] / 100
                         if net_pnl < -mean_reversion_sl:
-                            exit_reason = 'STOP_LOSS'
+                            exit_reason = 'Dừng lỗ'
                     
                     # 3. Take Profit (hard TP)
                     if not exit_reason:
                         mean_reversion_tp = LIVE_CONFIG['mean_reversion_tp_pct'] / 100
                         if net_pnl > mean_reversion_tp:
-                            exit_reason = 'TAKE_PROFIT'
+                            exit_reason = 'Chốt lời'
                     
                     # 4. Max Holding
                     if not exit_reason:
                         if trade['bars_held'] > LIVE_CONFIG['time_barrier']:
-                            exit_reason = 'MAX_HOLDING'
+                            exit_reason = 'Hết thời gian chờ'
                 
                 # Execute exit
                 if exit_reason:
@@ -1088,11 +1088,11 @@ def main():
                         f"🚪 EXIT: {trade['side']} {trade['regime']}",
                         0x00ff00 if net_pnl > 0 else 0xff0000,
                         [
-                            {"name": "Side", "value": trade['side'], "inline": True},
-                            {"name": "Entry", "value": f"${trade['entry_price']:.2f}", "inline": True},
-                            {"name": "Exit", "value": f"${exit_price:.2f}", "inline": True},
-                            {"name": "PnL", "value": f"{net_pnl*100:.2f}%", "inline": True},
-                            {"name": "Reason", "value": exit_reason, "inline": False}
+                            {"name": "Phía:", "value": trade['side'], "inline": True},
+                            {"name": "Vào lệnh:", "value": f"${trade['entry_price']:.2f}", "inline": True},
+                            {"name": "Thoát lệnh:", "value": f"${exit_price:.2f}", "inline": True},
+                            {"name": "Lợi nhuận và Thua lỗ:", "value": f"{net_pnl*100:.2f}%", "inline": True},
+                            {"name": "Lý do thoát lệnh:", "value": exit_reason, "inline": False}
                         ]
                     )
             
@@ -1155,12 +1155,12 @@ def main():
                             if prob_buy > trending_buy_thresh and prob_buy > prob_sell:
                                 entry_signal = 'LONG'
                                 entry_mode = 'TRENDING'
-                                entry_reason = f"AI:{prob_buy:.3f}>{trending_buy_thresh:.3f}"
+                                entry_reason = f"AI dự đoán: {prob_buy:.3f} > {trending_buy_thresh:.3f} & {prob_buy:.3f}>{prob_sell:.3f}"
                             
                             elif prob_sell > trending_sell_thresh and prob_sell > prob_buy:
                                 entry_signal = 'SHORT'
                                 entry_mode = 'TRENDING'
-                                entry_reason = f"AI:{prob_sell:.3f}>{trending_sell_thresh:.3f}"
+                                entry_reason = f"AI dự đoán: {prob_sell:.3f} > {trending_sell_thresh:.3f} & {prob_sell:.3f}>{prob_buy:.3f}"
                         
                         elif is_sideway:
                             # ───────────────────────────────────────────────────
@@ -1189,14 +1189,14 @@ def main():
                                 else:
                                     entry_signal = 'LONG'
                                     entry_mode = 'SIDEWAY'
-                                    reasons = [f"AI:{prob_buy:.3f}"]
+                                    reasons = [f"AI dự đoán: {prob_buy:.3f} > {sideway_buy_thresh:.3f}"]
                                     if near_bb_lower:
-                                        reasons.append(f"BB:{bb_position:.2f}")
+                                        reasons.append(f"Giá đã chạm vào biên giới dưới: {bb_position:.2f} < {bb_border:.2f}")
                                     if is_oversold:
-                                        reasons.append(f"Z:{deviation_zscore:.2f}")
+                                        reasons.append(f"Quá bán: {deviation_zscore:.2f} < -{z_thresh:.2f}")
                                     if has_lower_shadow:
-                                        reasons.append(f"Shadow:{lower_shadow:.2f}")
-                                    reasons.append(f"AI_OK(sell:{prob_sell:.2f})")
+                                        reasons.append(f"Nến có râu dài: {lower_shadow:.2f} > {shadow_min:.2f}")
+                                    reasons.append(f"AI đã chấp nhận vào lệnh bán:{prob_sell:.2f} > {ai_filter_threshold:.2f}")
                                     entry_reason = "|".join(reasons)
                             
                             # SHORT: AI + (BB OR Zscore) + Shadow + Safety Filter
@@ -1210,14 +1210,14 @@ def main():
                                 else:
                                     entry_signal = 'SHORT'
                                     entry_mode = 'SIDEWAY'
-                                    reasons = [f"AI:{prob_sell:.3f}"]
+                                    reasons = [f"AI:{prob_sell:.3f} > {sideway_sell_thresh:.3f}"]
                                     if near_bb_upper:
-                                        reasons.append(f"BB:{bb_position:.2f}")
+                                        reasons.append(f"Giá đã chạm vào biên giới trên:{bb_position:.2f} > {(1 - bb_border):.2f}")
                                     if is_overbought:
-                                        reasons.append(f"Z:{deviation_zscore:.2f}")
+                                        reasons.append(f"Quá mua: {deviation_zscore:.2f} > {z_thresh:.2f}")
                                     if has_upper_shadow:
-                                        reasons.append(f"Shadow:{upper_shadow:.2f}")
-                                    reasons.append(f"AI_OK(buy:{prob_buy:.2f})")
+                                        reasons.append(f"Nến có râu dài: {upper_shadow:.2f} > {shadow_min:.2f}")
+                                    reasons.append(f"AI đã chấp nhận vào lệnh mua: {prob_buy:.2f} > {ai_filter_threshold:.2f})")
                                     entry_reason = "|".join(reasons)
                         
                         else:
@@ -1263,11 +1263,11 @@ def main():
                                     f"🚀 ENTRY: {entry_mode} {entry_signal}",
                                     0x00ff00 if entry_signal == 'LONG' else 0xff0000,
                                     [
-                                        {"name": "Symbol", "value": LIVE_CONFIG['symbol'], "inline": True},
-                                        {"name": "Side", "value": entry_signal, "inline": True},
-                                        {"name": "Entry", "value": f"${entry_price:.2f}", "inline": True},
-                                        {"name": "Regime", "value": entry_mode, "inline": True},
-                                        {"name": "Reason", "value": entry_reason, "inline": False}
+                                        {"name": "Mã:", "value": LIVE_CONFIG['symbol'], "inline": True},
+                                        {"name": "Phía:", "value": entry_signal, "inline": True},
+                                        {"name": "Vào lệnh:", "value": f"${entry_price:.2f}", "inline": True},
+                                        {"name": "Trạng thái thị trường:", "value": entry_mode, "inline": True},
+                                        {"name": "Lý do:", "value": entry_reason, "inline": False}
                                     ]
                                 )
                             
