@@ -665,7 +665,7 @@ st.sidebar.markdown("---")
 with st.sidebar:
     
     # Nút Restart to nhất, nổi bật
-    if st.button("🚀 RESTART MONSTER ENGINE", width='content'):
+    if st.button("🚀 RESTART MONSTER ENGINE", width='auto'):
         with st.spinner("Re-linking neural core..."):
             if restart_bot():
                 st.success("Engine Restarted!")
@@ -676,7 +676,7 @@ with st.sidebar:
     col_k1, col_k2 = st.columns(2)
     
     with col_k1:
-        if st.button("🛑 KILL BOT", key="kill", width='content'):
+        if st.button("🛑 KILL BOT", key="kill", width='auto'):
             if bot_running:
                 send_kill_signal()
                 success, msg = kill_bot(bot_pid)
@@ -686,11 +686,11 @@ with st.sidebar:
                 st.rerun()
 
     with col_k2:
-        if st.button("🔄 REFRESH", key="refresh", width='content'):
+        if st.button("🔄 REFRESH", key="refresh", width='auto'):
             st.rerun()
 
     # Nút dọn dẹp để ở dưới cùng của nhóm control
-    if st.button("🧹 CLEAR STATE DATA", width='content'):
+    if st.button("🧹 CLEAR STATE DATA", width='auto'):
         if os.path.exists(STATE_FILE):
             os.remove(STATE_FILE)
             st.warning("Data cleared!")
@@ -719,7 +719,7 @@ if data:
     history = data.get('trade_history', [])
     open_trades = data.get('open_trades', [])
     pending_orders = data.get('pending_orders', [])
-    regime = data.get('latest_regime', 'UNKNOWN')
+    regime = data.get('regime', 'UNKNOWN')
     
     total_pnl = calculate_total_pnl(history)
     
@@ -910,7 +910,7 @@ if data:
                     margin=dict(l=60, r=20, t=60, b=50)
                 )
                 
-                st.plotly_chart(fig_perf, width='content')
+                st.plotly_chart(fig_perf, width='auto')
     
     with col_terminal:
         # ═══════════════════════════════════════════════════════════════
@@ -1019,7 +1019,7 @@ if data:
     
     if history:
         df_history = pd.DataFrame(history[:10])
-        st.dataframe(df_history, width='content', height=350)
+        st.dataframe(df_history, width='auto', height=350)
         
         csv = df_history.to_csv(index=False)
         st.download_button(
