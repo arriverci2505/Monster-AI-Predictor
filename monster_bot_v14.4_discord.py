@@ -34,6 +34,7 @@ ROLLING_WINDOW = 200
 # HELPER FUNCTIONS
 # ════════════════════════════════════════════════════════════════════════════
 
+
 def is_bot_running():
     """Check if monster_engine.py is running"""
     try:
@@ -46,6 +47,27 @@ def is_bot_running():
         pass
     return False, None
 
+def start_engine():
+    """Khởi động Engine độc lập hoàn toàn với giao diện UI"""
+    try:
+        engine_path = "monster_engine.py"
+        if not os.path.exists(engine_path):
+            st.sidebar.error(f"❌ Không tìm thấy file: {engine_path}")
+            return
+
+        # Sử dụng nohup để tiến trình không bị kill khi người dùng đóng trình duyệt
+        # 'python -u' giúp log được đẩy ra file ngay lập tức (unbuffered)
+        cmd = f"nohup {sys.executable} -u {engine_path} > engine_debug.log 2>&1 &"
+        
+        # Thực thi lệnh hệ thống
+        subprocess.Popen(cmd, shell=True)
+        
+        st.sidebar.success("🚀 Engine đã được kích hoạt chạy ngầm!")
+        time.sleep(2) # Đợi hệ thống phản hồi
+        st.rerun()    # Làm mới lại UI
+    except Exception as e:
+        st.sidebar.error(f"Lỗi khởi động: {e}")
+        
 def kill_bot(pid):
     """Stop the bot process"""
     try:
