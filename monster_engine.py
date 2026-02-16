@@ -158,7 +158,7 @@ class PositionalEncoding(nn.Module):
         return x + self.pe[:, :x.size(1), :]
 
 class HybridTransformerLSTM(nn.Module):
-    def __init__(self, config: Dict):
+    def __init__(self, config):
         super().__init__()
         self.input_dim = config['input_dim']
         self.hidden_dim = config['hidden_dim']
