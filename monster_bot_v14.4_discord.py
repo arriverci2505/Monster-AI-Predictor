@@ -413,8 +413,9 @@ st.markdown("""
         font-family: 'JetBrains Mono', monospace;
         font-size: 11px;
         color: #00ff88;
-        height: 600px;
-        overflow-y: auto;
+        height: auto;
+        min-height: 550px;
+        overflow-y: hidden;
         position: relative;
         box-shadow: 
             inset 0 0 50px rgba(0, 255, 136, 0.1),
@@ -566,7 +567,7 @@ st.markdown("""
 # HUD HEADER - TOP STATUS BAR
 # ════════════════════════════════════════════════════════════════════════════
 
-current_time = datetime.now().strftime("%H:%M:%S")
+current_time = (datetime+ timedelta(hours=7)).now().strftime("%H:%M:%S")
 bot_running, bot_pid = is_bot_running()
 cpu_usage, ram_usage = get_system_stats()
 
