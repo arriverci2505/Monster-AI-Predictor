@@ -703,14 +703,13 @@ def load_state():
     }
 
 def save_state(state):
-    """Save bot state"""
-    state['last_update_time'] = datetime.now().isoformat()
     try:
-        with open(STATE_FILE, 'w') as f:
-            json.dump(state, f, indent=2)
+        with open("bot_state_v14_4.json", "w", encoding='utf-8') as f:
+            json.dump(state, f, indent=4, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno()) # Đảm bảo file được lưu thật sự trên Cloud
     except Exception as e:
         logger.error(f"Error saving state: {e}")
-
 # ════════════════════════════════════════════════════════════════════════════
 # DISCORD NOTIFICATIONS
 # ════════════════════════════════════════════════════════════════════════════
