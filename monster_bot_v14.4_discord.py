@@ -764,7 +764,6 @@ if data:
         
         # Đóng khung Camera Frame
         st.markdown('<div class="camera-bottom-left"></div><div class="camera-bottom-right"></div></div>', unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
         
         st.markdown("### 📈 TRADING ANALYSIS")
         
