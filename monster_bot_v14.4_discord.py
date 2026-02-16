@@ -230,45 +230,45 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border: 1px solid rgba(0, 242, 255, 0.1);
         z-index: 1;
+        /* Tạo viền mờ làm khung */
+        border: 1px solid rgba(0, 242, 255, 0.1);
         overflow: hidden;
     }
 
-    /* Lớp lót để tạo tia sáng bám viền */
+    /* Tia sáng chạy bám viền */
     .hud-header::before {
         content: '';
         position: absolute;
-        /* Tạo một khối chữ nhật rất dài để bù đắp tỉ lệ, triệt tiêu việc "vèo" ở góc */
-        inset: -50% -100%; 
-        background: conic-gradient(
-            from var(--angle),
-            transparent 75%,
-            #00f2ff 85%, 
-            #ffffff 88%, 
-            #bd00ff 91%, 
+        inset: 0;
+        border-radius: 15px;
+        padding: 2px; /* Độ dày viền */
+        /* Tạo dải màu dài chạy quanh viền */
+        background: linear-gradient(90deg, 
+            transparent 0%, 
+            #00f2ff 25%, 
+            #ffffff 30%, 
+            #bd00ff 35%, 
+            transparent 50%,
             transparent 100%
         );
-        /* Mask giúp tia sáng chỉ hiện ở viền và bo theo góc 15px */
+        background-size: 200% 200%;
+        /* Hiệu ứng mask để chỉ hiện phần viền */
         -webkit-mask: 
             linear-gradient(#fff 0 0) content-box, 
             linear-gradient(#fff 0 0);
         -webkit-mask-composite: xor;
         mask-composite: exclude;
-        padding: 2px; /* Độ dày tia sáng */
         
-        animation: smoothRotate 6s linear infinite;
+        animation: borderMove 4s linear infinite;
     }
 
-    /* Đăng ký biến góc để chạy mượt */
-    @property --angle {
-        syntax: '<angle>';
-        initial-value: 0deg;
-        inherits: false;
-    }
-
-    @keyframes smoothRotate {
-        to { --angle: 360deg; }
+    @keyframes borderMove {
+        0% { background-position: 0% 0%; }
+        25% { background-position: 100% 0%; }
+        50% { background-position: 100% 100%; }
+        75% { background-position: 0% 100%; }
+        100% { background-position: 0% 0%; }
     }
 
     .hud-title {
