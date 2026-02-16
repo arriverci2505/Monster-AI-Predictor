@@ -8,6 +8,7 @@ from datetime import datetime
 import streamlit.components.v1 as components
 import subprocess
 
+python_path = sys.executable
 # --- ĐOẠN CODE KÍCH HOẠT BOT NGẦM ---
 def start_engine():
     # Kiểm tra xem Bot đã chạy chưa (dựa vào file bot_state.json)
