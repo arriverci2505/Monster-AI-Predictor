@@ -778,7 +778,6 @@ if data:
         """
         
         # Hiển thị vào khung
-        st.markdown('<div class="camera-frame">', unsafe_allow_html=True)
         components.html(tradingview_html, height=550)
         
         # Đóng khung Camera Frame
