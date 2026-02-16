@@ -236,25 +236,15 @@ st.markdown("""
         overflow: hidden;
     }
     
-    .cyber-frame {
-        position: relative;
-        padding: 20px;
-        background: rgba(0, 5, 10, 0.9);
-        border: 1px solid rgba(0, 242, 255, 0.1);
-        overflow: hidden; /* Quan trọng: Để tia sáng không chạy ra ngoài */
-        min-height: 200px;
-    }
-
-    /* Tia sáng chạy viền */
-    .cyber-frame::after {
+    .hud-header::before {
         content: '';
         position: absolute;
-        width: 150px; /* Độ dài tia sáng */
-        height: 3px;   /* Độ dày tia sáng */
-        background: linear-gradient(90deg, transparent, #00f2ff, #ffffff, #00f2ff, transparent);
-        box-shadow: 0 0 20px #00f2ff, 0 0 5px #ffffff;
-        z-index: 999;
-        animation: doubleScan 4s linear infinite;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #00f2ff, #bd00ff, transparent);
+        animation: scan 3s linear infinite;
     }
 
     @keyframes doubleScan {
