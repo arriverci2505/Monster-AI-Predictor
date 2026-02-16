@@ -737,44 +737,26 @@ if data:
         st.markdown('<div class="camera-frame">', unsafe_allow_html=True)
         
         tradingview_html = """
-                <style>
-                    body { margin: 0; padding: 0; background-color: transparent; overflow: hidden; }
-                    #tv_container { height: 550px; width: 100%; border-radius: 12px; overflow: hidden; }
-                </style>
-                <div id="tv_container"></div>
-                <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-                <script type="text/javascript">
-                new TradingView.widget({
-                  "autosize": true,
-                  "symbol": "BINANCE:BTCUSDT",
-                  "interval": "15",
-                  "timezone": "Asia/Ho_Chi_Minh",
-                  "theme": "dark",
-                  "style": "1",
-                  "locale": "en",
-                  "toolbar_bg": "#050505",
-                  "enable_publishing": false,
-                  "hide_top_toolbar": false,
-                  "hide_legend": false,
-                  "save_image": false,
-                  "container_id": "tv_container",
-                  "overrides": {
-                    "paneProperties.background": "#050505",
-                    "paneProperties.vertGridProperties.color": "rgba(0, 242, 255, 0.05)",
-                    "paneProperties.horzGridProperties.color": "rgba(0, 242, 255, 0.05)",
-                    "scalesProperties.textColor": "#00f2ff",
-                    "mainSeriesProperties.candleStyle.upColor": "#00f2ff",
-                    "mainSeriesProperties.candleStyle.downColor": "#ff0055",
-                    "mainSeriesProperties.candleStyle.drawWick": true,
-                    "mainSeriesProperties.candleStyle.drawBorder": true,
-                    "mainSeriesProperties.candleStyle.borderColor": "#00f2ff",
-                    "mainSeriesProperties.candleStyle.borderUpColor": "#00f2ff",
-                    "mainSeriesProperties.candleStyle.borderDownColor": "#ff0055",
-                    "mainSeriesProperties.candleStyle.wickUpColor": "#00f2ff",
-                    "mainSeriesProperties.candleStyle.wickDownColor": "#ff0055"
-                  }
-                });
-                </script>
+        <div class="tradingview-widget-container" style="height:610px;">
+          <div id="tradingview_chart" style="height:100%;"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+          <script type="text/javascript">
+          new TradingView.widget({
+            "autosize": true,
+            "symbol": "KRAKEN:BTCUSDT",
+            "interval": "15",
+            "timezone": "Etc/UTC",
+            "theme": "dark",
+            "style": "1",
+            "locale": "en",
+            "toolbar_bg": "#f1f3f6",
+            "enable_publishing": false,
+            "hide_side_toolbar": false,
+            "allow_symbol_change": true,
+            "container_id": "tradingview_chart"
+          });
+          </script>
+        </div>
         """
         
         # Hiển thị vào khung
@@ -782,6 +764,7 @@ if data:
         
         # Đóng khung Camera Frame
         st.markdown('<div class="camera-bottom-left"></div><div class="camera-bottom-right"></div></div>', unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         
         st.markdown("### 📈 TRADING ANALYSIS")
         
