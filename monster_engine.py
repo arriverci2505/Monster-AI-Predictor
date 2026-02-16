@@ -698,7 +698,7 @@ def detect_market_regime_hierarchical(adx, choppiness, config):
 
     # Strong momentum → TRENDING (regardless of choppiness)
     if adx > adx_trending_min:
-        return True, False, f"TRENDING_ADX_HIGH(ADX:{adx:.1f}>25)"
+        return True, False, f"TRENDING_ADX_HIGH(ADX:{adx:.1f}>30)"
 
     # Very weak momentum → SIDEWAY
     if adx < adx_sideway_max:
@@ -706,7 +706,7 @@ def detect_market_regime_hierarchical(adx, choppiness, config):
         if choppiness < chop_extreme_low:
             return True, False, f"TRENDING_CHOP_EXTREME_LOW(Chop:{choppiness:.1f}<30,ADX:{adx:.1f})"
         else:
-            return False, True, f"SIDEWAY_ADX_LOW(ADX:{adx:.1f}<20)"
+            return False, True, f"SIDEWAY_ADX_LOW(ADX:{adx:.1f}<30)"
 
     # ═══════════════════════════════════════════════════════════════════════
     # PRIORITY 2: UNCLEAR ZONE (20 ≤ ADX ≤ 25) - Use Choppiness
