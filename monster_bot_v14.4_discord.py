@@ -222,7 +222,7 @@ st.markdown("""
     /* ═══════════════════════════════════════════════════════════════ */
     .hud-header {
         position: relative;
-        margin: -60px -70px 30px -70px;
+        margin: 70px -70px 30px -70px;
         padding: 15px 30px;
         background: rgba(0, 5, 10, 0.9);
         backdrop-filter: blur(10px);
@@ -230,48 +230,49 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: center;
-        /* Viền cơ bản */
+        /* Tạo viền mờ làm đường ray */
         border: 1px solid rgba(0, 242, 255, 0.1);
         z-index: 1;
         overflow: hidden;
     }
 
-    /* Lớp tia sáng chạy vòng tròn */
+    /* Tia sáng chạy bao quanh */
     .hud-header::before {
         content: '';
         position: absolute;
-        /* CỰC KỲ QUAN TRỌNG: inset âm lớn để bao phủ HUD dẹt */
-        inset: -100px -200%; 
+        inset: 0;
+        border-radius: 15px;
+        /* Tạo viền sáng bằng gradient */
+        padding: 2px; /* Độ dày của tia sáng */
         background: conic-gradient(
-            from 0deg,
-            transparent 0%,
-            transparent 40%,
-            #00f2ff 50%, /* Màu tia sáng */
-            #ffffff 51%, /* Điểm sáng nhất */
-            #bd00ff 52%, /* Đuôi tím */
-            transparent 60%,
+            from var(--angle),
+            transparent 70%,
+            #00f2ff, 
+            #ffffff, 
+            #bd00ff, 
             transparent 100%
         );
-        /* Animation xoay tròn */
-        animation: rotateBeam 5s linear infinite;
-        z-index: -2;
+        /* Dùng mask để chỉ hiển thị phần viền */
+        -webkit-mask: 
+            linear-gradient(#fff 0 0) content-box, 
+            linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        
+        animation: rotateAngle 4s linear infinite;
     }
 
-    /* Lớp phủ để biến mảng màu thành đường viền mảnh 2px */
-    .hud-header::after {
-        content: '';
-        position: absolute;
-        inset: 2px; /* Độ dày viền */
-        background: rgba(0, 5, 10, 0.98); 
-        border-radius: 13px;
-        z-index: -1;
+    /* Đăng ký biến --angle để trình duyệt hiểu cách xoay */
+    @property --angle {
+        syntax: '<angle>';
+        initial-value: 0deg;
+        inherits: false;
     }
 
-    @keyframes rotateBeam {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+    @keyframes rotateAngle {
+        to { --angle: 360deg; }
     }
-    
+
     .hud-title {
         font-family: 'Orbitron', sans-serif;
         font-size: 28px;
