@@ -230,54 +230,51 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: center;
+        border: 1px solid rgba(0, 242, 255, 0.1);
         z-index: 1;
-        overflow: hidden;
-        border: 1px solid rgba(0, 242, 255, 0.1); /* Viền mờ cố định */
+        overflow: hidden; /* Cắt khối sáng theo bo góc */
     }
 
-    /* Lớp tia sáng chạy bám viền */
+    /* Khối sáng laser */
     .hud-header::before {
         content: '';
         position: absolute;
-        /* Tràn ra ngoài một chút để bao phủ toàn bộ viền */
-        inset: -2px; 
-        border-radius: 15px;
-        padding: 2px; /* Độ dày tia sáng */
-        
-        /* Tạo dải màu cực dài để di chuyển */
-        background: conic-gradient(
-            from 0deg at 50% 50%,
-            transparent 25%,
-            #00f2ff 45%, 
-            #ffffff 50%, 
-            #bd00ff 55%, 
-            transparent 75%
-        );
-        /* Kéo giãn dải màu để nó không bị tập trung ở giữa */
-        background-size: 100% 100%;
-        
-        /* Hiệu ứng Mask để chỉ hiện phần viền bo */
-        -webkit-mask: 
-            linear-gradient(#fff 0 0) content-box, 
-            linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-
-        animation: travelBorder 4s linear infinite;
+        width: 300px; /* Độ dài tia sáng */
+        height: 300px; /* Độ cao lớn để phủ cả góc dọc */
+        /* Màu tia sáng rực rỡ */
+        background: radial-gradient(circle, #00f2ff 0%, #bd00ff 50%, transparent 70%);
+        filter: blur(20px); /* Làm nhòe để tia sáng bám theo viền bo 15px */
+        z-index: -1;
+        animation: runBorder 6s linear infinite;
+        opacity: 0.8;
     }
 
-    @keyframes travelBorder {
-        0% {
-            /* Di chuyển tâm của gradient để nó quét hết chiều dài */
-            background-size: 300% 300%;
-            background-position: 0% 50%;
-        }
-        50% {
-            background-position: 100% 50%;
-        }
-        100% {
-            background-position: 0% 50%;
-        }
+    /* Lớp phủ bên trên để giữ lại cái rãnh viền */
+    .hud-header::after {
+        content: '';
+        position: absolute;
+        inset: 2px; /* Tạo độ dày viền 2px */
+        background: rgba(0, 5, 10, 0.95);
+        border-radius: 13px;
+        z-index: -1;
+    }
+
+    @keyframes runBorder {
+        /* Chạy cạnh TRÊN (Trái sang Phải) */
+        0% { top: -150px; left: -150px; }
+        30% { top: -150px; left: calc(100% - 150px); }
+        
+        /* Chạy cạnh PHẢI (Trên xuống Dưới) */
+        35% { top: -150px; left: calc(100% - 150px); }
+        50% { top: calc(100% - 150px); left: calc(100% - 150px); }
+        
+        /* Chạy cạnh DƯỚI (Phải sang Trái) */
+        55% { top: calc(100% - 150px); left: calc(100% - 150px); }
+        85% { top: calc(100% - 150px); left: -150px; }
+        
+        /* Chạy cạnh TRÁI (Dưới lên Trên) */
+        90% { top: calc(100% - 150px); left: -150px; }
+        100% { top: -150px; left: -150px; }
     }
 
     .hud-title {
