@@ -658,22 +658,18 @@ st.markdown("""
     
         /* Quan trọng: Reset lại Margin âm của HUD trên Mobile để không đè Sidebar */
         .hud-header {
-            /* Quan trọng: Reset margin về 0 và dùng width 100% */
-            margin: -50px 0 20px 0 !important; 
-            width: 100% !important;
-            left: -5px !important;
-            right: -5px !important;
-            padding: 15px 10px !important;
-            
-            /* Căn giữa nội dung bên trong */
+            margin: -60px -1rem 20px -1rem !important; /* Đẩy sát lề trái phải của Streamlit container */
+            width: calc(100% + 2rem) !important; /* Bù lại khoảng padding mặc định của Streamlit */
+            left: 0 !important;
+            right: 0 !important;
+            border-radius: 0 !important; /* Bỏ bo góc để trùng khít với cạnh màn hình */
+            border-left: none !important;
+            border-right: none !important;
+            padding: 15px 0 !important;
             display: flex !important;
             flex-direction: column !important;
             align-items: center !important;
-            justify-content: center !important;
-            
-            /* Đảm bảo không bị tràn */
             box-sizing: border-box !important;
-            border-radius: 0 0 15px 15px !important;
         }
 
         /* 3. ĐIỀU CHỈNH TIÊU ĐỀ HUB */
@@ -682,7 +678,7 @@ st.markdown("""
             text-align: center !important;
             width: 100% !important;
             letter-spacing: 1px !important;
-            margin-bottom: 10px !important;
+            margin-bottom: 5px !important;
         }
 
         /* 4. ĐIỀU CHỈNH CÁC CHỈ SỐ STATUS/CPU/RAM */
