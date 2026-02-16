@@ -52,6 +52,16 @@ COMMISSION = 0.00075
 
 # ⚙️ LIVE_CONFIG - 100% MATCHED WITH BACKTEST v14.4
 LIVE_CONFIG = {
+    # MODEL ARCHITECTURE
+    'input_dim': 42,                     
+    'hidden_dim': 128,
+    'num_lstm_layers': 2,
+    'num_transformer_layers': 2,
+    'num_heads': 4,
+    'se_reduction_ratio': 16,
+    'dropout': 0.35,
+    'num_classes': 3,
+    'use_positional_encoding': True,
     # --- GENERAL ---
     'exchange': 'kraken',
     'symbol': 'BTC/USDT',
