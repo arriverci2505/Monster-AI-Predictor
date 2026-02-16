@@ -947,7 +947,9 @@ def main():
             # EXIT LOGIC (MATCHED WITH BACKTEST)
             # ═══════════════════════════════════════════════════════════════
             
-            for trade in state['open_trades'][:]:
+            active_trades = []
+            
+            for trade in state['open_trades']:
                 trade['bars_held'] = trade.get('bars_held', 0) + 1
                 
                 # Calculate PnL
@@ -1064,23 +1066,23 @@ def main():
                     pnl_usd = state['balance'] * LIVE_CONFIG['position_size'] * net_pnl
                     state['balance'] += pnl_usd
                     
-                    state['trade_history'].append({
+                    state['trade_history'].insert(0, { 
                         'entry_time': trade['entry_time'],
                         'exit_time': datetime.now().isoformat(),
                         'mode': trade['regime'],
                         'type': trade['side'],
                         'entry_price': trade['entry_price'],
                         'exit_price': exit_price,
-                        'pnl_pct': net_pnl * 100,
+                        'pnl_pct': float(net_pnl * 100), 
                         'exit_reason': exit_reason
                     })
                     
-                    state['open_trades'].remove(trade)
                     state['total_trades'] += 1
                     
                     wins = sum(1 for t in state['trade_history'] if t['pnl_pct'] > 0)
                     state['win_rate'] = wins / state['total_trades'] if state['total_trades'] > 0 else 0
-                    
+                    state['pnl_pct'] = sum(t.get('pnl_pct', 0) for t in state['trade_history'])
+                  
                     logger.info(f"🚪 EXIT {trade['regime']} {trade['side']}: {net_pnl*100:.2f}% | {exit_reason}")
                     
                     send_discord_alert(
