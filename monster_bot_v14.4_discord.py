@@ -895,8 +895,10 @@ if data:
         st.markdown("### 📈 TRADING ANALYSIS")
 
         # ═══════════════════════════════════════════════════════════════
-        # AI CONFIDENCE CHART - CĂN BẰNG VỚI CHỮ "MONSTER"
+        # AI CONFIDENCE - FIX TRIỆT ĐỂ LỆCH KHUNG
         # ═══════════════════════════════════════════════════════════════
+        
+        # Bọc toàn bộ vào một Container có ID riêng để kiểm soát CSS tuyệt đối
         st.markdown("""
         <div style="position: relative; 
                     background: rgba(5, 5, 5, 0.5); 
