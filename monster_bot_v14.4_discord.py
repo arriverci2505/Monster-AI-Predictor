@@ -37,13 +37,20 @@ ROLLING_WINDOW = 200
 # ════════════════════════════════════════════════════════════════════════════
 
 def is_bot_running():
-    """Check if monster_engine.py is running"""
+    """Check if monster_engine.py is running - Optimized Version"""
     try:
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-            if proc.info['cmdline']:
-                cmdline = ' '.join(proc.info['cmdline'])
-                if 'monster_engine.py' in cmdline and 'python_path' in cmdline.lower():
-                    return True, proc.info['pid']
+            try:
+                # Kiểm tra cmdline có tồn tại không
+                info = proc.info
+                if info['cmdline']:
+                    cmdline = ' '.join(info['cmdline']).lower()
+                    # Kiểm tra chính xác file engine
+                    if 'monster_engine.py' in cmdline:
+                        return True, info['pid']
+            except (psutil.AccessDenied, psutil.NoSuchProcess):
+                # Bỏ qua nếu không có quyền truy cập tiến trình đó
+                continue
     except Exception as e:
         st.sidebar.warning(f"Process check error: {e}")
     return False, None
