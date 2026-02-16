@@ -1061,7 +1061,7 @@ else:
         </div>
         <h2 style="color: #00f2ff; margin-top: 30px;">INITIALIZING SYSTEMS</h2>
         <p style="color: #999;">Waiting for data stream from Monster Engine...</p>
-        <p style="color: #666; font-size: 12px;">State File: bot_state_v14_4.json</p>
+        <p style="color: #666; font-size: 12px;">State File: bot_state_v14_5_1.json</p>
     </div>
     """, unsafe_allow_html=True)
     
