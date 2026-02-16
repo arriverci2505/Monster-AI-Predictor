@@ -722,7 +722,7 @@ st.markdown("""
         }
         
         div[data-testid="stMarkdownContainer"] h3 {
-            font-size: 14px !important; /* Thu nhỏ size chữ */
+            font-size: 20px !important; /* Thu nhỏ size chữ */
             white-space: nowrap !important; /* Ép không cho xuống dòng */
             overflow: hidden !important;
             text-overflow: ellipsis !important; /* Nếu quá dài sẽ có dấu ... */
