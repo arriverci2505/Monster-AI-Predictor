@@ -982,7 +982,7 @@ if data:
         )
         
         st.plotly_chart(fig_ai, use_container_width=True, config={'displayModeBar': False})
-        st.markdown('</div>', unsafe_allow_html=True)True)
+        st.markdown('</div>', unsafe_allow_html=True)
             
     # ═══════════════════════════════════════════════════════════════════════════
     # TRADE HISTORY TABLE
