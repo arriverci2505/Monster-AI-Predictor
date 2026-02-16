@@ -64,14 +64,18 @@ STATE_FILE = "bot_state.json"
 # 3. LAYOUT CHIA ĐÔI (LEFT: LOGIC | RIGHT: CHART)
 # ════════════════════════════════════════════════════════════════════════════
 def load_data():
-    if os.path.exists(STATE_FILE):
-        try:
-            with open(STATE_FILE, "r") as f: 
-                return json.load(f)
-        except: return None
-    return None
-
-data = load_data()
+    if not os.path.exists(STATE_FILE):
+        return None
+    try:
+        # Kiểm tra nếu file trống thì bỏ qua
+        if os.path.getsize(STATE_FILE) == 0:
+            return None
+            
+        with open(STATE_FILE, "r", encoding="utf-8") as f: 
+            return json.load(f)
+    except (json.JSONDecodeError, PermissionError, Exception):
+        # Nếu đang ghi mà đọc lỗi, trả về None để vòng lặp sau thử lại
+        return None
 
 if data:
     col_left, col_right = st.columns([1, 2.2])
