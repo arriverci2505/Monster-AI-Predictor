@@ -736,6 +736,18 @@ st.markdown("""
         .st-emotion-cache-0 {
             font-size: 14px !important;
         }
+
+        .ascii-art {
+            font-size: 10px !important; /* Hạ size cực nhỏ để không bị tràn màn hình */
+            line-height: 1 !important;
+            letter-spacing: -0.5px !important;
+            display: block !important;
+            width: 100% !important;
+            text-align: center !important;
+            margin: 0 auto !important;
+            overflow: hidden !important; /* Không cho phép đẩy ngang màn hình */
+            white-space: pre !important; /* Giữ nguyên định dạng kí hiệu */
+        }
     }
 </style>
 """, unsafe_allow_html=True)
