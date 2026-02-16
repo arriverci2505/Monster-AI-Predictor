@@ -893,7 +893,7 @@ if data:
         
         st.dataframe(
             df_history,
-            use_container_width=True,
+            width="stretch",
             height=400
         )
         
