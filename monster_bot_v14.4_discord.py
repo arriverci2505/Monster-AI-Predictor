@@ -778,7 +778,7 @@ if data:
             margin=dict(l=80, r=20, t=60, b=50)
         )
         
-        st.plotly_chart(fig_ai, use_container_width=True)
+        st.plotly_chart(fig_ai, width='content')
         
         # Recent Trades Performance
         if history and len(history) > 0:
@@ -834,7 +834,7 @@ if data:
                     margin=dict(l=60, r=20, t=60, b=50)
                 )
                 
-                st.plotly_chart(fig_perf, use_container_width=True)
+                st.plotly_chart(fig_perf, width='content')
     
     with col_terminal:
         # ═══════════════════════════════════════════════════════════════
@@ -923,7 +923,7 @@ if data:
     
     if history:
         df_history = pd.DataFrame(history[:10])
-        st.dataframe(df_history, use_container_width=True, height=350)
+        st.dataframe(df_history, width='content', height=350)
         
         csv = df_history.to_csv(index=False)
         st.download_button(
