@@ -78,19 +78,19 @@ LIVE_CONFIG = {
     'temperature': 1.2,  
     
     # TRENDING MODE (HIGH CONFIDENCE)
-    'trending_buy_threshold': 0.40,        # UPDATED from 0.36
-    'trending_sell_threshold': 0.42,       # UPDATED from 0.36
+    'trending_buy_threshold': 0.36,       
+    'trending_sell_threshold': 0.36,       
     
     # SIDEWAY MODE (LOWER CONFIDENCE)
     'sideway_buy_threshold': 0.22,    
     'sideway_sell_threshold': 0.22,   
     
     # --- REGIME CLASSIFICATION (UPDATED!) ---
-    'trending_adx_min': 30,                # UPDATED from 25
-    'sideway_adx_max': 30,                 # Keep same (was 30)
-    'choppiness_threshold_low': 30,        # UPDATED from 50
-    'choppiness_threshold_high': 58.0,     # Keep same
-    'choppiness_extreme_low': 30,          # NEW parameter
+    'trending_adx_min': 30,               
+    'sideway_adx_max': 30,                 
+    'choppiness_threshold_low': 30,        
+    'choppiness_threshold_high': 58.0,     
+    'choppiness_extreme_low': 30,          
     
     # --- SIDEWAY FILTERS (MATCHED!) ---
     'deviation_zscore_threshold': 1.4,       
