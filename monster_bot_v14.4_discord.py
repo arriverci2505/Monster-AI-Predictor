@@ -720,6 +720,22 @@ st.markdown("""
             padding-left: 1rem !important;
             padding-right: 1rem !important;
         }
+        
+        div[data-testid="stMarkdownContainer"] h3 {
+            font-size: 14px !important; /* Thu nhỏ size chữ */
+            white-space: nowrap !important; /* Ép không cho xuống dòng */
+            overflow: hidden !important;
+            text-overflow: ellipsis !important; /* Nếu quá dài sẽ có dấu ... */
+            width: 100% !important;
+            text-align: left !important;
+            letter-spacing: 0px !important; /* Thu hẹp khoảng cách chữ */
+            margin-bottom: 10px !important;
+        }
+
+        /* Tùy chỉnh riêng cho cái icon laptop nếu cần */
+        .st-emotion-cache-0 {
+            font-size: 14px !important;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
