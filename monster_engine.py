@@ -790,7 +790,9 @@ def main():
             
             current_price = float(df['Close'].iloc[-1])
             state['current_price'] = current_price
-            
+
+            logger.info(f"📊 Data Fetched: {len(df)} candles. Required for Rolling: 200. ")
+      
             # ═══════════════════════════════════════════════════════════════
             # FEATURE ENGINEERING (using checkpoint feature_cols)
             # ═══════════════════════════════════════════════════════════════
