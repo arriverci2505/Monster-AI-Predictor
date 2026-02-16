@@ -8,11 +8,6 @@ import numpy as np
 from datetime import datetime
 import streamlit.components.v1 as components
 
-st.write(f"Thư mục hiện tại: {os.getcwd()}")
-st.write(f"Danh sách file đang có: {os.listdir('.')}")
-with open("test_file.txt", "w") as f:
-    f.write("Hello")
-st.write(f"Danh sách file sau khi thử ghi: {os.listdir('.')}")
 # Cấu hình trang
 st.set_page_config(page_title="MONSTER MATRIX UI v14.4", layout="wide")
 
