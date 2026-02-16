@@ -24,7 +24,7 @@ import shutil
 from datetime import datetime
 
 # Configuration
-STATE_FILE = os.path.abspath("bot_state.json")
+STATE_FILE = os.path.abspath("bot_state_v14_4.json")
 BACKUP_DIR = "backups"
 ENGINE_SCRIPT = "monster_engine.py"
 UI_SCRIPT = "monster_ui.py"
