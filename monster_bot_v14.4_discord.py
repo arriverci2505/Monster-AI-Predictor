@@ -628,27 +628,26 @@ st.markdown("""
         }
 
         /* 1. Ẩn hoàn toàn thanh Sidebar khi mới vào trên Mobile để đỡ vướng */
-        [data-testid="stSidebar"][aria-expanded="true"] {
-            width: 85vw !important;
-            margin-left: 0 !important;
+        [data-testid="stSidebarNav"], 
+        [data-testid="stSidebarUserContent"],
+        div[data-testid="stSidebarNav"] + div {
+            display: none !important;
         }
 
-        /* 2. Ép nội dung chính không được thụt vào khi Sidebar mở */
-        .main .block-container {
-            max-width: 100% !important;
-            padding: 1rem !important;
+        /* 2. Ẩn nút Menu (3 gạch) và System Controls ở góc trên */
+        #tabs-bui3-tabpanel-0, 
+        button[kind="header"] {
+            display: none !important;
         }
 
-        /* 3. Di chuyển nút mở Sidebar ra vị trí không che HUD */
-        [data-testid="stSidebarCollapsedControl"] {
-            background: rgba(0, 242, 255, 0.1) !important;
-            backdrop-filter: blur(5px) !important;
-            border-radius: 0 10px 10px 0 !important;
-            border: 1px solid rgba(0, 242, 255, 0.3) !important;
-            top: 70px !important; /* Đẩy nó xuống dưới HUD một chút */
-            left: 0 !important;
-            width: 40px !important;
-            height: 40px !important;
+        /* 3. Xóa bỏ phần header mặc định của Sidebar nơi chứa chữ System Controls */
+        [data-testid="stSidebarHeader"] {
+            display: none !important;
+        }
+
+        /* 4. Ép Sidebar nếu có lỡ mở ra cũng không hiện chữ đó */
+        .st-emotion-cache-6qob1r { 
+            display: none !important; 
         }
     
         /* Quan trọng: Reset lại Margin âm của HUD trên Mobile để không đè Sidebar */
