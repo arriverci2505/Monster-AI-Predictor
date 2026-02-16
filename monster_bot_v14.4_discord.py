@@ -74,6 +74,7 @@ def kill_bot(pid):
 def load_data():
     """Load bot state with proper exception handling"""
     if not os.path.exists(STATE_FILE):
+        st.sidebar.error(f"File not found at: {STATE_FILE}")
         return None
     
     try:
