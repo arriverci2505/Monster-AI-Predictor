@@ -719,7 +719,8 @@ if data:
     history = data.get('trade_history', [])
     open_trades = data.get('open_trades', [])
     pending_orders = data.get('pending_orders', [])
-    regime = data.get('regime', 'UNKNOWN')
+    ai_probs = data.get('ai_probs', {})
+    regime = ai_probs.get('regime', 'UNKNOWN')
     
     total_pnl = calculate_total_pnl(history)
     
