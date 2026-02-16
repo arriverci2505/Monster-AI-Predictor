@@ -238,12 +238,12 @@ st.markdown("""
     .hud-header::before {
         content: '';
         position: absolute;
-        width: 400px;
+        width: 666px;
         height: 2px;
         background: linear-gradient(90deg, transparent, #00f2ff, #bd00ff, transparent);
         box-shadow: 0 0 15px rgba(0, 242, 255, 0.5);
         z-index: 10;
-        animation: topBottomOnly 8s linear infinite;
+        animation: topBottomOnly 12s linear infinite;
     }
 
     @keyframes topBottomOnly {
