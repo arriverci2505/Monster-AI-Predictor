@@ -221,52 +221,49 @@ st.markdown("""
     /* HUD HEADER - TOP STATUS BAR                                      */
     /* ═══════════════════════════════════════════════════════════════ */
     .hud-header {
-        background: linear-gradient(90deg, rgba(0, 242, 255, 0.05) 0%, rgba(189, 0, 255, 0.05) 100%);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(0, 242, 255, 0.3);
-        border-radius: 15px;
+        position: relative;
+        margin: 70px -70px 30px -70px;
         padding: 15px 30px;
-        margin: -30px -70px 30px -70px;
+        background: rgba(0, 5, 10, 0.9);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        box-shadow: 0 8px 32px rgba(0, 242, 255, 0.2);
-        position: relative;
+        /* Tạo viền tối làm nền */
         border: 1px solid rgba(0, 242, 255, 0.1);
-        overflow: hidden; 
         z-index: 1;
+        overflow: hidden;
     }
-    
+
+    /* Hiệu ứng tia laser chạy viền */
     .hud-header::before {
         content: '';
         position: absolute;
-        /* Tạo một hình vuông cực lớn để xoay */
-        width: 200%;
-        height: 500%;
-        top: -200%;
-        left: -50%;
+        /* Tạo vùng phủ rộng để khi xoay không bị hụt góc */
+        inset: -150% -50%; 
         background: conic-gradient(
             from 0deg,
-            transparent 0deg,
-            transparent 150deg,
-            #00f2ff 180deg, /* Màu tia sáng */
-            #ffffff 185deg, /* Điểm rực sáng nhất */
-            #bd00ff 190deg, /* Màu pha tím */
-            transparent 220deg,
-            transparent 360deg
+            transparent 0%,
+            transparent 45%,
+            #00f2ff 50%, /* Màu tia sáng */
+            #ffffff 51%, /* Điểm rực nhất */
+            #bd00ff 52%, /* Đuôi tím */
+            transparent 57%,
+            transparent 100%
         );
-        /* Xoay tròn cái dải màu này */
-        animation: rotateBeam 6s linear infinite;
+        animation: rotateBeam 4s linear infinite;
         z-index: -1;
     }
 
-    /* Lớp phủ bên trên để tạo hiệu ứng viền mảnh */
+    /* Lớp che để biến khối màu thành đường viền mảnh 2px */
     .hud-header::after {
         content: '';
         position: absolute;
-        inset: 2px; /* Thụt vào 2px để lộ tia sáng ở viền */
-        background: rgba(0, 5, 10, 0.95); /* Màu nền che phần giữa */
-        border-radius: 13px; /* Bo góc nhỏ hơn lớp ngoài một chút */
+        inset: 2px; /* Độ dày của viền là 2px */
+        background: inherit; /* Lấy lại màu nền của header */
+        background-color: rgba(0, 5, 10, 0.98); 
+        border-radius: 13px;
         z-index: -1;
     }
 
