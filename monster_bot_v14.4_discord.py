@@ -26,7 +26,7 @@ import plotly.express as px
 # CONFIGURATION
 # ════════════════════════════════════════════════════════════════════════════
 
-STATE_FILE = os.path.abspath("bot_state_v14_4.json")
+STATE_FILE = os.path.abspath("bot_state_v14_5_1.json")
 BACKUP_DIR = "backups"
 ROLLING_WINDOW = 200
 
@@ -97,26 +97,36 @@ def restart_bot():
         st.error(f"Error restarting bot: {e}")
         return False
         
+# [Tìm hàm load_data cũ và thay thế bằng đoạn này]
+
 def load_data():
-    """Load bot state with proper exception handling"""
+    """Load bot state with robust error handling"""
     if not os.path.exists(STATE_FILE):
         return None
     
     try:
+        # Mở file với chế độ chỉ đọc
         with open(STATE_FILE, "r", encoding='utf-8') as f:
             content = f.read().strip()
+            
+            # Nếu file rỗng (do lỗi ghi cũ), trả về None để UI không crash
             if not content:
                 return None
+                
             data = json.loads(content)
+            
+            # Logic xử lý giá trị mặc định nếu thiếu
             if data.get('current_price', 0) == 0 and data.get('trade_history'):
                 try:
                     last_trade = data['trade_history'][0]
-                    exit_price_str = last_trade.get('exit_price', '$0.00')
+                    exit_price_str = str(last_trade.get('exit_price', 0))
                     data['current_price'] = float(exit_price_str.replace('$', '').replace(',', ''))
                 except:
                     data['current_price'] = 0
             return data
-    except:
+    except Exception as e:
+        # Nếu lỗi JSON, có thể do đang ghi đè (dù Atomic write đã giảm thiểu tối đa)
+        # Trả về None để lần refresh sau thử lại
         return None
 
 def send_kill_signal():
@@ -926,30 +936,48 @@ if data:
         st.markdown(f'<div class="ascii-art">{ascii_header}</div>', unsafe_allow_html=True)
         
         # Terminal Output
-        last_update = data.get('last_update_time', 'N/A')
-        last_update_display = 'N/A'
+        last_update_iso = data.get('last_update_time')
+        last_update_display = "N/A"
+        is_stalled = False
+        lag_seconds = 0
         
-        if last_update != 'N/A':
+        if last_update_iso:
             try:
-                # Xử lý mọi loại định dạng ISO
-                clean_time = last_update.replace('Z', '').split('.')[0] # Bỏ mili giây và Z
-                dt = datetime.fromisoformat(clean_time)
+                # Parse thời gian UTC từ Engine
+                last_update_utc = datetime.fromisoformat(last_update_iso)
+                if last_update_utc.tzinfo is None:
+                    last_update_utc = last_update_utc.replace(tzinfo=timezone.utc)
                 
-                # Nếu Engine lưu giờ UTC (mặc định Cloud), cộng 7 tiếng
-                dt_gmt7 = dt + timedelta(hours=7)
-                last_update_display = dt_gmt7.strftime('%H:%M:%S')
-            except Exception as e:
-                # Nếu lỗi, hiển thị 10 ký tự cuối của chuỗi gốc để debug
-                last_update_display = str(last_update)[-8:]
+                # Tính độ trễ
+                lag_seconds = (datetime.now(timezone.utc) - last_update_utc).total_seconds()
+                
+                # Chuyển sang GMT+7 để hiển thị terminal
+                vn_time = last_update_utc + timedelta(hours=7)
+                last_update_display = vn_time.strftime("%H:%M:%S")
+                
+                # Nếu quá 120 giây không có dữ liệu mới -> Coi như treo
+                if lag_seconds > 120:
+                    is_stalled = True
+            except:
+                last_update_display = "SYNC ERROR"
+        
+        # Định dạng màu cho Last Sync
+        sync_color = "terminal-error" if is_stalled else "terminal-success"
+        sync_status_text = f"<span class='{sync_color}'>{last_update_display} ({int(lag_seconds)}s ago)</span>"
+        if is_stalled:
+            sync_status_text += " <span class='terminal-error'>[STALLED]</span>""
+
         
         terminal_lines = [
             "╔══════════════════════════════════════════════════════════════╗",
-            "║           MONSTER ENGINE v18.0 - NEURAL CORE                 ║",
+            "║            MONSTER ENGINE v18.0 - NEURAL CORE                 ║",
             "╚══════════════════════════════════════════════════════════════╝",
             "",
             f"<span class='terminal-prompt'>[SYSTEM.INIT]</span> <span class='terminal-success'>NEURAL NETWORK INITIALIZED</span>",
             f"<span class='terminal-prompt'>[SYSTEM.INFO]</span> Engine Status: {data.get('bot_status', 'Unknown')}",
-            f"<span class='terminal-prompt'>[SYSTEM.INFO]</span> Last Sync: {last_update_display}",
+            
+            # --- DÒNG THAY ĐỔI: Hiển thị Last Sync có màu và cảnh báo ---
+            f"<span class='terminal-prompt'>[SYSTEM.INFO]</span> Last Sync: {sync_status_text}",
             "",
             f"<span class='terminal-prompt'>[MARKET.DATA]</span> BTC/USDT: <span class='terminal-info'>${current_price:,.2f}</span>",
             f"<span class='terminal-prompt'>[MARKET.DATA]</span> Regime: <span class='terminal-info'>{regime}</span>",
@@ -965,7 +993,7 @@ if data:
             f"  └─ Total Trades:   <span class='terminal-info'>{len(history)}</span>",
             "",
             f"<span class='terminal-prompt'>[PERFORMANCE.STATS]</span>",
-            f"  ├─ Total P&L: <span class='terminal-success' if total_pnl >= 0 else 'terminal-error'>${total_pnl:,.2f}</span>",
+            f"  ├─ Total P&L: <span class='{'terminal-success' if total_pnl >= 0 else 'terminal-error'}'>${total_pnl:,.2f}</span>",
             f"  ├─ Win Rate:  <span class='terminal-success'>{wr:.1f}%</span>",
             f"  └─ Wins/Loss: {wins}/{len(history)-wins}",
             "",
@@ -975,8 +1003,9 @@ if data:
             f"  └─ State File: bot_state_v14_4.json",
             "",
             "══════════════════════════════════════════════════════════════",
-            "<span class='terminal-success'>✓ ALL SYSTEMS OPERATIONAL</span>",
-            "<span class='terminal-success'>✓ MONITORING ACTIVE</span>",
+            
+            "<span class='terminal-success'>✓ ALL SYSTEMS OPERATIONAL</span>" if not is_stalled else "<span class='terminal-error'>✗ SYSTEM STALLED - CHECK ENGINE</span>",
+            "<span class='terminal-success'>✓ MONITORING ACTIVE</span>" if not is_stalled else "<span class='terminal-warning'>! DATA STREAM DELAYED</span>",
             "<span class='terminal-success'>✓ NEURAL CORE ONLINE</span>",
             "══════════════════════════════════════════════════════════════",
         ]
