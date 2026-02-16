@@ -235,81 +235,40 @@ st.markdown("""
         overflow: hidden;
     }
 
-    /* Tia sáng laser */
+    /* Lớp lót để tạo tia sáng bám viền */
     .hud-header::before {
         content: '';
         position: absolute;
-        width: 250px;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, #00f2ff, #bd00ff, transparent);
-        box-shadow: 0 8px 32px rgba(0, 242, 255, 0.2);
-        z-index: 10;
-        /* Chạy theo Keyframes mới */
-        animation: constantSpeed 6s linear infinite;
+        /* Tạo một khối chữ nhật rất dài để bù đắp tỉ lệ, triệt tiêu việc "vèo" ở góc */
+        inset: -50% -100%; 
+        background: conic-gradient(
+            from var(--angle),
+            transparent 75%,
+            #00f2ff 85%, 
+            #ffffff 88%, 
+            #bd00ff 91%, 
+            transparent 100%
+        );
+        /* Mask giúp tia sáng chỉ hiện ở viền và bo theo góc 15px */
+        -webkit-mask: 
+            linear-gradient(#fff 0 0) content-box, 
+            linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        padding: 2px; /* Độ dày tia sáng */
+        
+        animation: smoothRotate 6s linear infinite;
     }
 
-    @keyframes constantSpeed {
-        /* CẠNH TRÊN: Trái -> Phải */
-        0% {
-            top: 0;
-            left: -150px;
-            width: 150px;
-            height: 2px;
-        }
-        35% {
-            top: 0;
-            left: 100%;
-            width: 150px;
-            height: 2px;
-        }
-        /* Góc phải trên: Biến thành dọc */
-        35.01% {
-            top: 0;
-            left: calc(100% - 2px);
-            width: 2px;
-            height: 150px;
-        }
-        /* CẠNH PHẢI: Trên -> Dưới */
-        45% {
-            top: 100%;
-            left: calc(100% - 2px);
-            width: 2px;
-            height: 150px;
-        }
-        /* Góc phải dưới: Biến thành ngang */
-        45.01% {
-            top: calc(100% - 2px);
-            left: 100%;
-            width: 150px;
-            height: 2px;
-        }
-        /* CẠNH DƯỚI: Phải -> Trái */
-        80% {
-            top: calc(100% - 2px);
-            left: -150px;
-            width: 150px;
-            height: 2px;
-        }
-        /* Góc trái dưới: Biến thành dọc */
-        80.01% {
-            top: 100%;
-            left: 0;
-            width: 2px;
-            height: 150px;
-        }
-        /* CẠNH TRÁI: Dưới -> Trên */
-        95% {
-            top: -150px;
-            left: 0;
-            width: 2px;
-            height: 150px;
-        }
-        100% {
-            top: 0;
-            left: -150px;
-            width: 150px;
-            height: 2px;
-        }
+    /* Đăng ký biến góc để chạy mượt */
+    @property --angle {
+        syntax: '<angle>';
+        initial-value: 0deg;
+        inherits: false;
+    }
+
+    @keyframes smoothRotate {
+        to { --angle: 360deg; }
     }
 
     .hud-title {
