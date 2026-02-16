@@ -11,27 +11,22 @@ import subprocess
 import psutil
 
 def is_bot_running():
-    for proc in psutil.process_iter(['cmdline']):
-        if proc.info['cmdline'] and 'monster_engine.py' in proc.info['cmdline']:
-            return True
+    try:
+        for proc in psutil.process_iter(['cmdline']):
+            if proc.info['cmdline'] and 'monster_engine.py' in any(arg for arg in proc.info['cmdline'] if arg):
+                return True
+    except:
+        return False
     return False
 
-if not is_bot_running():
-    subprocess.Popen([sys.executable, "monster_engine.py"])
-    
-python_path = sys.executable
-# --- ĐOẠN CODE KÍCH HOẠT BOT NGẦM ---
-def start_engine():
-    # Kiểm tra xem Bot đã chạy chưa (dựa vào file bot_state.json)
-    # Hoặc dùng một biến session_state để tránh chạy đè nhiều con Bot
-    if 'engine_started' not in st.session_state:
-        st.write("⏳ Đang khởi động Monster Engine ngầm...")
-        # Lệnh này sẽ chạy file monster_engine.py như một tiến trình riêng
-        subprocess.Popen([python_path, "monster_engine.py"])
-        st.session_state['engine_started'] = True
-        time.sleep(2) # Đợi 2 giây để Bot kịp tạo file json
-
-start_engine()
+# 3. Kích hoạt Bot (Dùng container để không làm vỡ giao diện)
+if 'engine_started' not in st.session_state:
+    if not is_bot_running():
+        with st.status("🚀 Đang đánh thức Monster Engine...", expanded=False):
+            subprocess.Popen([sys.executable, "monster_engine.py"])
+            time.sleep(10) # Cho Bot 10 giây để lấy giá lần đầu và ghi file
+    st.session_state['engine_started'] = True
+    st.rerun()
 
 # Cấu hình trang
 st.set_page_config(page_title="MONSTER MATRIX UI v14.4", layout="wide")
@@ -59,11 +54,11 @@ STATE_FILE = "bot_state.json"
 def load_data():
     if os.path.exists(STATE_FILE):
         try:
-            # Kiểm tra kích thước file để tránh đọc file đang ghi dở
-            if os.path.getsize(STATE_FILE) > 0:
-                with open(STATE_FILE, "r") as f:
-                    return json.load(f)
-        except:
+            with open(STATE_FILE, "r") as f:
+                content = f.read()
+                if content: # Chỉ load nếu file có nội dung
+                    return json.loads(content)
+        except Exception as e:
             return None
     return None
 
