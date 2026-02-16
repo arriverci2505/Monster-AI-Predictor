@@ -567,7 +567,7 @@ st.markdown("""
 # HUD HEADER - TOP STATUS BAR
 # ════════════════════════════════════════════════════════════════════════════
 
-vn_time = datetime+ timedelta(hours=7)
+vn_time = datetime + timedelta(hours=7)
 current_time = vn_time.now().strftime("%H:%M:%S")
 bot_running, bot_pid = is_bot_running()
 cpu_usage, ram_usage = get_system_stats()
