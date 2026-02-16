@@ -895,26 +895,34 @@ if data:
         # ═══════════════════════════════════════════════════════════════
         # AI ANALYSIS 
         # ═══════════════════════════════════════════════════════════════
-        st.markdown("### 🧠 AI ENGINE PREDICTION")
+       st.markdown("### 🧠 AI ENGINE PREDICTION")
 
-        # 1. CSS để tinh chỉnh font và khoảng cách cho đồng bộ với HUD
+        # 1. CSS tinh gọn: Xóa sạch mọi khung cũ, chỉ giữ lại một thanh Accent Neon bên trái
         st.markdown("""
             <style>
-                .ai-chart-container {
-                    background: rgba(0, 0, 0, 0.2);
-                    border-radius: 10px;
-                    padding: 10px;
-                    border-left: 3px solid #00f2ff; /* Chỉ một đường kẻ dọc bên trái cho tinh tế */
+                .hud-container {
+                    position: relative;
+                    background: rgba(0, 242, 255, 0.03); /* Nền xanh cực nhẹ */
+                    border-left: 4px solid #00f2ff;     /* Thanh dọc bên trái chuẩn HUD */
+                    padding: 10px 15px;
+                    margin: 10px 0;
+                    border-radius: 0 10px 10px 0;       /* Bo góc bên phải */
+                }
+                /* Tạo một hiệu ứng quét sáng nhẹ ở viền */
+                .hud-container::after {
+                    content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                    background: linear-gradient(90deg, rgba(0,242,255,0.05) 0%, rgba(0,0,0,0) 100%);
+                    pointer-events: none;
                 }
             </style>
         """, unsafe_allow_html=True)
 
+        # 2. Render trực tiếp vào một khối duy nhất
         with st.container():
-            st.markdown('<div class="ai-chart-container">', unsafe_allow_html=True)
+            st.markdown('<div class="hud-container">', unsafe_allow_html=True)
             
             fig_ai = go.Figure()
             
-            # Sử dụng màu sắc có độ phát sáng (Glow) cao
             fig_ai.add_trace(go.Bar(
                 y=['NEUTRAL', 'BUY', 'SELL'],
                 x=[prob_neutral * 100, prob_buy * 100, prob_sell * 100],
@@ -932,22 +940,11 @@ if data:
                 paper_bgcolor='rgba(0,0,0,0)', 
                 plot_bgcolor='rgba(0,0,0,0)',
                 font=dict(color='#00f2ff', family='JetBrains Mono'),
-                # Thêm lưới mờ phía sau biểu đồ để tạo cảm giác radar
-                xaxis=dict(
-                    range=[0, 100], 
-                    showgrid=True, 
-                    gridcolor='rgba(0, 242, 255, 0.1)',
-                    zeroline=False,
-                    visible=False
-                ),
-                yaxis=dict(
-                    color='#00f2ff', 
-                    tickfont=dict(size=11, family='Orbitron')
-                ),
-                height=160,
-                margin=dict(l=80, r=20, t=10, b=10),
-                showlegend=False,
-                bargap=0.4
+                xaxis=dict(range=[0, 100], visible=False),
+                yaxis=dict(color='#00f2ff', tickfont=dict(size=11)),
+                height=150,
+                margin=dict(l=80, r=20, t=5, b=5), # Căn chỉnh margin chuẩn để không thừa ký tự
+                showlegend=False
             )
             
             st.plotly_chart(fig_ai, use_container_width=True, config={'displayModeBar': False})
