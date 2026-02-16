@@ -901,7 +901,6 @@ if data:
         # ═══════════════════════════════════════════════════════════════
         # AI CONFIDENCE CHART - CĂN BẰNG VỚI CHỮ "MONSTER"
         # ═══════════════════════════════════════════════════════════════
-        Bắt đầu khung bao quanh theo style UI
         st.markdown('<div class="camera-frame" style="padding: 15px;">', unsafe_allow_html=True)
         
         fig_ai = go.Figure()
