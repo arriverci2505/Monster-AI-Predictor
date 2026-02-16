@@ -52,36 +52,51 @@ LIVE_CONFIG = {
     'sequence_length': 60,
 
     # --- 2. AI THRESHOLDS (DUAL SYSTEM - MATCHED!) ---
-    'temperature': 1.0,  # Match backtest
-    'trending_buy_threshold': 0.36,      # ✅ VERIFIED v14.4
-    'trending_sell_threshold': 0.36,     # ✅ VERIFIED v14.4
-    'sideway_buy_threshold': 0.22,       # ✅ VERIFIED v14.4
-    'sideway_sell_threshold': 0.22,      # ✅ VERIFIED v14.4
+          'temperature': 1.2,
+          'entry_percentile': 25,
 
-    # --- 3. REGIME CLASSIFICATION (MATCHED!) ---
-    'trending_adx_min': 30,              # Match backtest
-    'sideway_adx_max': 30,               # Match backtest (will be 20 in detect function)
-    'choppiness_threshold_high': 58.0,   # Match backtest
-    'choppiness_extreme_low': 30,
+          # TRENDING MODE
+          'trending_buy_threshold': 0.40,
+          'trending_sell_threshold': 0.42,
 
-    # --- 4. SIDEWAY FILTERS (MATCHED WITH BACKTEST!) ---
-    'bb_squeeze_percentile': 0.25,              # ✅ bb_border in backtest
-    'deviation_zscore_threshold': 3.8,          # ✅ z_thresh in backtest (was 1.4!)
-    'mean_reversion_min_shadow_atr': 0.5,       # ✅ shadow_min in backtest (was 0.1!)
+          # SIDEWAY MODE
+          'sideway_buy_threshold': 0.22,
+          'sideway_sell_threshold': 0.22,
 
-    # --- 5. TRENDING EXIT PARAMETERS (MATCHED!) ---
-    'sl_std_multiplier': 2.0,                   # Match backtest
-    'max_holding_bars': 200,                    # Match backtest
-    'trailing_stop_activation': 1.5,            # Match backtest (%)
-    'trailing_stop_distance': 0.8,              # Match backtest (%)
-    'profit_lock_levels': [(1.8, 1.2), (3.5, 2.8), (5.5, 4.5)],  # Match backtest
+          # --- REGIME CLASSIFICATION ---
+          'trending_adx_min': 30,
+          'sideway_adx_max': 30,
+          'choppiness_threshold_high': 58.0,
+          'choppiness_extreme_low': 30,
 
-    # --- 6. SIDEWAY EXIT PARAMETERS (MATCHED!) ---
-    'mean_reversion_sl_pct': 1.5,               # Match backtest
-    'mean_reversion_tp_pct': 1.5,               # Match backtest
-    'time_barrier': 20,                         # Match backtest
-    'min_profit_for_target': 0.005,             # Match backtest (0.5%)
-    'ai_exit_threshold': 0.6,                   # Match backtest
+          # --- SIDEWAY FILTERS (MỞ RỘNG BIÊN) ---
+          'deviation_zscore_threshold': 1.4,
+          'mean_reversion_min_shadow_atr': 0.1,
+          'bb_squeeze_percentile': 0.35,
+
+          # --- TRENDING MODE (SIẾT SL, THẢ TP) ---
+          'sl_std_multiplier': 1.5,
+          'max_holding_bars': 200,
+
+          # --- SIDEWAY EXIT ---
+          'mean_reversion_sl_pct': 1.0,
+          'mean_reversion_tp_pct': 3.5,
+          'time_barrier': 20,
+          'min_profit_for_target': 0.009,
+
+          # --- RISK MANAGEMENT (CHO LÃI "THỞ") ---
+          'use_advanced_exit': True,
+          'use_profit_lock': True,
+          'ai_exit_threshold': 0.70,
+
+          'profit_lock_levels': [
+              (1.8, 1.2),
+              (3.5, 2.8),
+              (5.5, 4.5)
+          ],
+
+          'trailing_stop_activation': 1.5,     # 🔄 NỚI: 1.5% mới bám đuôi
+          'trailing_stop_distance': 0.6,                  
 
     # --- 7. EXECUTION ---
     'position_size': 0.15,
