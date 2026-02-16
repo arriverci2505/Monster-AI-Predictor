@@ -226,7 +226,7 @@ st.markdown("""
         border: 1px solid rgba(0, 242, 255, 0.3);
         border-radius: 0 0 15px 15px;
         padding: 15px 30px;
-        margin: -60px -70px 30px -70px;
+        margin: -30px -70px 30px -70px;
         display: flex;
         justify-content: space-between;
         align-items: center;
