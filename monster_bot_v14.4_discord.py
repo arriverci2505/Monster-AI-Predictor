@@ -100,33 +100,49 @@ def restart_bot():
 # [Tìm hàm load_data cũ và thay thế bằng đoạn này]
 
 def load_data():
-    """Load bot state with robust error handling"""
+    """Load bot state - Đảm bảo PnL và AI Probs cập nhật liên tục"""
     if not os.path.exists(STATE_FILE):
         return None
     
     try:
-        # Mở file với chế độ chỉ đọc
         with open(STATE_FILE, "r", encoding='utf-8') as f:
             content = f.read().strip()
-            
-            # Nếu file rỗng (do lỗi ghi cũ), trả về None để UI không crash
             if not content:
                 return None
-                
             data = json.loads(content)
             
-            # Logic xử lý giá trị mặc định nếu thiếu
-            if data.get('current_price', 0) == 0 and data.get('trade_history'):
-                try:
-                    last_trade = data['trade_history'][0]
-                    exit_price_str = str(last_trade.get('exit_price', 0))
-                    data['current_price'] = float(exit_price_str.replace('$', '').replace(',', ''))
-                except:
-                    data['current_price'] = 0
-            return data
+        history = data.get('trade_history', [])
+
+        data['pnl_pct'] = data.get('pnl_pct', 0.0)
+        data['win_rate'] = data.get('win_rate', 0.0)
+        data['total_trades'] = data.get('total_trades', 0)
+
+        if 'ai_probs' not in data:
+            if history:
+                latest = history[0]
+                data['ai_probs'] = {
+                    'neutral': latest.get('prob_neutral', 0.33),
+                    'buy': latest.get('prob_buy', 0.0),
+                    'sell': latest.get('prob_sell', 0.0)
+                }
+            else:
+                data['ai_probs'] = {'neutral': 0.33, 'buy': 0.0, 'sell': 0.0}
+
+        # 4. XỬ LÝ GIÁ HIỆN TẠI (Giữ nguyên logic của bạn)
+        if data.get('current_price', 0) == 0 and history:
+            try:
+                last_trade = history[0]
+                ep = last_trade.get('exit_price', 0)
+                # Chuyển đổi an toàn từ string/number sang float
+                data['current_price'] = float(str(ep).replace('$', '').replace(',', ''))
+            except:
+                data['current_price'] = 0
+                
+        return data
+
     except Exception as e:
-        # Nếu lỗi JSON, có thể do đang ghi đè (dù Atomic write đã giảm thiểu tối đa)
-        # Trả về None để lần refresh sau thử lại
+        # Trả về None để tránh crash UI, log lỗi để debug nếu cần
+        print(f"Error loading state: {e}")
         return None
 
 def send_kill_signal():
