@@ -158,54 +158,62 @@ class PositionalEncoding(nn.Module):
         return x + self.pe[:, :x.size(1), :]
 
 class HybridTransformerLSTM(nn.Module):
-    """Hybrid architecture - MATCHED with backtest"""
-    def __init__(self, config):
-        super(HybridTransformerLSTM, self).__init__()
-        
-        input_dim = config.get('input_dim', 42)
-        hidden_dim = config.get('hidden_dim', 128)
-        num_lstm_layers = config.get('num_lstm_layers', 2)
-        num_transformer_layers = config.get('num_transformer_layers', 2)
-        num_heads = config.get('num_heads', 4)
-        num_classes = config.get('num_classes', 3)
-        dropout = config.get('dropout', 0.35)
-        
-        self.input_proj = nn.Linear(input_dim, hidden_dim)
-        self.pos_encoder = PositionalEncoding(hidden_dim)
-        
+    def __init__(self, config: Dict):
+        super().__init__()
+        self.input_dim = config['input_dim']
+        self.hidden_dim = config['hidden_dim']
+        self.num_classes = config['num_classes']
+        self.use_positional_encoding = config['use_positional_encoding']
+        self.input_proj = nn.Linear(self.input_dim, self.hidden_dim)
+        if self.use_positional_encoding:
+            self.pos_encoding = PositionalEncoding(self.hidden_dim)
         encoder_layer = nn.TransformerEncoderLayer(
-            d_model=hidden_dim,
-            nhead=num_heads,
-            dim_feedforward=hidden_dim * 4,
-            dropout=dropout,
+            d_model=self.hidden_dim,
+            nhead=config['num_heads'],
+            dim_feedforward=self.hidden_dim * 4,
+            dropout=config['dropout'],
             batch_first=True
         )
-        self.transformer_encoder = nn.TransformerEncoder(
-            encoder_layer, 
-            num_layers=num_transformer_layers
+        self.transformer = nn.TransformerEncoder(
+            encoder_layer,
+            num_layers=config['num_transformer_layers']
         )
-        
         self.lstm = nn.LSTM(
-            hidden_dim,
-            hidden_dim,
-            num_lstm_layers,
+            input_size=self.hidden_dim,
+            hidden_size=self.hidden_dim,
+            num_layers=config['num_lstm_layers'],
             batch_first=True,
-            dropout=dropout if num_lstm_layers > 1 else 0
+            dropout=config['dropout'] if config['num_lstm_layers'] > 1 else 0,
+            bidirectional=True
         )
-        
-        self.fc1 = nn.Linear(hidden_dim, hidden_dim // 2)
-        self.dropout = nn.Dropout(dropout)
-        self.fc2 = nn.Linear(hidden_dim // 2, num_classes)
-    
+        self.se_block = SqueezeExcitation(
+            channels=self.hidden_dim * 2,
+            reduction=config['se_reduction_ratio']
+        )
+        self.final_attention = nn.MultiheadAttention(
+            embed_dim=self.hidden_dim * 2,
+            num_heads=config['num_heads'],
+            dropout=config['dropout'],
+            batch_first=True
+        )
+        self.classifier = nn.Sequential(
+            nn.Linear(self.hidden_dim * 2, self.hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(config['dropout']),
+            nn.Linear(self.hidden_dim, self.num_classes)
+        )
+      
     def forward(self, x):
         x = self.input_proj(x)
-        x = self.pos_encoder(x)
-        x = self.transformer_encoder(x)
+        if self.use_positional_encoding:
+            x = self.pos_encoding(x)
+        x = self.transformer(x)
         x, _ = self.lstm(x)
-        x = x[:, -1, :]
-        x = F.relu(self.fc1(x))
-        x = self.dropout(x)
-        x = self.fc2(x)
+        x = self.se_block(x)
+        x, _ = self.final_attention(x, x, x)
+        x = x.mean(dim=1)
+        x = self.classifier(x)
+
         return x
 
 # ════════════════════════════════════════════════════════════════════════════
