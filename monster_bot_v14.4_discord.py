@@ -665,7 +665,7 @@ st.sidebar.markdown("---")
 with st.sidebar:
     
     # Nút Restart to nhất, nổi bật
-    if st.button("🚀 RESTART MONSTER ENGINE", width='auto'):
+    if st.button("🚀 RESTART MONSTER ENGINE"):
         with st.spinner("Re-linking neural core..."):
             if restart_bot():
                 st.success("Engine Restarted!")
@@ -676,7 +676,7 @@ with st.sidebar:
     col_k1, col_k2 = st.columns(2)
     
     with col_k1:
-        if st.button("🛑 KILL BOT", key="kill", width='auto'):
+        if st.button("🛑 KILL BOT", key="kill"):
             if bot_running:
                 send_kill_signal()
                 success, msg = kill_bot(bot_pid)
@@ -686,11 +686,11 @@ with st.sidebar:
                 st.rerun()
 
     with col_k2:
-        if st.button("🔄 REFRESH", key="refresh", width='auto'):
+        if st.button("🔄 REFRESH", key="refresh"):
             st.rerun()
 
     # Nút dọn dẹp để ở dưới cùng của nhóm control
-    if st.button("🧹 CLEAR STATE DATA", width='auto'):
+    if st.button("🧹 CLEAR STATE DATA"):
         if os.path.exists(STATE_FILE):
             os.remove(STATE_FILE)
             st.warning("Data cleared!")
@@ -910,7 +910,7 @@ if data:
                     margin=dict(l=60, r=20, t=60, b=50)
                 )
                 
-                st.plotly_chart(fig_perf, width='auto')
+                st.plotly_chart(fig_perf)
     
     with col_terminal:
         # ═══════════════════════════════════════════════════════════════
@@ -1019,7 +1019,7 @@ if data:
     
     if history:
         df_history = pd.DataFrame(history[:10])
-        st.dataframe(df_history, width='auto', height=350)
+        st.dataframe(df_history, height=350)
         
         csv = df_history.to_csv(index=False)
         st.download_button(
