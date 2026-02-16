@@ -226,49 +226,50 @@ st.markdown("""
         padding: 15px 30px;
         background: rgba(0, 5, 10, 0.9);
         backdrop-filter: blur(10px);
-        border-radius: 15px;
+        border-radius: 15px; /* Bo góc khung ngoài */
         display: flex;
         justify-content: space-between;
         align-items: center;
         z-index: 1;
-        /* Tạo viền mờ làm khung */
+        overflow: hidden; /* Bắt buộc để cắt tia sáng theo góc bo */
         border: 1px solid rgba(0, 242, 255, 0.1);
-        overflow: hidden;
     }
 
-    /* Tia sáng chạy bám viền */
+    /* Tia sáng chạy vòng tròn */
     .hud-header::before {
         content: '';
         position: absolute;
-        inset: 0;
-        border-radius: 15px;
-        padding: 2px; /* Độ dày viền */
-        /* Tạo dải màu dài chạy quanh viền */
-        background: linear-gradient(90deg, 
-            transparent 0%, 
-            #00f2ff 25%, 
-            #ffffff 30%, 
-            #bd00ff 35%, 
-            transparent 50%,
-            transparent 100%
+        /* Kéo rộng vùng xoay để phủ hết chiều ngang dài của HUD */
+        width: 150%; 
+        height: 500%; 
+        top: -200%;
+        left: -25%;
+        background: conic-gradient(
+            from 0deg,
+            transparent 0%,
+            transparent 40%,
+            #00f2ff 48%, /* Đầu tia sáng */
+            #ffffff 50%, /* Thân rực sáng */
+            #bd00ff 52%, /* Đuôi tím */
+            transparent 60%
         );
-        background-size: 200% 200%;
-        /* Hiệu ứng mask để chỉ hiện phần viền */
-        -webkit-mask: 
-            linear-gradient(#fff 0 0) content-box, 
-            linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-        
-        animation: borderMove 4s linear infinite;
+        animation: rotateFull 5s linear infinite;
+        z-index: -2;
     }
 
-    @keyframes borderMove {
-        0% { background-position: 0% 0%; }
-        25% { background-position: 100% 0%; }
-        50% { background-position: 100% 100%; }
-        75% { background-position: 0% 100%; }
-        100% { background-position: 0% 0%; }
+    /* Lớp phủ bên trong để giữ lại cái viền 2px */
+    .hud-header::after {
+        content: '';
+        position: absolute;
+        inset: 2px; /* Khoảng cách này tạo độ dày cho viền */
+        background: rgba(0, 5, 10, 0.95);
+        border-radius: 13px; /* Phải nhỏ hơn border-radius ngoài 2px */
+        z-index: -1;
+    }
+
+    @keyframes rotateFull {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
 
     .hud-title {
