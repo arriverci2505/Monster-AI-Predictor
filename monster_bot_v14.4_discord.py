@@ -890,104 +890,11 @@ if data:
         
         terminal_output = "<br>".join(terminal_lines)
         
-        st.markdown("""
-            <style>
-                /* 1. Xóa bỏ hoàn toàn khoảng cách mặc định của Streamlit */
-                [data-testid="stVerticalBlock"] > div:has(div.log-section) {
-                    gap: 0rem !important;
-                }
-
-                /* 2. TẦNG TRÊN (LOG): Bo góc trên, bỏ viền đáy */
-                .log-section {
-                    background: rgba(0, 20, 20, 0.4);
-                    border: 1px solid rgba(0, 242, 255, 0.2);
-                    border-bottom: none !important;
-                    border-radius: 12px 12px 0 0 !important;
-                    padding: 15px;
-                    margin-bottom: 0px !important;
-                }
-
-                /* 3. TẦNG GIỮA (TITLE): Thanh nối phẳng, không dùng margin âm gây đè chữ */
-                .ai-title-bridge {
-                    background: rgba(0, 40, 40, 0.85);
-                    border-left: 4px solid #00f2ff;
-                    border-right: 1px solid rgba(0, 242, 255, 0.2);
-                    padding: 6px 15px;
-                    color: #00f2ff;
-                    font-family: 'JetBrains Mono', monospace;
-                    font-size: 0.75rem;
-                    font-weight: 800;
-                    display: flex;
-                    align-items: center;
-                    margin-top: 0px !important; 
-                    margin-bottom: 0px !important;
-                }
-
-                /* 4. TẦNG DƯỚI (CHART): Bo góc đáy, nối lền mạch lề trái */
-                .chart-section {
-                    background: rgba(0, 20, 20, 0.4);
-                    border-left: 4px solid #00f2ff;
-                    border-right: 1px solid rgba(0, 242, 255, 0.2);
-                    border-bottom: 1px solid rgba(0, 242, 255, 0.2);
-                    border-radius: 0 0 12px 12px !important;
-                    padding: 10px 15px;
-                    margin-top: 0px !important;
-                }
-
-                /* Hiệu ứng nhịp thở cho hệ thống */
-                .system-dot {
-                    height: 8px; width: 8px;
-                    background-color: #00f2ff;
-                    border-radius: 50%;
-                    margin-right: 10px;
-                    box-shadow: 0 0 8px #00f2ff;
-                    animation: pulse-dot 2s infinite;
-                }
-                @keyframes pulse-dot {
-                    0%, 100% { opacity: 0.5; transform: scale(0.9); }
-                    50% { opacity: 1; transform: scale(1.1); }
-                }
-            </style>
+        st.markdown(f"""
+        <div class="matrix-terminal">
+            {terminal_output}
+        </div>
         """, unsafe_allow_html=True)
-
-        # TRIỂN KHAI CẤU TRÚC HUD
-        # Tầng 1: System Logs
-        st.markdown(f'<div class="log-section">{terminal_output}</div>', unsafe_allow_html=True)
-        
-        # Tầng 2: AI Title (Thanh cầu nối)
-        st.markdown('<div class="ai-title-bridge"><div class="system-dot"></div> 🧠 AI ENGINE PREDICTION</div>', unsafe_allow_html=True)
-        
-        # Tầng 3: Prediction Chart
-        st.markdown('<div class="chart-section">', unsafe_allow_html=True)
-        
-        fig_ai = go.Figure()
-        fig_ai.add_trace(go.Bar(
-            y=['NEUTRAL', 'BUY', 'SELL'],
-            x=[prob_neutral * 100, prob_buy * 100, prob_sell * 100],
-            orientation='h',
-            marker=dict(
-                color=['rgba(255, 170, 0, 0.6)', 'rgba(0, 242, 255, 0.9)', 'rgba(189, 0, 255, 0.6)'],
-                line=dict(color='#00f2ff', width=1)
-            ),
-            text=[f"{prob_neutral*100:.1f}%", f"{prob_buy*100:.1f}%", f"{prob_sell*100:.1f}%"],
-            textposition='auto',
-            textfont=dict(color='#ffffff', size=11, family='JetBrains Mono', weight='bold'),
-        ))
-        
-        fig_ai.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)', 
-            plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#00f2ff', family='JetBrains Mono'),
-            xaxis=dict(range=[0, 100], visible=False),
-            yaxis=dict(color='#00f2ff', tickfont=dict(size=10, weight='bold')),
-            height=145, # Tăng nhẹ để tránh bị kích khung
-            margin=dict(l=70, r=10, t=5, b=5),
-            showlegend=False,
-            bargap=0.35
-        )
-        
-        st.plotly_chart(fig_ai, use_container_width=True, config={'displayModeBar': False})
-        st.markdown('</div>', unsafe_allow_html=True)
             
     # ═══════════════════════════════════════════════════════════════════════════
     # TRADE HISTORY TABLE
