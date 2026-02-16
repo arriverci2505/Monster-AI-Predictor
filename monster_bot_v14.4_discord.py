@@ -230,7 +230,6 @@ st.markdown("""
         display: flex;
         justify-content: space-between;
         align-items: center;
-        /* Chỉ giữ viền mờ ở trên và dưới nếu bạn muốn, hoặc để nguyên như cũ */
         border: 1px solid rgba(0, 242, 255, 0.1);
         z-index: 1;
         overflow: hidden;
@@ -239,7 +238,7 @@ st.markdown("""
     .hud-header::before {
         content: '';
         position: absolute;
-        width: 150px;
+        width: 400px;
         height: 2px;
         background: linear-gradient(90deg, transparent, #00f2ff, #bd00ff, transparent);
         box-shadow: 0 0 15px rgba(0, 242, 255, 0.5);
@@ -248,51 +247,14 @@ st.markdown("""
     }
 
     @keyframes topBottomOnly {
-        /* CẠNH TRÊN: Chạy từ Trái qua Phải */
-        0% {
-            top: 0;
-            left: -150px;
-            opacity: 1;
-        }
-        35% {
-            top: 0;
-            left: 100%;
-            opacity: 1;
-        }
-
-        /* TRẠNG THÁI ẨN: Di chuyển từ trên xuống dưới mà không hiện hình */
-        35.01% {
-            opacity: 0;
-            left: 100%;
-        }
-        49.99% {
-            top: calc(100% - 2px);
-            left: 100%;
-            opacity: 0;
-        }
-
-        /* CẠNH DƯỚI: Hiện ra và chạy từ Phải qua Trái */
-        50% {
-            top: calc(100% - 2px);
-            left: 100%;
-            opacity: 1;
-        }
-        85% {
-            top: calc(100% - 2px);
-            left: -150px;
-            opacity: 1;
-        }
-
-        /* TRẠNG THÁI ẨN: Di chuyển từ dưới lên trên để bắt đầu lại */
-        85.01% {
-            opacity: 0;
-            left: -150px;
-        }
-        100% {
-            top: 0;
-            left: -150px;
-            opacity: 0;
-        }
+        0% {top: 0; left: -150px; opacity: 1;}
+        35% {top: 0; left: 100%; opacity: 1;}
+        35.01% {opacity: 0; left: 100%;}
+        49.99% {top: calc(100% - 2px); left: 100%;opacity: 0;}
+        50% {top: calc(100% - 2px); left: 100%;opacity: 1;}
+        85% {top: calc(100% - 2px); left: -150px;opacity: 1;}
+        85.01% {opacity: 0; left: -150px;}
+        100% {top: 0; left: -150px; opacity: 0;}
     }
 
     .hud-title {
