@@ -60,6 +60,21 @@ def kill_bot(pid):
         except Exception as e:
             return False, f"ERROR: {e}"
 
+def restart_bot():
+    """Kill existing engine and start a new one"""
+    try:
+        # Tìm và tắt các tiến trình liên quan đến monster_engine.py
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            if proc.info['cmdline'] and 'monster_engine.py' in ' '.join(proc.info['cmdline']):
+                os.kill(proc.info['pid'], 9)
+        
+        # Khởi chạy lại engine (đảm bảo file monster_engine.py nằm cùng thư mục)
+        subprocess.Popen([sys.executable, "monster_engine.py"])
+        return True
+    except Exception as e:
+        st.error(f"Error restarting bot: {e}")
+        return False
+        
 def load_data():
     """Load bot state with proper exception handling"""
     if not os.path.exists(STATE_FILE):
@@ -626,8 +641,24 @@ else:
 
 st.sidebar.markdown("---")
 
-col_k1, col_k2 = st.sidebar.columns(2)
+col_k0, col_k1, col_k2 = st.sidebar.columns(3)
 
+with col_k0:
+    st.markdown("### 🛠️ BOT CONTROL")
+    if st.button("🚀 RESTART MONSTER ENGINE", use_container_width=True):
+        with st.spinner("Re-linking neural core..."):
+            if restart_bot():
+                st.success("Engine Restarted!")
+                time.sleep(1)
+                st.rerun()
+
+    # Thêm nút xóa cache dữ liệu nếu cần
+    if st.button("🧹 CLEAR STATE DATA", use_container_width=True):
+        if os.path.exists(STATE_FILE):
+            os.remove(STATE_FILE)
+            st.warning("State file cleared. Waiting for new sync...")
+            st.rerun()
+            
 with col_k1:
     if st.button("🛑 KILL", key="kill"):
         if bot_running:
