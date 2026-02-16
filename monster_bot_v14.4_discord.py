@@ -677,6 +677,7 @@ st.markdown("""
             font-size: 20px !important; /* Thu nhỏ một chút để không bị xuống dòng */
             text-align: center !important;
             width: 100% !important;
+            white-space: nowrap !important;
             letter-spacing: 1px !important;
             margin-bottom: 5px !important;
         }
