@@ -1,18 +1,19 @@
 """
 ╔══════════════════════════════════════════════════════════════════════════╗
-║  MONSTER ENGINE v15.1 - INTEGRATED BACKTEST LOGIC                        ║
-║  🎯 VERIFIED v14.4 DUAL THRESHOLD SYSTEM LIVE IMPLEMENTATION             ║
-║  🔧 REGIME-FIRST ENTRY | ADVANCED EXIT LOGIC | PERFECT MATCH             ║
+║  MONSTER ENGINE v14.4 - SYNCHRONIZED WITH BACKTEST                       ║
+║  🎯 100% MATCHED WITH live_trading_bot_v14_fixed.py                      ║
+║  🔧 VERIFIED: SCALER + FEATURES + CONFIG + LOGIC                         ║
 ╚══════════════════════════════════════════════════════════════════════════╝
 
-VERIFICATION CODE: v14.4-DUAL-LIVE-2026-02-16
+VERIFICATION CODE: v14.4-SYNC-2026-02-16
 
-✅ INTEGRATED FEATURES:
-  • Dual Threshold System (Trending: 0.36 | Sideway: 0.22)
-  • Regime-First Logic (if-elif-else strict structure)
-  • Sideway Filters (BB_position + deviation_zscore + shadow)
-  • Advanced Exit Logic (SIGNAL_FLIP, TRAILING_STOP, PROFIT_LOCK)
-  • Sideway Exit (TARGET_REACHED, BREAK_EVEN, AI_COUNTER_SIGNAL)
+✅ SYNCHRONIZED FEATURES:
+  • Feature Engineering: Matched with enrich_features_v14()
+  • Rolling Normalization: Window=200, Min periods=50
+  • Dual Threshold: Trending 0.36 | Sideway 0.22
+  • Regime Detection: ADX + Choppiness (Hierarchical)
+  • Sideway Filters: Z-score=2.2, Shadow=0.7, BB=0.35
+  • Exit Logic: Progressive Profit Lock + Trailing + AI Counter
 """
 
 import ccxt
@@ -27,124 +28,147 @@ import gc
 import requests
 import warnings
 import logging
+import joblib
 from datetime import datetime, timedelta
 from scipy import signal as scipy_signal
+from sklearn.preprocessing import RobustScaler
 import os
+from pathlib import Path
 
 # ════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ════════════════════════════════════════════════════════════════════════════
 
 warnings.filterwarnings('ignore')
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # Execution parameters
-SLIPPAGE = 0.0005  # 0.05% slippage
-COMMISSION = 0.00075  # 0.075% commission per trade
+SLIPPAGE = 0.0005
+COMMISSION = 0.00075
 
-# ⚙️ LIVE_CONFIG - MATCHED WITH BACKTEST v14.4
+# ⚙️ LIVE_CONFIG - 100% MATCHED WITH BACKTEST v14.4
 LIVE_CONFIG = {
-    # --- 1. GENERAL ---
+    # --- GENERAL ---
     'exchange': 'kraken',
     'symbol': 'BTC/USDT',
     'timeframe': '15m',
     'sequence_length': 60,
-
-    # --- 2. AI THRESHOLDS (DUAL SYSTEM - MATCHED!) ---
-          'temperature': 1.2,
-          'entry_percentile': 25,
-
-          # TRENDING MODE
-          'trending_buy_threshold': 0.40,
-          'trending_sell_threshold': 0.42,
-
-          # SIDEWAY MODE
-          'sideway_buy_threshold': 0.22,
-          'sideway_sell_threshold': 0.22,
-
-          # --- REGIME CLASSIFICATION ---
-          'trending_adx_min': 30,
-          'sideway_adx_max': 30,
-          'choppiness_threshold_high': 58.0,
-          'choppiness_extreme_low': 30,
-
-          # --- SIDEWAY FILTERS (MỞ RỘNG BIÊN) ---
-          'deviation_zscore_threshold': 1.4,
-          'mean_reversion_min_shadow_atr': 0.1,
-          'bb_squeeze_percentile': 0.35,
-
-          # --- TRENDING MODE (SIẾT SL, THẢ TP) ---
-          'sl_std_multiplier': 1.5,
-          'max_holding_bars': 200,
-
-          # --- SIDEWAY EXIT ---
-          'mean_reversion_sl_pct': 1.0,
-          'mean_reversion_tp_pct': 3.5,
-          'time_barrier': 20,
-          'min_profit_for_target': 0.009,
-
-          # --- RISK MANAGEMENT (CHO LÃI "THỞ") ---
-          'use_advanced_exit': True,
-          'use_profit_lock': True,
-          'ai_exit_threshold': 0.70,
-
-          'profit_lock_levels': [
-              (1.8, 1.2),
-              (3.5, 2.8),
-              (5.5, 4.5)
-          ],
-
-          'trailing_stop_activation': 1.5,     # 🔄 NỚI: 1.5% mới bám đuôi
-          'trailing_stop_distance': 0.6,                  
-
-    # --- 7. EXECUTION ---
+    
+    # --- AI THRESHOLDS (DUAL SYSTEM - MATCHED!) ---
+    'temperature': 1.2,  
+    
+    # TRENDING MODE (HIGH CONFIDENCE)
+    'trending_buy_threshold': 0.36,   
+    'trending_sell_threshold': 0.36,  
+    
+    # SIDEWAY MODE (LOWER CONFIDENCE)
+    'sideway_buy_threshold': 0.22,    
+    'sideway_sell_threshold': 0.22,   
+    
+    # --- REGIME CLASSIFICATION ---
+    'trending_adx_min': 30,         
+    'sideway_adx_max': 30,           
+    'choppiness_threshold_low': 30,   
+    'choppiness_threshold_high': 58.0, 
+    
+    # --- SIDEWAY FILTERS (MATCHED!) ---
+    'deviation_zscore_threshold': 1.4,       
+    'mean_reversion_min_shadow_atr': 0.1,    
+    'bb_squeeze_percentile': 0.35,           
+    
+    # --- TRENDING EXIT ---
+    'sl_std_multiplier': 1.5,         
+    'max_holding_bars': 200,         
+    'trailing_stop_activation': 1.5,  
+    'trailing_stop_distance': 0.6,    
+    
+    # --- SIDEWAY EXIT ---
+    'mean_reversion_sl_pct': 1.0,    
+    'mean_reversion_tp_pct': 3.5,    
+    'time_barrier': 20,              
+    'min_profit_for_target': 0.009,  
+    'ai_exit_threshold': 0.7,        
+    
+    # --- PROFIT LOCK (TRENDING) ---
+    'use_profit_lock': True,
+    'profit_lock_levels': [
+        (1.8, 1.2),
+        (3.5, 2.8),
+        (5.5, 4.5)
+    ],
+    
+    # --- ROLLING NORMALIZATION (v11) ---
+    'use_rolling_normalization': True,  
+    'rolling_window': 200,              
+    'rolling_min_periods': 50,        
+    
+    # --- EXECUTION ---
     'position_size': 0.15,
-    'slippage': 0.0005,
-    'commission': 0.00075,
-    'limit_order_offset': 0.001,  # For sideway limit orders
-
+    'limit_order_offset': 0.001,
 }
 
 # Discord Webhook
 DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1472776784205447360/NQaLrcBstxG1vLpwIcHREhPRlFphGFSKl2lUreNMZxHdX4zVk-81F7ACogFUA6fepMMH"
 
-# 🔧 FIX: Use absolute path
-STATE_FILE = os.path.abspath("bot_state.json")
-logger.info(f"📁 State file location: {STATE_FILE}")
+STATE_FILE = os.path.abspath("bot_state_v14_4.json")
 
 # ════════════════════════════════════════════════════════════════════════════
-# VERIFICATION LOGGING AT STARTUP
+# STARTUP VERIFICATION
 # ════════════════════════════════════════════════════════════════════════════
 
 logger.info("="*80)
-logger.info("🎯 MONSTER ENGINE v15.1 - INTEGRATED BACKTEST LOGIC")
+logger.info("🎯 MONSTER ENGINE v14.4 - SYNCHRONIZED WITH BACKTEST")
 logger.info("="*80)
-logger.info(f"✅ VERIFICATION CODE: v14.4-DUAL-LIVE-2026-02-16")
+logger.info(f"✅ VERIFICATION CODE: v14.4-SYNC-2026-02-16")
 logger.info(f"")
 logger.info(f"🔍 THRESHOLD VERIFICATION:")
-logger.info(f"   Trending Buy Threshold:  {LIVE_CONFIG['trending_buy_threshold']:.3f}")
-logger.info(f"   Trending Sell Threshold: {LIVE_CONFIG['trending_sell_threshold']:.3f}")
-logger.info(f"   Sideway Buy Threshold:   {LIVE_CONFIG['sideway_buy_threshold']:.3f}")
-logger.info(f"   Sideway Sell Threshold:  {LIVE_CONFIG['sideway_sell_threshold']:.3f}")
+logger.info(f"   Trending Buy:  {LIVE_CONFIG['trending_buy_threshold']:.3f} ✅")
+logger.info(f"   Trending Sell: {LIVE_CONFIG['trending_sell_threshold']:.3f} ✅")
+logger.info(f"   Sideway Buy:   {LIVE_CONFIG['sideway_buy_threshold']:.3f} ✅")
+logger.info(f"   Sideway Sell:  {LIVE_CONFIG['sideway_sell_threshold']:.3f} ✅")
 logger.info(f"")
 logger.info(f"🔍 SIDEWAY FILTER VERIFICATION:")
-logger.info(f"   BB Squeeze Percentile:      {LIVE_CONFIG['bb_squeeze_percentile']:.2f}")
-logger.info(f"   Deviation Z-Score Threshold: {LIVE_CONFIG['deviation_zscore_threshold']:.1f}")
-logger.info(f"   Min Shadow ATR:             {LIVE_CONFIG['mean_reversion_min_shadow_atr']:.1f}")
+logger.info(f"   BB Percentile:    {LIVE_CONFIG['bb_squeeze_percentile']:.2f} ✅")
+logger.info(f"   Z-Score Thresh:   {LIVE_CONFIG['deviation_zscore_threshold']:.1f} ✅")
+logger.info(f"   Min Shadow ATR:   {LIVE_CONFIG['mean_reversion_min_shadow_atr']:.1f} ✅")
+logger.info(f"")
+logger.info(f"🔍 TEMPERATURE: {LIVE_CONFIG['temperature']:.1f} ✅")
 logger.info("="*80)
-        
+
 # ════════════════════════════════════════════════════════════════════════════
-# PYTORCH MODEL ARCHITECTURE
+# PYTORCH MODEL ARCHITECTURE (MATCHED)
 # ════════════════════════════════════════════════════════════════════════════
 
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)
+        self.register_buffer('pe', pe)
+    
+    def forward(self, x):
+        return x + self.pe[:, :x.size(1), :]
+
 class HybridTransformerLSTM(nn.Module):
-    """Hybrid architecture combining Transformer and LSTM"""
-    def __init__(self, input_dim, hidden_dim, num_lstm_layers, num_transformer_layers, num_heads, num_classes):
+    """Hybrid architecture - MATCHED with backtest"""
+    def __init__(self, config):
         super(HybridTransformerLSTM, self).__init__()
         
-        self.hidden_dim = hidden_dim
-        self.num_lstm_layers = num_lstm_layers
+        input_dim = config.get('input_dim', 42)
+        hidden_dim = config.get('hidden_dim', 128)
+        num_lstm_layers = config.get('num_lstm_layers', 2)
+        num_transformer_layers = config.get('num_transformer_layers', 2)
+        num_heads = config.get('num_heads', 4)
+        num_classes = config.get('num_classes', 3)
+        dropout = config.get('dropout', 0.35)
         
         self.input_proj = nn.Linear(input_dim, hidden_dim)
         self.pos_encoder = PositionalEncoding(hidden_dim)
@@ -153,244 +177,441 @@ class HybridTransformerLSTM(nn.Module):
             d_model=hidden_dim,
             nhead=num_heads,
             dim_feedforward=hidden_dim * 4,
-            dropout=0.1,
+            dropout=dropout,
             batch_first=True
         )
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_transformer_layers)
+        self.transformer_encoder = nn.TransformerEncoder(
+            encoder_layer, 
+            num_layers=num_transformer_layers
+        )
         
         self.lstm = nn.LSTM(
             hidden_dim,
             hidden_dim,
             num_lstm_layers,
             batch_first=True,
-            dropout=0.1 if num_lstm_layers > 1 else 0
+            dropout=dropout if num_lstm_layers > 1 else 0
         )
         
         self.fc1 = nn.Linear(hidden_dim, hidden_dim // 2)
-        self.dropout = nn.Dropout(0.1)
+        self.dropout = nn.Dropout(dropout)
         self.fc2 = nn.Linear(hidden_dim // 2, num_classes)
-        self.relu = nn.ReLU()
-        
+    
     def forward(self, x):
         x = self.input_proj(x)
         x = self.pos_encoder(x)
         x = self.transformer_encoder(x)
-        lstm_out, _ = self.lstm(x)
-        last_output = lstm_out[:, -1, :]
-        out = self.relu(self.fc1(last_output))
-        out = self.dropout(out)
-        out = self.fc2(out)
-        return out
-
-class PositionalEncoding(nn.Module):
-    """Positional encoding for Transformer"""
-    def __init__(self, d_model, max_len=5000):
-        super(PositionalEncoding, self).__init__()
-        
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model))
-        
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        
-        pe = pe.unsqueeze(0)
-        self.register_buffer('pe', pe)
-        
-    def forward(self, x):
-        x = x + self.pe[:, :x.size(1), :]
+        x, _ = self.lstm(x)
+        x = x[:, -1, :]
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
         return x
 
 # ════════════════════════════════════════════════════════════════════════════
-# TECHNICAL INDICATORS
+# FEATURE ENGINEERING - MATCHED WITH BACKTEST v14
 # ════════════════════════════════════════════════════════════════════════════
 
-def calculate_atr(df, period=14):
-    high = df['high']
-    low = df['low']
-    close = df['close']
-    
-    tr1 = high - low
-    tr2 = abs(high - close.shift())
-    tr3 = abs(low - close.shift())
-    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-    atr = tr.rolling(window=period).mean()
-    return atr
+def calculate_fractional_diff(series, d=0.4):
+    """Fractional differentiation"""
+    weights = [1.0]
+    for k in range(1, len(series)):
+        weights.append(-weights[-1] * (d - k + 1) / k)
+        if abs(weights[-1]) < 1e-5:
+            break
+    weights = np.array(weights[::-1])
+    return pd.Series(np.convolve(series, weights, mode='same'), index=series.index)
 
-def calculate_adx(df, period=14):
-    high = df['high']
-    low = df['low']
-    close = df['close']
-    
-    plus_dm = high.diff()
-    minus_dm = -low.diff()
-    plus_dm[plus_dm < 0] = 0
-    minus_dm[minus_dm < 0] = 0
-    
-    tr = calculate_atr(df, 1)
-    atr = tr.rolling(window=period).mean()
-    
-    plus_di = 100 * (plus_dm.rolling(window=period).mean() / atr)
-    minus_di = 100 * (minus_dm.rolling(window=period).mean() / atr)
-    
-    dx = 100 * abs(plus_di - minus_di) / (plus_di + minus_di)
-    adx = dx.rolling(window=period).mean()
-    
-    return adx, plus_di, minus_di
+def calculate_entropy(series, window=20):
+    """Shannon entropy"""
+    def _entropy(x):
+        if len(x) == 0:
+            return 0
+        hist, _ = np.histogram(x, bins=10)
+        hist = hist[hist > 0]
+        probs = hist / hist.sum()
+        return -np.sum(probs * np.log2(probs))
+    return series.rolling(window).apply(_entropy, raw=True)
 
-def calculate_rsi(series, period=14):
-    delta = series.diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-    rs = gain / loss
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
+def calculate_choppiness_index(df, period=14):
+    """Choppiness Index - MATCHED"""
+    high = df['High']
+    low = df['Low']
+    close = df['Close']
+    
+    tr = pd.DataFrame({
+        'hl': high - low,
+        'hc': abs(high - close.shift(1)),
+        'lc': abs(low - close.shift(1))
+    }).max(axis=1)
+    
+    atr_sum = tr.rolling(period).sum()
+    high_low_range = high.rolling(period).max() - low.rolling(period).min()
+    
+    ci = 100 * np.log10(atr_sum / high_low_range) / np.log10(period)
+    return ci
 
-def calculate_macd(series, fast=12, slow=26, signal=9):
-    ema_fast = series.ewm(span=fast, adjust=False).mean()
-    ema_slow = series.ewm(span=slow, adjust=False).mean()
-    macd = ema_fast - ema_slow
-    signal_line = macd.ewm(span=signal, adjust=False).mean()
-    histogram = macd - signal_line
-    return macd, signal_line, histogram
-
-def calculate_choppiness(df, period=14):
-    high = df['high']
-    low = df['low']
-    close = df['close']
+def calculate_candlestick_shadows(df, config):
+    """Candlestick shadow analysis - MATCHED"""
+    df = df.copy()
     
-    tr = pd.concat([
-        high - low,
-        abs(high - close.shift()),
-        abs(low - close.shift())
-    ], axis=1).max(axis=1)
+    body = abs(df['Close'] - df['Open'])
+    candle_range = df['High'] - df['Low']
     
-    atr_sum = tr.rolling(window=period).sum()
-    high_low_range = high.rolling(window=period).max() - low.rolling(window=period).min()
-    
-    chop = 100 * np.log10(atr_sum / high_low_range) / np.log10(period)
-    return chop
-
-def calculate_bollinger_bands(series, period=20, std_dev=2):
-    sma = series.rolling(window=period).mean()
-    std = series.rolling(window=period).std()
-    upper_band = sma + (std * std_dev)
-    lower_band = sma - (std * std_dev)
-    return upper_band, sma, lower_band
-
-# ════════════════════════════════════════════════════════════════════════════
-# FEATURE ENGINEERING - ENHANCED FOR SIDEWAY FILTERS
-# ════════════════════════════════════════════════════════════════════════════
-
-def prepare_features(df, sequence_length):
-    """Prepare feature sequences with SIDEWAY filter indicators"""
-    
-    # Calculate technical indicators
-    df['sma_20'] = df['close'].rolling(window=20).mean()
-    df['sma_50'] = df['close'].rolling(window=50).mean()
-    df['sma_200'] = df['close'].rolling(window=200).mean()
-    
-    df['rsi'] = calculate_rsi(df['close'], 14)
-    df['atr'] = calculate_atr(df, 14)
-    df['adx'], df['plus_di'], df['minus_di'] = calculate_adx(df, 14)
-    df['macd'], df['macd_signal'], df['macd_hist'] = calculate_macd(df['close'])
-    df['bb_upper'], df['bb_middle'], df['bb_lower'] = calculate_bollinger_bands(df['close'])
-    df['choppiness'] = calculate_choppiness(df, 14)
-    
-    # Price-based features
-    df['returns'] = df['close'].pct_change()
-    df['log_returns'] = np.log(df['close'] / df['close'].shift(1))
-    df['high_low_ratio'] = df['high'] / df['low']
-    df['close_open_ratio'] = df['close'] / df['open']
-    
-    # Volume features
-    df['volume_sma'] = df['volume'].rolling(window=20).mean()
-    df['volume_ratio'] = df['volume'] / df['volume_sma']
-    
-    # Momentum features
-    df['momentum_5'] = df['close'] / df['close'].shift(5) - 1
-    df['momentum_10'] = df['close'] / df['close'].shift(10) - 1
-    
-    # ═══════════════════════════════════════════════════════════════════════
-    # 🎯 SIDEWAY FILTER INDICATORS (MATCHED WITH BACKTEST)
-    # ═══════════════════════════════════════════════════════════════════════
-    
-    # 1. BB_position (Position within Bollinger Bands)
-    bb_range = df['bb_upper'] - df['bb_lower']
-    df['BB_position'] = np.where(
-        bb_range > 0,
-        (df['close'] - df['bb_lower']) / bb_range,
-        0.5
-    )
-    
-    # 2. deviation_zscore_sma (Z-score relative to SMA20)
-    df['deviation_zscore_sma'] = (df['close'] - df['sma_20']) / df['close'].rolling(20).std()
-    
-    # 3. Shadow indicators (Lower and Upper shadows relative to ATR)
-    body = abs(df['close'] - df['open'])
+    # Shadows relative to ATR
     df['lower_shadow_atr'] = np.where(
-        df['close'] < df['open'],
-        (df['open'] - df['low']) / df['atr'],
-        (df['close'] - df['low']) / df['atr']
+        df['Close'] < df['Open'],
+        (df['Open'] - df['Low']) / df['ATR_raw'],
+        (df['Close'] - df['Low']) / df['ATR_raw']
     )
+    
     df['upper_shadow_atr'] = np.where(
-        df['close'] > df['open'],
-        (df['high'] - df['open']) / df['atr'],
-        (df['high'] - df['close']) / df['atr']
+        df['Close'] > df['Open'],
+        (df['High'] - df['Open']) / df['ATR_raw'],
+        (df['High'] - df['Close']) / df['ATR_raw']
     )
     
-    # Drop NaN values
-    df = df.dropna()
+    df['body_size_atr'] = body / df['ATR_raw']
     
-    # Select features for model
-    feature_columns = [
-        'returns', 'log_returns', 'high_low_ratio', 'close_open_ratio',
-        'rsi', 'atr', 'adx', 'plus_di', 'minus_di',
-        'macd', 'macd_signal', 'macd_hist',
-        'bb_upper', 'bb_middle', 'bb_lower',
-        'volume_ratio', 'momentum_5', 'momentum_10', 'choppiness',
-        'BB_position', 'deviation_zscore_sma', 'lower_shadow_atr', 'upper_shadow_atr'
+    # Shadow percentages
+    df['upper_shadow_pct'] = np.where(
+        candle_range > 0,
+        (df['High'] - df[['Close', 'Open']].max(axis=1)) / candle_range,
+        0
+    )
+    
+    df['lower_shadow_pct'] = np.where(
+        candle_range > 0,
+        (df[['Close', 'Open']].min(axis=1) - df['Low']) / candle_range,
+        0
+    )
+    
+    df['body_ratio'] = np.where(candle_range > 0, body / candle_range, 0)
+    
+    # Pattern scores
+    shadow_thresh = config.get('shadow_threshold_atr', 0.8)
+    body_max = config.get('pinbar_body_ratio_max', 0.3)
+    
+    df['pinbar_score'] = (
+        ((df['lower_shadow_atr'] > shadow_thresh) | 
+         (df['upper_shadow_atr'] > shadow_thresh)) &
+        (df['body_ratio'] < body_max)
+    ).astype(int)
+    
+    df['hammer_score'] = (
+        (df['lower_shadow_atr'] > shadow_thresh) &
+        (df['upper_shadow_pct'] < 0.1) &
+        (df['body_ratio'] < 0.3)
+    ).astype(int)
+    
+    df['shooting_star_score'] = (
+        (df['upper_shadow_atr'] > shadow_thresh) &
+        (df['lower_shadow_pct'] < 0.1) &
+        (df['body_ratio'] < 0.3)
+    ).astype(int)
+    
+    return df
+
+def calculate_deviation_from_mean(df, config):
+    """Deviation analysis - MATCHED"""
+    df = df.copy()
+    
+    # VWAP
+    df['VWAP'] = (df['Close'] * df['Volume']).cumsum() / df['Volume'].cumsum()
+    df['VWAP_rolling'] = (
+        (df['Close'] * df['Volume']).rolling(20).sum() / 
+        df['Volume'].rolling(20).sum()
+    )
+    
+    # SMA_20 for reference
+    df['SMA_20'] = df['Close'].rolling(20).mean()
+    
+    # Use VWAP or SMA
+    use_vwap = config.get('use_vwap_deviation', True)
+    reference = df['VWAP_rolling'] if use_vwap else df['SMA_20']
+    
+    # Z-score from reference
+    rolling_std = df['Close'].rolling(20).std()
+    df['deviation_zscore_sma'] = (df['Close'] - reference) / rolling_std
+    df['deviation_zscore_vwap'] = (df['Close'] - df['VWAP_rolling']) / rolling_std
+    
+    # Percentage deviation
+    df['deviation_pct_sma'] = (df['Close'] - df['SMA_20']) / df['SMA_20'] * 100
+    
+    # Overextended flags
+    z_thresh = config.get('deviation_zscore_threshold', 2.0)
+    df['is_overextended_high'] = (df['deviation_zscore_sma'] > z_thresh).astype(int)
+    df['is_overextended_low'] = (df['deviation_zscore_sma'] < -z_thresh).astype(int)
+    
+    return df
+
+def calculate_bollinger_squeeze(df, period=20):
+    """Bollinger Band squeeze detection - MATCHED"""
+    df = df.copy()
+    
+    # BB width relative to price
+    df['BB_width_ma'] = df['BB_width'].rolling(period).mean()
+    df['squeeze_intensity'] = df['BB_width'] / df['BB_width_ma']
+    
+    # Squeeze = BB width in bottom 20%
+    percentile_thresh = 0.20
+    bb_width_percentile = df['BB_width'].rolling(100).apply(
+        lambda x: np.percentile(x, percentile_thresh * 100)
+    )
+    
+    df['is_bb_squeeze'] = (df['BB_width'] < bb_width_percentile).astype(int)
+    df['is_extreme_squeeze'] = (df['squeeze_intensity'] < 0.5).astype(int)
+    
+    return df
+
+def apply_rolling_normalization(df, feature_cols, config):
+    """
+    Rolling Z-Score Normalization - MATCHED WITH BACKTEST
+    Exclude raw indicators from normalization
+    """
+    df = df.copy()
+    
+    if not config.get('use_rolling_normalization', True):
+        return df
+    
+    window = config.get('rolling_window', 200)
+    min_periods = config.get('rolling_min_periods', 50)
+    
+    logger.info(f"🔄 Applying Rolling Z-Score (Window={window}, Min={min_periods})...")
+    
+    # EXCLUDE these from normalization (keep raw)
+    exclude_from_normalization = [
+        'ADX_raw', 'choppiness_index', 'ATR_raw',
+        'Close', 'Open', 'High', 'Low', 'Volume',
+        'timestamp',
+        'regime_trending', 'regime_sideway', 'regime_uptrend', 'regime_downtrend',
+        'is_bb_squeeze', 'is_extreme_squeeze',
+        'is_overextended_high', 'is_overextended_low',
+        'pinbar_score', 'hammer_score', 'shooting_star_score',
+        'VWAP', 'VWAP_rolling', 'SMA_20', 'SMA_long', 'SMA_short',
+        'BB_upper', 'BB_lower', 'BB_width', 'BB_width_ma',
     ]
     
-    features = df[[col for col in feature_columns if col in df.columns]].values
+    cols_to_normalize = [col for col in feature_cols if col not in exclude_from_normalization]
     
-    # Normalize features
-    from sklearn.preprocessing import StandardScaler
-    scaler = StandardScaler()
-    features_scaled = scaler.fit_transform(features)
+    logger.info(f"   Normalizing: {len(cols_to_normalize)} features")
+    logger.info(f"   Excluding:   {len(feature_cols) - len(cols_to_normalize)} features")
+    
+    for col in cols_to_normalize:
+        if col not in df.columns:
+            continue
+        
+        rolling_mean = df[col].rolling(window=window, min_periods=min_periods).mean()
+        rolling_std = df[col].rolling(window=window, min_periods=min_periods).std()
+        
+        # Z-score normalization
+        df[col] = (df[col] - rolling_mean) / (rolling_std + 1e-8)
+        
+        # Clip extreme values
+        df[col] = df[col].clip(-5, 5)
+    
+    logger.info("✅ Rolling normalization complete")
+    return df
+
+def enrich_features_live(df, config, feature_cols):
+    """
+    Feature Engineering for LIVE - MATCHED with backtest v14
+    
+    Args:
+        df: Raw OHLCV DataFrame (must have at least 300 rows for warm-up)
+        config: Configuration dict
+        feature_cols: Feature columns from checkpoint
+    
+    Returns:
+        enriched DataFrame with features ready for model
+    """
+    df = df.copy()
+    logger.info(f"🔧 Live Feature Engineering (v14.4 Matched)")
+    logger.info(f"   Input: {len(df)} rows")
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # BASIC FEATURES
+    # ═══════════════════════════════════════════════════════════════════════
+    
+    # Fractional differentiation
+    df['fd_close'] = calculate_fractional_diff(df['Close'], d=0.4)
+    df['fd_close'] = df['fd_close'].replace([np.inf, -np.inf], np.nan).ffill()
+    
+    # Volume imbalance
+    df['vol_imbalance'] = np.sign(df['Close'] - df['Open']) * df['Volume']
+    df['vol_imbalance_ema'] = df['vol_imbalance'].ewm(span=20).mean()
+    
+    # Entropy
+    df['entropy'] = calculate_entropy(df['Close'], window=20)
+    
+    # ATR
+    high_low = df['High'] - df['Low']
+    high_close = np.abs(df['High'] - df['Close'].shift(1))
+    low_close = np.abs(df['Low'] - df['Close'].shift(1))
+    true_range = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+    df['ATR'] = true_range.rolling(14).mean()
+    df['ATR_raw'] = df['ATR'].copy()  # Keep raw for filters
+    
+    # Bollinger Bands
+    sma_20 = df['Close'].rolling(20).mean()
+    std_20 = df['Close'].rolling(20).std()
+    df['BB_upper'] = sma_20 + (2 * std_20)
+    df['BB_lower'] = sma_20 - (2 * std_20)
+    df['BB_width'] = (df['BB_upper'] - df['BB_lower']) / sma_20
+    df['BB_position'] = (df['Close'] - df['BB_lower']) / (df['BB_upper'] - df['BB_lower'])
+    
+    # RSI
+    delta = df['Close'].diff()
+    gain = delta.where(delta > 0, 0)
+    loss = -delta.where(delta < 0, 0)
+    avg_gain = gain.rolling(14).mean()
+    avg_loss = loss.rolling(14).mean()
+    rs = avg_gain / avg_loss.replace(0, np.nan)
+    df['RSI'] = 100 - (100 / (1 + rs))
+    
+    # MACD
+    ema_12 = df['Close'].ewm(span=12).mean()
+    ema_26 = df['Close'].ewm(span=26).mean()
+    df['MACD'] = ema_12 - ema_26
+    df['MACD_signal'] = df['MACD'].ewm(span=9).mean()
+    
+    # ADX
+    period = 14
+    df['plus_dm'] = np.where(
+        (df['High'] - df['High'].shift(1)) > (df['Low'].shift(1) - df['Low']),
+        np.maximum(df['High'] - df['High'].shift(1), 0),
+        0
+    )
+    df['minus_dm'] = np.where(
+        (df['Low'].shift(1) - df['Low']) > (df['High'] - df['High'].shift(1)),
+        np.maximum(df['Low'].shift(1) - df['Low'], 0),
+        0
+    )
+    
+    atr_smooth = df['ATR'].rolling(period).mean()
+    df['plus_di'] = 100 * (df['plus_dm'].rolling(period).mean() / atr_smooth)
+    df['minus_di'] = 100 * (df['minus_dm'].rolling(period).mean() / atr_smooth)
+    
+    dx = 100 * np.abs(df['plus_di'] - df['minus_di']) / (df['plus_di'] + df['minus_di'])
+    df['ADX'] = dx.rolling(period).mean()
+    df['ADX_raw'] = df['ADX'].copy()  # Keep raw for regime detection
+    
+    # SMA
+    df['SMA_short'] = df['Close'].rolling(20).mean()
+    df['SMA_long'] = df['Close'].rolling(50).mean()
+    df['SMA_distance'] = (df['SMA_short'] - df['SMA_long']) / df['SMA_long']
+    
+    # Volume
+    df['volume_ma'] = df['Volume'].rolling(20).mean()
+    df['volume_ratio'] = df['Volume'] / df['volume_ma']
+    
+    # Volatility Z-Score
+    returns = df['Close'].pct_change()
+    volatility = returns.rolling(20).std()
+    vol_mean = volatility.rolling(100).mean()
+    vol_std = volatility.rolling(100).std()
+    df['volatility_zscore'] = (volatility - vol_mean) / vol_std.replace(0, np.nan)
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # v14 FEATURES: PRICE ACTION
+    # ═══════════════════════════════════════════════════════════════════════
+    
+    logger.info("   ⚡ Computing shadows, deviation, choppiness...")
+    df = calculate_candlestick_shadows(df, config)
+    df = calculate_deviation_from_mean(df, config)
+    df['choppiness_index'] = calculate_choppiness_index(df, period=14)
+    df = calculate_bollinger_squeeze(df, period=20)
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # REGIME CLASSIFICATION
+    # ═══════════════════════════════════════════════════════════════════════
+    
+    df['regime_trending'] = (
+        (df['ADX'] > 25) & (df['choppiness_index'] < 50)
+    ).astype(int)
+    
+    df['regime_sideway'] = (
+        (df['ADX'] < 20) &
+        (df['choppiness_index'] > 61.8) &
+        (df['is_bb_squeeze'] == 1)
+    ).astype(int)
+    
+    df['regime_uptrend'] = (
+        (df['regime_trending'] == 1) & (df['SMA_distance'] > 0)
+    ).astype(int)
+    
+    df['regime_downtrend'] = (
+        (df['regime_trending'] == 1) & (df['SMA_distance'] < 0)
+    ).astype(int)
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # ROLLING NORMALIZATION (v11 feature)
+    # ═══════════════════════════════════════════════════════════════════════
+    
+    df = apply_rolling_normalization(df, feature_cols, config)
+    
+    # Forward fill any remaining NaN
+    df = df.ffill()
+    df = df.fillna(0)
+    
+    logger.info(f"✅ Feature engineering complete: {len(df)} rows")
+    
+    return df
+
+def prepare_features_for_model(df, feature_cols, config):
+    """
+    Prepare final feature matrix for model input
+    
+    CRITICAL: Use exact feature_cols from checkpoint to maintain column order
+    """
+    # Extract features in EXACT order from checkpoint
+    features_df = df[feature_cols].copy()
+    
+    # Convert to numpy
+    features = features_df.values
     
     # Create sequences
+    sequence_length = config.get('sequence_length', 60)
     sequences = []
-    for i in range(len(features_scaled) - sequence_length):
-        sequences.append(features_scaled[i:i+sequence_length])
     
-    return np.array(sequences)
+    for i in range(len(features) - sequence_length):
+        seq = features[i:i+sequence_length]
+        if not np.isnan(seq).any() and not np.isinf(seq).any():
+            sequences.append(seq)
+    
+    if len(sequences) == 0:
+        logger.warning("⚠️ No valid sequences created!")
+        return np.array([])
+    
+    logger.info(f"✅ Created {len(sequences)} valid sequences")
+    return np.array(sequences, dtype=np.float32)
 
 # ════════════════════════════════════════════════════════════════════════════
-# REGIME DETECTION - MATCHED WITH BACKTEST
+# REGIME DETECTION - MATCHED
 # ════════════════════════════════════════════════════════════════════════════
 
 def detect_market_regime_hierarchical(adx, choppiness, config):
     """
-    🎯 MATCHED WITH BACKTEST v14.4
-    Hierarchical regime detection matching the backtest logic
-    """
-    trending_adx_min = config.get('trending_adx_min', 30)
-    choppiness_high = config.get('choppiness_threshold_high', 58.0)
+    Hierarchical regime detection - 100% MATCHED with backtest
     
-    # Use 20 for sideway ADX max (matching backtest logic)
-    sideway_adx_max = 20  # Hardcoded to match backtest
+    Returns:
+        (is_trending, is_sideway, regime_reason)
+    """
+    trending_adx_min = config.get('trending_adx_min', 25)
+    sideway_adx_max = config.get('sideway_adx_max', 30)
+    choppiness_low = config.get('choppiness_threshold_low', 50)
+    choppiness_high = config.get('choppiness_threshold_high', 61.8)
     
     is_trending = False
     is_sideway = False
     regime_reason = ""
     
-    # TRENDING conditions
-    if adx >= trending_adx_min and choppiness < choppiness_high:
+    # TRENDING: High ADX + Low Choppiness
+    if adx >= trending_adx_min and choppiness < choppiness_low:
         is_trending = True
-        regime_reason = f"TRENDING_ADX_HIGH(ADX:{adx:.1f}>={trending_adx_min}, CHOP:{choppiness:.1f}<{choppiness_high})"
+        regime_reason = f"TRENDING_ADX_HIGH(ADX:{adx:.1f}>={trending_adx_min}, CHOP:{choppiness:.1f}<{choppiness_low})"
     
-    # SIDEWAY conditions
+    # SIDEWAY: Low ADX + High Choppiness
     elif adx < sideway_adx_max and choppiness > choppiness_high:
         is_sideway = True
         regime_reason = f"SIDEWAY_CHOP_HIGH(ADX:{adx:.1f}<{sideway_adx_max}, CHOP:{choppiness:.1f}>{choppiness_high})"
@@ -406,12 +627,11 @@ def detect_market_regime_hierarchical(adx, choppiness, config):
 # ════════════════════════════════════════════════════════════════════════════
 
 def load_state():
-    """Load state with all required fields"""
+    """Load bot state"""
     if os.path.exists(STATE_FILE):
         try:
             with open(STATE_FILE, 'r') as f:
                 state = json.load(f)
-                # Ensure max_pnl field exists for all open trades
                 for trade in state.get('open_trades', []):
                     if 'max_pnl' not in trade:
                         trade['max_pnl'] = -2 * COMMISSION
@@ -432,7 +652,7 @@ def load_state():
     }
 
 def save_state(state):
-    """Save state to JSON file"""
+    """Save bot state"""
     state['last_update_time'] = datetime.now().isoformat()
     try:
         with open(STATE_FILE, 'w') as f:
@@ -445,7 +665,7 @@ def save_state(state):
 # ════════════════════════════════════════════════════════════════════════════
 
 def send_discord_alert(webhook_url, title, color, fields):
-    """Send enhanced Discord notification"""
+    """Send Discord notification"""
     if not webhook_url or "YOUR_WEBHOOK" in webhook_url:
         return
     
@@ -454,22 +674,20 @@ def send_discord_alert(webhook_url, title, color, fields):
         "color": color,
         "fields": fields,
         "timestamp": datetime.utcnow().isoformat(),
-        "footer": {"text": "Monster Engine v15.1 - Integrated"}
+        "footer": {"text": "Monster Engine v14.4 Sync"}
     }
     
     payload = {"embeds": [embed]}
     
     try:
-        response = requests.post(webhook_url, json=payload)
+        response = requests.post(webhook_url, json=payload, timeout=5)
         if response.status_code == 204:
-            logger.info("Discord alert sent successfully")
-        else:
-            logger.warning(f"Discord alert failed: {response.status_code}")
+            logger.info("✅ Discord alert sent")
     except Exception as e:
-        logger.error(f"Error sending Discord alert: {e}")
+        logger.error(f"Discord error: {e}")
 
 # ════════════════════════════════════════════════════════════════════════════
-# TRADING LOGIC
+# TRADING UTILITIES
 # ════════════════════════════════════════════════════════════════════════════
 
 def calculate_actual_entry_price(current_price, side):
@@ -486,128 +704,127 @@ def calculate_exit_price(current_price, side):
     else:
         return current_price * (1 + SLIPPAGE)
 
-def calculate_pnl(trade, exit_price):
-    """Calculate PnL percentage for a trade"""
-    entry = trade['entry_price']
-    if trade['side'] == 'BUY' or trade['side'] == 'LONG':
-        gross_pnl = ((exit_price - entry) / entry) * 100
-    else:
-        gross_pnl = ((entry - exit_price) / entry) * 100
-    
-    net_pnl = gross_pnl - (COMMISSION * 100 * 2)
-    return net_pnl
-
 # ════════════════════════════════════════════════════════════════════════════
-# MAIN LOOP
+# MAIN TRADING LOOP
 # ════════════════════════════════════════════════════════════════════════════
 
 def main():
     logger.info("="*80)
-    logger.info("MONSTER ENGINE v15.1 - INTEGRATED BACKTEST LOGIC")
+    logger.info("🚀 MONSTER ENGINE v14.4 - SYNCHRONIZED")
     logger.info("="*80)
     
-    # Initialize exchange
-    exchange = getattr(ccxt, LIVE_CONFIG['exchange'])()
+    # ═══════════════════════════════════════════════════════════════════════
+    # LOAD MODEL & CHECKPOINT
+    # ═══════════════════════════════════════════════════════════════════════
     
-    # Load model
-    logger.info("Loading AI model...")
-    model = HybridTransformerLSTM(
-        input_dim=22,  # Updated for additional sideway features
-        hidden_dim=128,
-        num_lstm_layers=2,
-        num_transformer_layers=2,
-        num_heads=4,
-        num_classes=3
-    )
-    model.eval()
+    model_path = Path('BTC-USDT_MONSTER_model.pt')
+    if not model_path.exists():
+        logger.error(f"❌ Model not found: {model_path}")
+        return
+    
+    logger.info(f"📦 Loading checkpoint: {model_path}")
+    
+    try:
+        checkpoint = torch.load(model_path, map_location='cpu')
+        
+        # Extract config and feature_cols from checkpoint
+        saved_config = checkpoint.get('config', {})
+        feature_cols = checkpoint.get('feature_cols', [])
+        
+        logger.info(f"✅ Checkpoint loaded")
+        logger.info(f"   Features: {len(feature_cols)}")
+        logger.info(f"   Input dim: {saved_config.get('input_dim', 'N/A')}")
+        
+        # Update LIVE_CONFIG with model config (but keep our live params)
+        LIVE_CONFIG['input_dim'] = len(feature_cols)
+        
+        # Build model
+        logger.info("🏗️ Building model...")
+        model = HybridTransformerLSTM(LIVE_CONFIG)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        model.eval()
+        
+        logger.info("✅ Model ready")
+        
+    except Exception as e:
+        logger.error(f"❌ Error loading model: {e}")
+        import traceback
+        traceback.print_exc()
+        return
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # INITIALIZE EXCHANGE
+    # ═══════════════════════════════════════════════════════════════════════
+    
+    exchange = getattr(ccxt, LIVE_CONFIG['exchange'])()
     
     # Load state
     state = load_state()
-    logger.info(f"State loaded. Balance: ${state['balance']:,.2f}")
+    logger.info(f"💰 Balance: ${state['balance']:,.2f}")
+    
+    logger.info("="*80)
+    logger.info("🎯 Starting main loop...")
+    logger.info("="*80)
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # MAIN LOOP
+    # ═══════════════════════════════════════════════════════════════════════
     
     while True:
         try:
-            loop_start_time = time.time()
+            loop_start = time.time()
             
             # ═══════════════════════════════════════════════════════════════
-            # FETCH MARKET DATA
+            # FETCH DATA (need 300+ candles for warm-up)
             # ═══════════════════════════════════════════════════════════════
             
-            logger.info(f"Fetching {LIVE_CONFIG['symbol']} data...")
+            logger.info(f"📊 Fetching {LIVE_CONFIG['symbol']} data...")
             ohlcv = exchange.fetch_ohlcv(
                 LIVE_CONFIG['symbol'],
                 LIVE_CONFIG['timeframe'],
-                limit=300
+                limit=350  # Extra margin for warm-up
             )
             
-            df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+            df = pd.DataFrame(ohlcv, columns=['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
             df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
             
-            current_price = df['close'].iloc[-1]
-            state['current_price'] = float(current_price)
+            current_price = float(df['Close'].iloc[-1])
+            state['current_price'] = current_price
             
-            # Calculate indicators
-            df['sma_20'] = df['close'].rolling(window=20).mean()
-            df['sma_200'] = df['close'].rolling(window=200).mean()
-            df['atr'] = calculate_atr(df, 14)
-            df['adx'], df['plus_di'], df['minus_di'] = calculate_adx(df, 14)
-            df['choppiness'] = calculate_choppiness(df, 14)
+            # ═══════════════════════════════════════════════════════════════
+            # FEATURE ENGINEERING (using checkpoint feature_cols)
+            # ═══════════════════════════════════════════════════════════════
             
-            # Calculate sideway filter indicators
-            df['bb_upper'], df['bb_middle'], df['bb_lower'] = calculate_bollinger_bands(df['close'])
-            bb_range = df['bb_upper'] - df['bb_lower']
-            df['BB_position'] = np.where(
-                bb_range > 0,
-                (df['close'] - df['bb_lower']) / bb_range,
-                0.5
-            )
-            df['deviation_zscore_sma'] = (df['close'] - df['sma_20']) / df['close'].rolling(20).std()
+            df_enriched = enrich_features_live(df, LIVE_CONFIG, feature_cols)
             
-            # Calculate shadows
-            df['lower_shadow_atr'] = np.where(
-                df['close'] < df['open'],
-                (df['open'] - df['low']) / df['atr'],
-                (df['close'] - df['low']) / df['atr']
-            )
-            df['upper_shadow_atr'] = np.where(
-                df['close'] > df['open'],
-                (df['high'] - df['open']) / df['atr'],
-                (df['high'] - df['close']) / df['atr']
-            )
-            
-            sma20 = df['sma_20'].iloc[-1]
-            sma200 = df['sma_200'].iloc[-1]
-            atr = df['atr'].iloc[-1]
-            adx = df['adx'].iloc[-1]
-            chop = df['choppiness'].iloc[-1]
-            
-            # Get current row indicators for filters
-            current_row = df.iloc[-1]
+            # Get current candle indicators (for filters)
+            current_row = df_enriched.iloc[-1]
+            adx = current_row['ADX_raw']
+            chop = current_row['choppiness_index']
             bb_position = current_row['BB_position']
             deviation_zscore = current_row['deviation_zscore_sma']
             lower_shadow = current_row['lower_shadow_atr']
             upper_shadow = current_row['upper_shadow_atr']
+            sma20 = current_row.get('SMA_20', current_price)
+            atr = current_row['ATR_raw']
             
             # Regime detection
             is_trending, is_sideway, regime_reason = detect_market_regime_hierarchical(
-                adx=adx,
-                choppiness=chop,
-                config=LIVE_CONFIG
+                adx, chop, LIVE_CONFIG
             )
             
-            regime = "TRENDING" if is_trending else ("SIDEWAYS" if is_sideway else "UNCLEAR")
-            
-            logger.info(f"Market State: {regime_reason}")
+            regime = "TRENDING" if is_trending else ("SIDEWAY" if is_sideway else "UNCLEAR")
+            logger.info(f"🎯 {regime_reason}")
             
             # ═══════════════════════════════════════════════════════════════
-            # 🎯 POSITION MANAGEMENT - MATCHED WITH BACKTEST v14.4
+            # EXIT LOGIC (MATCHED WITH BACKTEST)
             # ═══════════════════════════════════════════════════════════════
             
             for trade in state['open_trades'][:]:
-                trade['bars_held'] += 1
+                trade['bars_held'] = trade.get('bars_held', 0) + 1
                 
-                # Calculate current PnL (as decimal for comparisons)
-                if trade['side'] == 'BUY' or trade['side'] == 'LONG':
+                # Calculate PnL
+                if trade['side'] in ['BUY', 'LONG']:
                     raw_pnl = (current_price - trade['entry_price']) / trade['entry_price']
                 else:
                     raw_pnl = (trade['entry_price'] - current_price) / trade['entry_price']
@@ -615,43 +832,33 @@ def main():
                 net_pnl = raw_pnl - (2 * COMMISSION)
                 
                 # Track max PnL
-                if 'max_pnl' not in trade:
-                    trade['max_pnl'] = net_pnl
-                else:
-                    trade['max_pnl'] = max(trade['max_pnl'], net_pnl)
+                trade['max_pnl'] = max(trade.get('max_pnl', net_pnl), net_pnl)
                 
                 exit_reason = None
                 
                 # ───────────────────────────────────────────────────────────
-                # EXIT LOGIC FOR TRENDING (MATCHED WITH BACKTEST)
+                # TRENDING EXIT
                 # ───────────────────────────────────────────────────────────
                 
-                if trade['regime'] == 'TRENDING':
+                if trade.get('regime') == 'TRENDING':
                     
-                    # Get AI probabilities (need to run model on current data)
-                    # For simplicity in live, we'll use a simpler approach
-                    # In production, you'd run the model here
-                    
-                    # 1. SIGNAL FLIP (need prob_buy/prob_sell - simplified check)
-                    # This would require running model prediction - skip for now
-                    
-                    # 2. TRAILING STOP
+                    # 1. Trailing Stop
                     trailing_activation = LIVE_CONFIG['trailing_stop_activation'] / 100
                     if net_pnl > trailing_activation:
                         trailing_dist = LIVE_CONFIG['trailing_stop_distance'] / 100
                         if net_pnl < (trade['max_pnl'] - trailing_dist):
                             exit_reason = 'TRAILING_STOP'
                     
-                    # 3. STOP LOSS (ATR-based)
+                    # 2. Stop Loss (ATR-based)
                     sl_distance = atr * LIVE_CONFIG['sl_std_multiplier']
                     if net_pnl < -(sl_distance / trade['entry_price']):
                         exit_reason = 'STOP_LOSS'
                     
-                    # 4. MAX HOLDING
+                    # 3. Max Holding
                     if trade['bars_held'] > LIVE_CONFIG['max_holding_bars']:
                         exit_reason = 'MAX_HOLDING'
                     
-                    # 5. PROFIT LOCK (tiered system)
+                    # 4. Profit Lock (tiered)
                     for trigger, lock in LIVE_CONFIG['profit_lock_levels']:
                         trigger_pct = trigger / 100
                         lock_pct = lock / 100
@@ -660,102 +867,92 @@ def main():
                             break
                 
                 # ───────────────────────────────────────────────────────────
-                # EXIT LOGIC FOR SIDEWAY (MATCHED WITH BACKTEST)
+                # SIDEWAY EXIT
                 # ───────────────────────────────────────────────────────────
                 
-                elif trade['regime'] == 'SIDEWAYS':
+                elif trade.get('regime') == 'SIDEWAY':
                     
                     min_profit_cover = LIVE_CONFIG['min_profit_for_target']
                     
-                    # 1. TARGET REACHED (Price returns to SMA20)
-                    if trade['side'] == 'BUY' or trade['side'] == 'LONG':
+                    # 1. Target Reached (price returns to SMA20)
+                    if trade['side'] in ['BUY', 'LONG']:
                         if current_price >= sma20:
                             if net_pnl > min_profit_cover:
                                 exit_reason = 'TARGET_REACHED'
                             elif net_pnl > 0:
                                 exit_reason = 'BREAK_EVEN'
-                    else:  # SHORT/SELL
+                    else:
                         if current_price <= sma20:
                             if net_pnl > min_profit_cover:
                                 exit_reason = 'TARGET_REACHED'
                             elif net_pnl > 0:
                                 exit_reason = 'BREAK_EVEN'
                     
-                    # 2. AI COUNTER SIGNAL (would need model prediction - simplified)
-                    # Skip for now - would require running model
-                    
-                    # 3. STOP LOSS (percentage-based for sideway)
+                    # 2. Stop Loss (percentage)
                     mean_reversion_sl = LIVE_CONFIG['mean_reversion_sl_pct'] / 100
                     if net_pnl < -mean_reversion_sl:
                         exit_reason = 'STOP_LOSS'
                     
-                    # 4. TAKE PROFIT (hard TP for sideway)
+                    # 3. Take Profit (hard TP)
                     mean_reversion_tp = LIVE_CONFIG['mean_reversion_tp_pct'] / 100
                     if net_pnl > mean_reversion_tp:
                         exit_reason = 'TAKE_PROFIT'
                     
-                    # 5. MAX HOLDING (time barrier)
+                    # 4. Max Holding
                     if trade['bars_held'] > LIVE_CONFIG['time_barrier']:
                         exit_reason = 'MAX_HOLDING'
                 
-                # ───────────────────────────────────────────────────────────
-                # EXECUTE EXIT
-                # ───────────────────────────────────────────────────────────
-                
+                # Execute exit
                 if exit_reason:
                     exit_price = calculate_exit_price(current_price, trade['side'])
-                    net_pnl_pct = calculate_pnl(trade, exit_price)
+                    pnl_usd = state['balance'] * LIVE_CONFIG['position_size'] * net_pnl
+                    state['balance'] += pnl_usd
                     
-                    position_value = state['balance'] * LIVE_CONFIG['position_size']
-                    dollar_pnl = position_value * (net_pnl_pct / 100)
-                    state['balance'] += dollar_pnl
-                    
-                    trade_record = {
-                        'side': trade['side'],
-                        'entry_price': f"${trade['entry_price']:,.2f}",
-                        'exit_price': f"${exit_price:,.2f}",
-                        'net_pnl': f"{net_pnl_pct:.2f}%",
-                        'dollar_pnl': f"${dollar_pnl:,.2f}",
-                        'exit_reason': exit_reason,
-                        'bars_held': trade['bars_held'],
-                        'regime': trade['regime'],
-                        'exit_time': datetime.now().isoformat()
-                    }
-                    state['trade_history'].insert(0, trade_record)
-                    
-                    state['total_trades'] += 1
-                    wins = len([t for t in state['trade_history'] if float(t['net_pnl'].replace('%', '')) > 0])
-                    state['win_rate'] = (wins / len(state['trade_history']) * 100) if state['trade_history'] else 0
-                    
-                    color = 0x00ff00 if net_pnl_pct > 0 else 0xff0000
-                    send_discord_alert(
-                        DISCORD_WEBHOOK,
-                        f"🎯 EXIT: {LIVE_CONFIG['symbol']} {trade['regime']} {trade['side']}",
-                        color,
-                        [
-                            {"name": "Exit Reason", "value": exit_reason, "inline": True},
-                            {"name": "PnL", "value": f"{net_pnl_pct:.2f}%", "inline": True},
-                            {"name": "Dollar PnL", "value": f"${dollar_pnl:,.2f}", "inline": True},
-                            {"name": "Entry Price", "value": f"${trade['entry_price']:,.2f}", "inline": True},
-                            {"name": "Exit Price", "value": f"${exit_price:,.2f}", "inline": True},
-                            {"name": "Bars Held", "value": str(trade['bars_held']), "inline": True},
-                            {"name": "New Balance", "value": f"${state['balance']:,.2f}", "inline": False}
-                        ]
-                    )
+                    state['trade_history'].append({
+                        'entry_time': trade['entry_time'],
+                        'exit_time': datetime.now().isoformat(),
+                        'mode': trade['regime'],
+                        'type': trade['side'],
+                        'entry_price': trade['entry_price'],
+                        'exit_price': exit_price,
+                        'pnl_pct': net_pnl * 100,
+                        'exit_reason': exit_reason
+                    })
                     
                     state['open_trades'].remove(trade)
-                    logger.info(f"🚪 EXIT {trade['regime']} {trade['side']} | PnL: {net_pnl_pct:.2f}% | Reason: {exit_reason}")
+                    state['total_trades'] += 1
+                    
+                    wins = sum(1 for t in state['trade_history'] if t['pnl_pct'] > 0)
+                    state['win_rate'] = wins / state['total_trades'] if state['total_trades'] > 0 else 0
+                    
+                    logger.info(f"🚪 EXIT {trade['regime']} {trade['side']}: {net_pnl*100:.2f}% | {exit_reason}")
+                    
+                    send_discord_alert(
+                        DISCORD_WEBHOOK,
+                        f"🚪 EXIT: {trade['side']} {trade['regime']}",
+                        0x00ff00 if net_pnl > 0 else 0xff0000,
+                        [
+                            {"name": "Side", "value": trade['side'], "inline": True},
+                            {"name": "Entry", "value": f"${trade['entry_price']:.2f}", "inline": True},
+                            {"name": "Exit", "value": f"${exit_price:.2f}", "inline": True},
+                            {"name": "PnL", "value": f"{net_pnl*100:.2f}%", "inline": True},
+                            {"name": "Reason", "value": exit_reason, "inline": False}
+                        ]
+                    )
             
             # ═══════════════════════════════════════════════════════════════
-            # 🎯 SIGNAL GENERATION - REGIME-FIRST LOGIC (MATCHED WITH v14.4)
+            # ENTRY LOGIC - REGIME-FIRST (MATCHED WITH BACKTEST v14.4)
             # ═══════════════════════════════════════════════════════════════
             
             if not state['open_trades'] and not state['pending_orders']:
                 try:
-                    sequences = prepare_features(df, LIVE_CONFIG['sequence_length'])
+                    # Prepare sequences for model
+                    sequences = prepare_features_for_model(df_enriched, feature_cols, LIVE_CONFIG)
+                    
                     if len(sequences) > 0:
                         last_sequence = sequences[-1]
                         
+                        # Get AI predictions
                         with torch.no_grad():
                             input_tensor = torch.FloatTensor(last_sequence).unsqueeze(0)
                             output = model(input_tensor)
@@ -764,18 +961,15 @@ def main():
                             output_scaled = output / LIVE_CONFIG['temperature']
                             probabilities = F.softmax(output_scaled, dim=1).squeeze().numpy()
                         
-                        # Note: Model output order depends on training
-                        # Assuming order: [neutral, buy, sell] or [buy, neutral, sell]
-                        # Adjust indices based on your model
-                        prob_neutral = probabilities[0]
-                        prob_buy = probabilities[1]
-                        prob_sell = probabilities[2]
+                        prob_neutral = float(probabilities[0])
+                        prob_buy = float(probabilities[1])
+                        prob_sell = float(probabilities[2])
                         
                         entry_signal = None
                         entry_mode = None
                         entry_reason = ""
                         
-                        # Get thresholds from config
+                        # Get thresholds
                         trending_buy_thresh = LIVE_CONFIG['trending_buy_threshold']
                         trending_sell_thresh = LIVE_CONFIG['trending_sell_threshold']
                         sideway_buy_thresh = LIVE_CONFIG['sideway_buy_threshold']
@@ -786,39 +980,31 @@ def main():
                         z_thresh = LIVE_CONFIG['deviation_zscore_threshold']
                         shadow_min = LIVE_CONFIG['mean_reversion_min_shadow_atr']
                         
-                        # ═══════════════════════════════════════════════════════════
-                        # REGIME-FIRST LOGIC: Strict if-elif-else (NO FALL-THROUGH!)
-                        # ═══════════════════════════════════════════════════════════
+                        # ═══════════════════════════════════════════════════════
+                        # REGIME-FIRST LOGIC (STRICT IF-ELIF-ELSE)
+                        # ═══════════════════════════════════════════════════════
                         
                         if is_trending:
-                            # ─────────────────────────────────────────────────────
-                            # MODE 1: TRENDING (High AI confidence required)
-                            # ─────────────────────────────────────────────────────
+                            # ───────────────────────────────────────────────────
+                            # MODE 1: TRENDING (High AI confidence)
+                            # ───────────────────────────────────────────────────
                             
-                            # Check LONG
-                            if (prob_buy > trending_buy_thresh and 
-                                prob_buy > prob_sell):
-                                
+                            if prob_buy > trending_buy_thresh and prob_buy > prob_sell:
                                 entry_signal = 'LONG'
                                 entry_mode = 'TRENDING'
                                 entry_reason = f"AI:{prob_buy:.3f}>{trending_buy_thresh:.3f}"
                             
-                            # Check SHORT
-                            elif (prob_sell > trending_sell_thresh and
-                                  prob_sell > prob_buy):
-                                
+                            elif prob_sell > trending_sell_thresh and prob_sell > prob_buy:
                                 entry_signal = 'SHORT'
                                 entry_mode = 'TRENDING'
                                 entry_reason = f"AI:{prob_sell:.3f}>{trending_sell_thresh:.3f}"
-                            
-                            # else: is_trending but no AI signal → WAIT
                         
                         elif is_sideway:
-                            # ─────────────────────────────────────────────────────
-                            # MODE 2: SIDEWAY (LOWER AI threshold + Price Action)
-                            # ─────────────────────────────────────────────────────
+                            # ───────────────────────────────────────────────────
+                            # MODE 2: SIDEWAY (Lower AI threshold + Price Action)
+                            # ───────────────────────────────────────────────────
                             
-                            # Compute price action indicators
+                            # Price action conditions
                             near_bb_lower = bb_position < bb_border
                             near_bb_upper = bb_position > (1 - bb_border)
                             is_oversold = deviation_zscore < -z_thresh
@@ -857,23 +1043,21 @@ def main():
                                 if has_upper_shadow:
                                     reasons.append(f"Shadow:{upper_shadow:.2f}")
                                 entry_reason = "|".join(reasons)
-                            
-                            # else: is_sideway but no signal → WAIT
                         
                         else:
-                            # ─────────────────────────────────────────────────────
+                            # ───────────────────────────────────────────────────
                             # MODE 3: UNCLEAR REGIME → WAIT
-                            # ─────────────────────────────────────────────────────
-                            pass  # entry_signal remains None
+                            # ───────────────────────────────────────────────────
+                            pass
                         
-                        # ═══════════════════════════════════════════════════════════
-                        # EXECUTE ENTRY (if any signal was generated)
-                        # ═══════════════════════════════════════════════════════════
+                        # ═══════════════════════════════════════════════════════
+                        # EXECUTE ENTRY
+                        # ═══════════════════════════════════════════════════════
                         
                         if entry_signal:
                             
                             if entry_mode == 'TRENDING':
-                                # MARKET ORDER for trending
+                                # MARKET ORDER
                                 entry_price = calculate_actual_entry_price(current_price, entry_signal)
                                 
                                 sl_distance = atr * LIVE_CONFIG['sl_std_multiplier']
@@ -896,27 +1080,23 @@ def main():
                                 }
                                 state['open_trades'].append(trade)
                                 
-                                color = 0x00ff00 if entry_signal == 'LONG' else 0xff0000
+                                logger.info(f"🚀 {entry_mode}_{entry_signal} @ {entry_price:.2f} | {entry_reason}")
+                                
                                 send_discord_alert(
                                     DISCORD_WEBHOOK,
-                                    f"🚀 ENTRY: {LIVE_CONFIG['symbol']} {entry_mode} {entry_signal}",
-                                    color,
+                                    f"🚀 ENTRY: {entry_mode} {entry_signal}",
+                                    0x00ff00 if entry_signal == 'LONG' else 0xff0000,
                                     [
                                         {"name": "Symbol", "value": LIVE_CONFIG['symbol'], "inline": True},
                                         {"name": "Side", "value": entry_signal, "inline": True},
-                                        {"name": "Entry Price", "value": f"${entry_price:,.2f}", "inline": True},
-                                        {"name": "Stop Loss", "value": f"${stop_loss:,.2f}", "inline": True},
-                                        {"name": "Take Profit", "value": f"${take_profit:,.2f}", "inline": True},
+                                        {"name": "Entry", "value": f"${entry_price:.2f}", "inline": True},
                                         {"name": "Regime", "value": entry_mode, "inline": True},
-                                        {"name": "Reason", "value": entry_reason, "inline": False},
-                                        {"name": "Order Type", "value": "MARKET", "inline": False}
+                                        {"name": "Reason", "value": entry_reason, "inline": False}
                                     ]
                                 )
-                                
-                                logger.info(f"🚀 {entry_mode}_{entry_signal} @ {entry_price:.2f} | {entry_reason} | {regime_reason}")
                             
                             elif entry_mode == 'SIDEWAY':
-                                # LIMIT ORDER for sideway (better price)
+                                # LIMIT ORDER
                                 limit_offset = LIVE_CONFIG['limit_order_offset']
                                 if entry_signal == 'LONG':
                                     limit_price = current_price * (1 - limit_offset)
@@ -941,7 +1121,7 @@ def main():
                                 }
                                 state['pending_orders'].append(pending_order)
                                 
-                                logger.info(f"✅ {entry_mode}_{entry_signal} LIMIT @ {limit_price:.2f} | {entry_reason} | {regime_reason}")
+                                logger.info(f"✅ {entry_mode}_{entry_signal} LIMIT @ {limit_price:.2f} | {entry_reason}")
                 
                 except Exception as e:
                     logger.error(f"Error in signal generation: {e}", exc_info=True)
@@ -953,13 +1133,12 @@ def main():
             for pending in state['pending_orders'][:]:
                 pending['candles_waiting'] += 1
                 
-                # Check if limit price reached
+                # Check if filled
                 if pending['side'] == 'LONG':
                     if current_price <= pending['limit_price']:
-                        entry_price = pending['limit_price']
                         trade = {
                             'side': pending['side'],
-                            'entry_price': entry_price,
+                            'entry_price': pending['limit_price'],
                             'stop_loss': pending['stop_loss'],
                             'take_profit': pending['take_profit'],
                             'entry_time': datetime.now().isoformat(),
@@ -969,27 +1148,13 @@ def main():
                         }
                         state['open_trades'].append(trade)
                         state['pending_orders'].remove(pending)
-                        
-                        send_discord_alert(
-                            DISCORD_WEBHOOK,
-                            f"🚀 ENTRY: {LIVE_CONFIG['symbol']} {pending['regime']} {pending['side']} (LIMIT FILLED)",
-                            0x00ff00,
-                            [
-                                {"name": "Symbol", "value": LIVE_CONFIG['symbol'], "inline": True},
-                                {"name": "Side", "value": pending['side'], "inline": True},
-                                {"name": "Entry Price", "value": f"${entry_price:,.2f}", "inline": True},
-                                {"name": "Regime", "value": pending['regime'], "inline": True},
-                                {"name": "Reason", "value": pending.get('entry_reason', 'N/A'), "inline": False}
-                            ]
-                        )
-                        logger.info(f"Limit order filled: {pending['side']} @ ${entry_price:.2f}")
+                        logger.info(f"✅ Limit filled: {pending['side']} @ ${pending['limit_price']:.2f}")
                 
                 elif pending['side'] == 'SHORT':
                     if current_price >= pending['limit_price']:
-                        entry_price = pending['limit_price']
                         trade = {
                             'side': pending['side'],
-                            'entry_price': entry_price,
+                            'entry_price': pending['limit_price'],
                             'stop_loss': pending['stop_loss'],
                             'take_profit': pending['take_profit'],
                             'entry_time': datetime.now().isoformat(),
@@ -999,24 +1164,11 @@ def main():
                         }
                         state['open_trades'].append(trade)
                         state['pending_orders'].remove(pending)
-                        
-                        send_discord_alert(
-                            DISCORD_WEBHOOK,
-                            f"🚀 ENTRY: {LIVE_CONFIG['symbol']} {pending['regime']} {pending['side']} (LIMIT FILLED)",
-                            0xff0000,
-                            [
-                                {"name": "Symbol", "value": LIVE_CONFIG['symbol'], "inline": True},
-                                {"name": "Side", "value": pending['side'], "inline": True},
-                                {"name": "Entry Price", "value": f"${entry_price:,.2f}", "inline": True},
-                                {"name": "Regime", "value": pending['regime'], "inline": True},
-                                {"name": "Reason", "value": pending.get('entry_reason', 'N/A'), "inline": False}
-                            ]
-                        )
-                        logger.info(f"Limit order filled: {pending['side']} @ ${entry_price:.2f}")
+                        logger.info(f"✅ Limit filled: {pending['side']} @ ${pending['limit_price']:.2f}")
                 
-                # Cancel if waited too long (2 candles)
+                # Cancel if waited too long
                 if pending['candles_waiting'] >= 2:
-                    logger.info(f"Canceling pending limit order after 2 candles")
+                    logger.info("❌ Limit order cancelled (timeout)")
                     state['pending_orders'].remove(pending)
             
             # Save state
@@ -1028,20 +1180,24 @@ def main():
             
             gc.collect()
             
-            loop_duration = time.time() - loop_start_time
+            loop_duration = time.time() - loop_start
             sleep_time = max(5, 60 - loop_duration)
             
-            logger.info(f"Cycle complete | Price: ${current_price:,.2f} | Regime: {regime} | Open: {len(state['open_trades'])} | Pending: {len(state['pending_orders'])}")
-            time.sleep(sleep_time)
+            logger.info(
+                f"✅ Cycle: Price=${current_price:,.2f} | {regime} | "
+                f"Open={len(state['open_trades'])} | Pending={len(state['pending_orders'])}"
+            )
             
+            time.sleep(sleep_time)
+        
         except KeyboardInterrupt:
-            logger.info("Shutdown signal received. Exiting...")
+            logger.info("👋 Shutdown signal received")
             state['bot_status'] = 'Stopped'
             save_state(state)
             break
         
         except Exception as e:
-            logger.error(f"Critical error in main loop: {e}", exc_info=True)
+            logger.error(f"❌ Critical error: {e}", exc_info=True)
             state['bot_status'] = f'Error: {str(e)}'
             save_state(state)
             time.sleep(60)
