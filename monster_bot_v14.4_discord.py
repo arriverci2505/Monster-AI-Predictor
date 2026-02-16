@@ -694,11 +694,11 @@ st.markdown("""
 
         /* 5. CĂN GIỮA CÁC CARD DƯỚI HUB */
         .metric-card {
-            width: 92% !important; /* Tạo khoảng trống nhẹ 2 bên lề */
-            margin-left: auto !important;
-            margin-right: auto !important;
-            margin-bottom: 25px !important; /* Tách các card ra */
-        }}
+            padding: 15px !important;
+            min-height: 140px !important;
+            margin-bottom: 20px !important; /* Thêm dòng này để tách các khung ra */
+            width: 100% !important;
+        }
 
         .metric-value {
             font-size: 24px !important; /* 32px trên PC là quá to cho mobile */
