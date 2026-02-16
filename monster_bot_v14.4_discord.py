@@ -738,7 +738,7 @@ st.markdown("""
         }
 
         .ascii-art {
-            font-size: 5px !important; /* Hạ size cực nhỏ để không bị tràn màn hình */
+            font-size: 7px !important; /* Hạ size cực nhỏ để không bị tràn màn hình */
             line-height: 1 !important;
             letter-spacing: -0.5px !important;
             display: block !important;
