@@ -239,10 +239,10 @@ st.markdown("""
     .hud-header::before {
         content: '';
         position: absolute;
-        width: 150px; /* Độ dài tia sáng */
+        width: 250px;
         height: 2px;
-        background: linear-gradient(90deg, transparent, #00f2ff, #ffffff, #00f2ff, transparent);
-        box-shadow: 0 0 15px #00f2ff;
+        background: linear-gradient(90deg, transparent, #00f2ff, #bd00ff, transparent);
+        box-shadow: 0 8px 32px rgba(0, 242, 255, 0.2);
         z-index: 10;
         /* Chạy theo Keyframes mới */
         animation: constantSpeed 6s linear infinite;
