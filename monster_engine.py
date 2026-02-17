@@ -152,23 +152,23 @@ logger.info(f"   AI Counter Signal:  ✅ (Sideway exit on strong reversal)")
 logger.info(f"   AI Safety Filter:   ✅ (Reject risky Sideway entries)")
 logger.info(f"")
 logger.info(f"🔍 THRESHOLD VERIFICATION:")
-logger.info(f"   Trending Buy:  {LIVE_CONFIG['trending_buy_threshold']:.3f} (0.40) ✅")
-logger.info(f"   Trending Sell: {LIVE_CONFIG['trending_sell_threshold']:.3f} (0.42) ✅")
-logger.info(f"   Sideway Buy:   {LIVE_CONFIG['sideway_buy_threshold']:.3f} (0.22) ✅")
-logger.info(f"   Sideway Sell:  {LIVE_CONFIG['sideway_sell_threshold']:.3f} (0.22) ✅")
+logger.info(f"   Trending Buy:  {LIVE_CONFIG['trending_buy_threshold']:.3f}")
+logger.info(f"   Trending Sell: {LIVE_CONFIG['trending_sell_threshold']:.3f}")
+logger.info(f"   Sideway Buy:   {LIVE_CONFIG['sideway_buy_threshold']:.3f}")
+logger.info(f"   Sideway Sell:  {LIVE_CONFIG['sideway_sell_threshold']:.3f}")
 logger.info(f"")
 logger.info(f"🔍 REGIME PARAMETERS:")
-logger.info(f"   ADX Trending Min:     {LIVE_CONFIG['trending_adx_min']} (30) ✅")
-logger.info(f"   ADX Sideway Max:      {LIVE_CONFIG['sideway_adx_max']} (20) ✅")
-logger.info(f"   Chop Extreme Low:     {LIVE_CONFIG['choppiness_threshold_low']} (30) ✅")
+logger.info(f"   ADX Trending Min:     {LIVE_CONFIG['trending_adx_min']}")
+logger.info(f"   ADX Sideway Max:      {LIVE_CONFIG['sideway_adx_max']}")
+logger.info(f"   Chop Extreme Low:     {LIVE_CONFIG['choppiness_threshold_low']}")
 logger.info(f"")
 logger.info(f"🔍 SIDEWAY FILTER VERIFICATION:")
-logger.info(f"   BB Percentile:    {LIVE_CONFIG['bb_squeeze_percentile']:.2f} ✅")
-logger.info(f"   Z-Score Thresh:   {LIVE_CONFIG['deviation_zscore_threshold']:.1f} ✅")
-logger.info(f"   Min Shadow ATR:   {LIVE_CONFIG['mean_reversion_min_shadow_atr']:.1f} ✅")
-logger.info(f"   AI Exit Thresh:   {LIVE_CONFIG['ai_exit_threshold']:.1f} ✅")
+logger.info(f"   BB Percentile:    {LIVE_CONFIG['bb_squeeze_percentile']:.2f}")
+logger.info(f"   Z-Score Thresh:   {LIVE_CONFIG['deviation_zscore_threshold']:.1f}")
+logger.info(f"   Min Shadow ATR:   {LIVE_CONFIG['mean_reversion_min_shadow_atr']:.1f}")
+logger.info(f"   AI Exit Thresh:   {LIVE_CONFIG['ai_exit_threshold']:.1f}")
 logger.info(f"")
-logger.info(f"🔍 TEMPERATURE: {LIVE_CONFIG['temperature']:.1f} ✅")
+logger.info(f"🔍 TEMPERATURE: {LIVE_CONFIG['temperature']:.1f}")
 logger.info("="*80)
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -450,7 +450,7 @@ def apply_rolling_normalization(df, feature_cols, config):
     window = config.get('rolling_window', 200)
     min_periods = config.get('rolling_min_periods', 50)
     
-    logger.info(f"🔄 Applying Rolling Z-Score (Window={window}, Min={min_periods})...")
+    # logger.info(f"🔄 Applying Rolling Z-Score (Window={window}, Min={min_periods})...")
     
     # EXCLUDE these from normalization (keep raw)
     exclude_from_normalization = [
@@ -467,8 +467,8 @@ def apply_rolling_normalization(df, feature_cols, config):
     
     cols_to_normalize = [col for col in feature_cols if col not in exclude_from_normalization]
     
-    logger.info(f"   Normalizing: {len(cols_to_normalize)} features")
-    logger.info(f"   Excluding:   {len(feature_cols) - len(cols_to_normalize)} features")
+    # logger.info(f"   Normalizing: {len(cols_to_normalize)} features")
+    # logger.info(f"   Excluding:   {len(feature_cols) - len(cols_to_normalize)} features")
     
     for col in cols_to_normalize:
         if col not in df.columns:
@@ -483,7 +483,7 @@ def apply_rolling_normalization(df, feature_cols, config):
         # Clip extreme values
         df[col] = df[col].clip(-5, 5)
     
-    logger.info("✅ Rolling normalization complete")
+    # logger.info("✅ Rolling normalization complete")
     return df
 
 def enrich_features_live(df, config, feature_cols):
@@ -499,8 +499,8 @@ def enrich_features_live(df, config, feature_cols):
         enriched DataFrame with features ready for model
     """
     df = df.copy()
-    logger.info(f"🔧 Live Feature Engineering (v14.4 Matched)")
-    logger.info(f"   Input: {len(df)} rows")
+    # logger.info(f"🔧 Live Feature Engineering (v14.4 Matched)")
+    # logger.info(f"   Input: {len(df)} rows")
     
     # ═══════════════════════════════════════════════════════════════════════
     # BASIC FEATURES
@@ -589,7 +589,7 @@ def enrich_features_live(df, config, feature_cols):
     # v14 FEATURES: PRICE ACTION
     # ═══════════════════════════════════════════════════════════════════════
     
-    logger.info("   ⚡ Computing shadows, deviation, choppiness...")
+    # logger.info("   ⚡ Computing shadows, deviation, choppiness...")
     df = calculate_candlestick_shadows(df, config)
     df = calculate_deviation_from_mean(df, config)
     df['choppiness_index'] = calculate_choppiness_index(df, period=14)
@@ -627,7 +627,7 @@ def enrich_features_live(df, config, feature_cols):
     df = df.ffill()
     df = df.fillna(0)
     
-    logger.info(f"✅ Feature engineering complete: {len(df)} rows")
+    # logger.info(f"✅ Feature engineering complete: {len(df)} rows")
     
     return df
 
@@ -656,7 +656,7 @@ def prepare_features_for_model(df, feature_cols, config):
         logger.warning("⚠️ No valid sequences created!")
         return np.array([])
     
-    logger.info(f"✅ Created {len(sequences)} valid sequences")
+    # logger.info(f"✅ Created {len(sequences)} valid sequences")
     return np.array(sequences, dtype=np.float32)
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -698,18 +698,18 @@ def detect_market_regime_hierarchical(adx, choppiness, config):
 
     # Strong momentum → TRENDING (regardless of choppiness)
     if adx > adx_trending_min:
-        return True, False, f"TRENDING_ADX_HIGH(ADX:{adx:.1f}>30)"
+        return True, False, f"TRENDING_ADX_HIGH(ADX:{adx:.1f} > 30)"
 
     # Very weak momentum → SIDEWAY
     if adx < adx_sideway_max:
         # Exception: Extremely directional price (very low chop)
         if choppiness < chop_extreme_low:
-            return True, False, f"TRENDING_CHOP_EXTREME_LOW(Chop:{choppiness:.1f}<30,ADX:{adx:.1f})"
+            return True, False, f"TRENDING_CHOP_EXTREME_LOW(Chop:{choppiness:.1f} < 30, ADX:{adx:.1f})"
         else:
-            return False, True, f"SIDEWAY_ADX_LOW(ADX:{adx:.1f}<30)"
+            return False, True, f"SIDEWAY_ADX_LOW(ADX:{adx:.1f} < 30)"
 
     # ═══════════════════════════════════════════════════════════════════════
-    # PRIORITY 2: UNCLEAR ZONE (20 ≤ ADX ≤ 25) - Use Choppiness
+    # PRIORITY 2: UNCLEAR ZONE (30 ≤ ADX ≤ 30) - Use Choppiness
     # ═══════════════════════════════════════════════════════════════════════
     
     if choppiness > 60:
@@ -903,7 +903,7 @@ def main():
             # FETCH DATA (need 300+ candles for warm-up)
             # ═══════════════════════════════════════════════════════════════
             
-            logger.info(f"📊 Fetching {LIVE_CONFIG['symbol']} data...")
+            # logger.info(f"📊 Fetching {LIVE_CONFIG['symbol']} data...")
             ohlcv = exchange.fetch_ohlcv(
                 LIVE_CONFIG['symbol'],
                 LIVE_CONFIG['timeframe'],
@@ -916,7 +916,7 @@ def main():
             current_price = float(df['Close'].iloc[-1])
             state['current_price'] = current_price
 
-            logger.info(f"📊 Data Fetched: {len(df)} candles. Required for Rolling: 200. ")
+            # logger.info(f"📊 Data Fetched: {len(df)} candles. Required for Rolling: 200. ")
       
             # ═══════════════════════════════════════════════════════════════
             # FEATURE ENGINEERING (using checkpoint feature_cols)
