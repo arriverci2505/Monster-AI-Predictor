@@ -58,9 +58,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Debug
-DEBUG_MODEL = True
-DEBUG_INPUT = True
-DEBUG_REGIME = True
+DEBUG_MODEL = False
+DEBUG_INPUT = False
+DEBUG_REGIME = False
 # Execution parameters
 SLIPPAGE = 0.0005
 COMMISSION = 0.00075
