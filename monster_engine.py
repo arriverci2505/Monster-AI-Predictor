@@ -1014,6 +1014,7 @@ def main():
                                 output = model(input_tensor)
                                 raw_logits = output.squeeze().detach().numpy()
                                 logger.info(f"RAW LOGITS → {raw_logits}")
+                              
                                 output_scaled = output / LIVE_CONFIG['temperature']
                                 probabilities = F.softmax(output_scaled, dim=1).squeeze().numpy()
                             
@@ -1118,7 +1119,9 @@ def main():
                         with torch.no_grad():
                             input_tensor = torch.FloatTensor(last_sequence).unsqueeze(0)
                             output = model(input_tensor)
-                            
+                            raw_logits = output.squeeze().detach().numpy()
+                            logger.info(f"RAW LOGITS → {raw_logits}")
+                          
                             # Temperature scaling
                             output_scaled = output / LIVE_CONFIG['temperature']
                             probabilities = F.softmax(output_scaled, dim=1).squeeze().numpy()
