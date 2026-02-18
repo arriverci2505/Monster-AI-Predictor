@@ -1162,10 +1162,11 @@ def main():
                         z_thresh = LIVE_CONFIG['deviation_zscore_threshold']
                         shadow_min = LIVE_CONFIG['mean_reversion_min_shadow_atr']
 
-                        sma_distance = current_row['SMA_distance']
-                        is_uptrend = sma_distance > 0
-                        is_downtrend = sma_distance < 0
-
+                        strong_downtrend = current_row['SMA_distance'] < -trend_buffer
+                        strong_uptrend   = current_row['SMA_distance'] > trend_buffer
+                        
+                        price_below_ema = current_price < current_row['EMA_20']
+                        price_above_ema = current_price > current_row['EMA_20']
 
                         state['ai_probs'] = {
                             'buy': float(prob_buy),
@@ -1178,36 +1179,19 @@ def main():
                         # REGIME-FIRST LOGIC (STRICT IF-ELIF-ELSE)
                         # ═══════════════════════════════════════════════════════
                         
-                        if is_trending:
+                        if is_trending and strong_uptrend and price_above_ema:
                         
-                            # 1️⃣ UP TREND → PRIORITIZE LONG
-                            if is_uptrend:
+                            if prob_buy > LIVE_CONFIG['buy_threshold']:
+                                entry_signal = 'LONG'
+                                entry_mode = 'TRENDING'
+                                entry_reason = f"Uptrend + AI Buy + Price Above EMA: {prob_buy:.3f}"
+                                              
+                        elif is_trending and strong_downtrend and price_below_ema:
                         
-                                # Primary: LONG
-                                if prob_buy > trending_buy_thresh and prob_buy > prob_sell:
-                                    entry_signal = 'LONG'
-                                    entry_mode = 'TRENDING'
-                                    entry_reason = f"Uptrend + AI Buy {prob_buy:.3f}"
-                        
-                                # Optional: Extreme reversal short (very strict)
-                                elif prob_sell > 0.45:
-                                    entry_signal = 'SHORT'
-                                    entry_mode = 'TRENDING'
-                                    entry_reason = f"Extreme Counter Short {prob_sell:.3f}"
-                        
-                            # 2️⃣ DOWN TREND → PRIORITIZE SHORT
-                            elif is_downtrend:
-                        
-                                if prob_sell > trending_sell_thresh and prob_sell > prob_buy:
-                                    entry_signal = 'SHORT'
-                                    entry_mode = 'TRENDING'
-                                    entry_reason = f"Downtrend + AI Sell {prob_sell:.3f}"
-                        
-                                elif prob_buy > 0.65:
-                                    entry_signal = 'LONG'
-                                    entry_mode = 'TRENDING'
-                                    entry_reason = f"Extreme Counter Long {prob_buy:.3f}"
-
+                            if prob_sell > LIVE_CONFIG['sell_threshold']:
+                                entry_signal = 'SHORT'
+                                entry_mode = 'TRENDING'
+                                entry_reason = f"Downtrend + AI Sell + Price Below EMA: {prob_sell:.3f}"
                         
                         elif is_sideway:
                             # ───────────────────────────────────────────────────
