@@ -939,8 +939,9 @@ def main():
             lower_shadow = current_row['lower_shadow_atr']
             upper_shadow = current_row['upper_shadow_atr']
             sma20 = current_row.get('SMA_20', current_price)
-            atr = current_row['ATR_raw']
-            
+            atr = current_row['ATR_raw']      
+            recent_low_3  = df_enriched['Low'].iloc[-4:-1].min()
+            recent_high_3 = df_enriched['High'].iloc[-4:-1].max()          
             # Regime detection
             is_trending, is_sideway, regime_reason = detect_market_regime_hierarchical(
                 adx, chop, LIVE_CONFIG
@@ -1163,12 +1164,6 @@ def main():
                         bb_border = LIVE_CONFIG['bb_squeeze_percentile']
                         z_thresh = LIVE_CONFIG['deviation_zscore_threshold']
                         shadow_min = LIVE_CONFIG['mean_reversion_min_shadow_atr']
-
-                        is_uptrend = current_row['regime_uptrend'] == 1
-                        is_downtrend = current_row['regime_downtrend'] == 1
-                        
-                        recent_low_3  = current_row['low'].iloc[-4:-1].min()
-                        recent_high_3 = current_row['high'].iloc[-4:-1].max()
                         
                         breakdown = current_price < recent_low_3
                         breakout  = current_price > recent_high_3
@@ -1186,13 +1181,13 @@ def main():
                         
                         if is_trending:
                           
-                            if is_uptrend  and breakout:
+                            if current_row['regime_uptrend']  and breakout and prob_buy > prob_sell:
                                 if prob_buy > LIVE_CONFIG['buy_threshold']:
                                     entry_signal = 'LONG'
                                     entry_mode = 'TRENDING'
                                     entry_reason = f"Uptrend + AI Buy + Breakout: {prob_buy:.3f}"
                                               
-                            elif is_downtrend and breakdown:
+                            elif current_row['regime_downtrend'] and breakdown and prob_sell > prob_buy:
                         
                                 if prob_sell > LIVE_CONFIG['sell_threshold']:
                                     entry_signal = 'SHORT'
