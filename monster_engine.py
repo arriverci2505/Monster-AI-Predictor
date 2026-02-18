@@ -1162,8 +1162,8 @@ def main():
                         z_thresh = LIVE_CONFIG['deviation_zscore_threshold']
                         shadow_min = LIVE_CONFIG['mean_reversion_min_shadow_atr']
 
-                        strong_downtrend = current_row['SMA_distance'] < -trend_buffer
-                        strong_uptrend   = current_row['SMA_distance'] > trend_buffer
+                        strong_downtrend = current_row['SMA_distance'] < -0.002
+                        strong_uptrend   = current_row['SMA_distance'] > 0.002
                         
                         price_below_ema = current_price < current_row['EMA_20']
                         price_above_ema = current_price > current_row['EMA_20']
