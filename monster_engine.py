@@ -1166,8 +1166,8 @@ def main():
 
                         current = df.iloc[-1]
 
-                        is_uptrend = current['regime_uptrend'] == 1
-                        is_downtrend = current['regime_downtrend'] == 1
+                        is_uptrend = df['regime_uptrend'] == 1
+                        is_downtrend = df['regime_downtrend'] == 1
                         
                         recent_low_3  = df['low'].iloc[-4:-1].min()
                         recent_high_3 = df['high'].iloc[-4:-1].max()
