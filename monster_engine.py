@@ -604,9 +604,9 @@ def enrich_features_live(df, config, feature_cols):
     # ═══════════════════════════════════════════════════════════════════════
     
     df['regime_trending'] = (
-        (df['ADX'] > 25) & (df['choppiness_index'] < 50)
+        (df['ADX'] > 30) & (df['choppiness_index'] < 50)
     ).astype(int)
-    
+
     df['regime_sideway'] = (
         (df['ADX'] < 20) &
         (df['choppiness_index'] > 61.8) &
@@ -614,11 +614,13 @@ def enrich_features_live(df, config, feature_cols):
     ).astype(int)
     
     df['regime_uptrend'] = (
-        (df['regime_trending'] == 1) & (df['SMA_distance'] > 0)
+        (df['regime_trending'] == 1) &
+        (df['SMA_distance'] > 0.002)
     ).astype(int)
     
     df['regime_downtrend'] = (
-        (df['regime_trending'] == 1) & (df['SMA_distance'] < 0)
+        (df['regime_trending'] == 1) &
+        (df['SMA_distance'] < -0.002)
     ).astype(int)
     
     # ═══════════════════════════════════════════════════════════════════════
@@ -1162,11 +1164,16 @@ def main():
                         z_thresh = LIVE_CONFIG['deviation_zscore_threshold']
                         shadow_min = LIVE_CONFIG['mean_reversion_min_shadow_atr']
 
-                        strong_downtrend = current_row['SMA_distance'] < -0.002
-                        strong_uptrend   = current_row['SMA_distance'] > 0.002
+                        current = df.iloc[-1]
+
+                        is_uptrend = current['regime_uptrend'] == 1
+                        is_downtrend = current['regime_downtrend'] == 1
                         
-                        price_below_ema = current_price < current_row['EMA_20']
-                        price_above_ema = current_price > current_row['EMA_20']
+                        recent_low_3  = df['low'].iloc[-4:-1].min()
+                        recent_high_3 = df['high'].iloc[-4:-1].max()
+                        
+                        breakdown = current_price < recent_low_3
+                        breakout  = current_price > recent_high_3
 
                         state['ai_probs'] = {
                             'buy': float(prob_buy),
@@ -1179,19 +1186,20 @@ def main():
                         # REGIME-FIRST LOGIC (STRICT IF-ELIF-ELSE)
                         # ═══════════════════════════════════════════════════════
                         
-                        if is_trending and strong_uptrend and price_above_ema:
-                        
-                            if prob_buy > LIVE_CONFIG['buy_threshold']:
-                                entry_signal = 'LONG'
-                                entry_mode = 'TRENDING'
-                                entry_reason = f"Uptrend + AI Buy + Price Above EMA: {prob_buy:.3f}"
+                        if is_trending:
+                          
+                            if is_uptrend  and breakout:
+                                if prob_buy > LIVE_CONFIG['buy_threshold']:
+                                    entry_signal = 'LONG'
+                                    entry_mode = 'TRENDING'
+                                    entry_reason = f"Uptrend + AI Buy + Breakout: {prob_buy:.3f}"
                                               
-                        elif is_trending and strong_downtrend and price_below_ema:
+                            elif is_downtrend and breakdown:
                         
-                            if prob_sell > LIVE_CONFIG['sell_threshold']:
-                                entry_signal = 'SHORT'
-                                entry_mode = 'TRENDING'
-                                entry_reason = f"Downtrend + AI Sell + Price Below EMA: {prob_sell:.3f}"
+                                if prob_sell > LIVE_CONFIG['sell_threshold']:
+                                    entry_signal = 'SHORT'
+                                    entry_mode = 'TRENDING'
+                                    entry_reason = f"Downtrend + AI Sell + Breakdown: {prob_sell:.3f}"
                         
                         elif is_sideway:
                             # ───────────────────────────────────────────────────
