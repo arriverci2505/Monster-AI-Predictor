@@ -83,8 +83,8 @@ LIVE_CONFIG = {
     'temperature': 1.2,  
     
     # TRENDING MODE (HIGH CONFIDENCE)
-    'trending_buy_threshold': 0.40,       
-    'trending_sell_threshold': 0.42,       
+    'trending_buy_threshold': 0.30,       
+    'trending_sell_threshold': 0.45,       
     
     # SIDEWAY MODE (LOWER CONFIDENCE)
     'sideway_buy_threshold': 0.22,    
