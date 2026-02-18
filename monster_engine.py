@@ -1182,14 +1182,14 @@ def main():
                         if is_trending:
                           
                             if current_row['regime_uptrend']  and breakout:
-                                if prob_buy > LIVE_CONFIG['buy_threshold']:
+                                if prob_buy > LIVE_CONFIG['trending_buy_threshold']:
                                     entry_signal = 'LONG'
                                     entry_mode = 'TRENDING'
                                     entry_reason = f"Uptrend + AI Buy + Breakout: {prob_buy:.3f}"
                                               
                             elif current_row['regime_downtrend'] and breakdown:
                         
-                                if prob_sell > LIVE_CONFIG['sell_threshold']:
+                                if prob_sell > LIVE_CONFIG['trending_sell_threshold']:
                                     entry_signal = 'SHORT'
                                     entry_mode = 'TRENDING'
                                     entry_reason = f"Downtrend + AI Sell + Breakdown: {prob_sell:.3f}"
