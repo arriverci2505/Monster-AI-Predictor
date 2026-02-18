@@ -87,8 +87,8 @@ LIVE_CONFIG = {
     'temperature': 0.7,  
     
     # TRENDING MODE (HIGH CONFIDENCE)
-    'trending_buy_threshold': 0.30,       
-    'trending_sell_threshold': 0.45,       
+    'trending_buy_threshold': 0.20,       
+    'trending_sell_threshold': 0.40,       
     
     # SIDEWAY MODE (LOWER CONFIDENCE)
     'sideway_buy_threshold': 0.22,    
@@ -1181,13 +1181,13 @@ def main():
                         
                         if is_trending:
                           
-                            if current_row['regime_uptrend']  and breakout and prob_buy > prob_sell:
+                            if current_row['regime_uptrend']  and breakout:
                                 if prob_buy > LIVE_CONFIG['buy_threshold']:
                                     entry_signal = 'LONG'
                                     entry_mode = 'TRENDING'
                                     entry_reason = f"Uptrend + AI Buy + Breakout: {prob_buy:.3f}"
                                               
-                            elif current_row['regime_downtrend'] and breakdown and prob_sell > prob_buy:
+                            elif current_row['regime_downtrend'] and breakdown:
                         
                                 if prob_sell > LIVE_CONFIG['sell_threshold']:
                                     entry_signal = 'SHORT'
