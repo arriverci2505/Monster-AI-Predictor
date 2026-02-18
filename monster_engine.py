@@ -1164,13 +1164,11 @@ def main():
                         z_thresh = LIVE_CONFIG['deviation_zscore_threshold']
                         shadow_min = LIVE_CONFIG['mean_reversion_min_shadow_atr']
 
-                        current = df.iloc[-1]
-
-                        is_uptrend = df['regime_uptrend'] == 1
-                        is_downtrend = df['regime_downtrend'] == 1
+                        is_uptrend = current_row['regime_uptrend'] == 1
+                        is_downtrend = current_row['regime_downtrend'] == 1
                         
-                        recent_low_3  = df['low'].iloc[-4:-1].min()
-                        recent_high_3 = df['high'].iloc[-4:-1].max()
+                        recent_low_3  = current_row['low'].iloc[-4:-1].min()
+                        recent_high_3 = current_row['high'].iloc[-4:-1].max()
                         
                         breakdown = current_price < recent_low_3
                         breakout  = current_price > recent_high_3
