@@ -80,7 +80,7 @@ LIVE_CONFIG = {
     'sequence_length': 60,
     
     # --- AI THRESHOLDS (DUAL SYSTEM - MATCHED!) ---
-    'temperature': 1.2,  
+    'temperature': 0.7,  
     
     # TRENDING MODE (HIGH CONFIDENCE)
     'trending_buy_threshold': 0.30,       
@@ -124,7 +124,7 @@ LIVE_CONFIG = {
     ],
     
     # --- ROLLING NORMALIZATION (v11) ---
-    'use_rolling_normalization': True,  
+    'use_rolling_normalization': False,  
     'rolling_window': 200,              
     'rolling_min_periods': 50,        
     
