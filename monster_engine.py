@@ -57,6 +57,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Debug
+DEBUG_MODEL = True
+DEBUG_INPUT = True
+DEBUG_REGIME = True
 # Execution parameters
 SLIPPAGE = 0.0005
 COMMISSION = 0.00075
@@ -939,7 +943,10 @@ def main():
             is_trending, is_sideway, regime_reason = detect_market_regime_hierarchical(
                 adx, chop, LIVE_CONFIG
             )
-            
+
+            if DEBUG_REGIME:
+                logger.info(f"REGIME DEBUG → ADX:{adx:.2f} CHOP:{chop:.2f} SMA_DIST:{current_row['SMA_distance']:.5f}")
+
             regime = "TRENDING" if is_trending else ("SIDEWAY" if is_sideway else "UNCLEAR")
             logger.info(f"🎯 {regime_reason}")
             
@@ -1012,8 +1019,6 @@ def main():
                             with torch.no_grad():
                                 input_tensor = torch.FloatTensor(last_sequence).unsqueeze(0)
                                 output = model(input_tensor)
-                                raw_logits = output.squeeze().detach().numpy()
-                                logger.info(f"RAW LOGITS → {raw_logits}")
                               
                                 output_scaled = output / LIVE_CONFIG['temperature']
                                 probabilities = F.softmax(output_scaled, dim=1).squeeze().numpy()
@@ -1116,11 +1121,23 @@ def main():
                         last_sequence = sequences[-1]
                         
                         # Get AI predictions
+                        if DEBUG_INPUT:
+                            logger.info(f"INPUT STD: {np.std(last_sequence):.6f} | MIN: {np.min(last_sequence):.3f} | MAX: {np.max(last_sequence):.3f}")
+                        
                         with torch.no_grad():
                             input_tensor = torch.FloatTensor(last_sequence).unsqueeze(0)
                             output = model(input_tensor)
-                            raw_logits = output.squeeze().detach().numpy()
-                            logger.info(f"RAW LOGITS → {raw_logits}")
+                        
+                            if DEBUG_MODEL:
+                                raw_logits = output.squeeze().detach().numpy()
+                                logger.info(f"RAW LOGITS → {raw_logits}")
+                                logger.info(f"LOGIT STD → {output.std().item():.6f}")
+                        
+                            output_scaled = output / LIVE_CONFIG['temperature']
+                            probabilities = F.softmax(output_scaled, dim=1).squeeze().numpy()
+                        
+                            if DEBUG_MODEL:
+                                logger.info(f"PROBS → "f"N:{probabilities[0]:.3f}, B:{probabilities[1]:.3f}, S:{probabilities[2]:.3f}")
                           
                             # Temperature scaling
                             output_scaled = output / LIVE_CONFIG['temperature']
